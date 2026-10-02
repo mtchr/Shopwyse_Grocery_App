@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShopWyse — Smart Grocery Savings</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#F2F9F5',
+              100: '#E1F3EA',
+              200: '#C3E7D5',
+              500: '#2D6A4F',
+              600: '#1B4332',
+              700: '#081C15',
+            },
+            accent: {
+              blue: '#2563EB',
+              blueHover: '#1D4ED8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Leaflet CSS & JS for Carto Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    /* Custom map pin badges */
+    .store-marker-pin {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .store-badge-bubble {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background-color: #EF4444;
+      color: white;
+      font-weight: 800;
+      font-size: 11px;
+      border-radius: 9999px;
+      padding: 2px 7px;
+      border: 2px solid white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+    /* Touch target sizes for older audience accessibility */
+    .touch-btn {
+      min-height: 48px;
+    }
+  </style>
+</head>
+
+<body class="bg-brand-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased">
+
+  <!-- ========================================================= -->
+  <!-- ANCHORED GLOBAL HEADER (Sticky Note 1)                    -->
+  <!-- ========================================================= -->
+  <header class="sticky top-0 z-40 bg-white border-b border-brand-200 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <!-- App Brand -->
+      <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('search')">
+        <div class="w-10 h-10 rounded-xl bg-brand-500 text-white flex items-center justify-center text-xl font-bold shadow-sm">
+          <i class="fa-solid fa-basket-shopping"></i>
+        </div>
+        <div>
+          <span class="text-2xl font-black tracking-tight text-brand-600">Shop<span class="text-accent-blue">Wyse</span></span>
+          <span class="hidden sm:inline-block ml-2 text-xs bg-brand-100 text-brand-600 px-2 py-0.5 rounded-full font-semibold">Provo / Salt Lake</span>
+        </div>
+      </div>
+
+      <!-- Anchored Navigation Buttons -->
+      <nav class="flex items-center gap-1 sm:gap-2">
+        <button onclick="guardNav('deals')" id="nav-deals" class="px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-fire text-amber-500"></i>
+          <span class="hidden md:inline">Hot</span> Deals
+        </button>
+
+        <button onclick="guardNav('map')" id="nav-map" class="px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-map-location-dot text-brand-500"></i>
+          <span>Map</span>
+        </button>
+
+        <button onclick="guardNav('list')" id="nav-list" class="relative px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-cart-shopping text-accent-blue"></i>
+          <span class="hidden md:inline">Grocery</span> List
+          <span id="cart-counter-badge" class="bg-accent-blue text-white text-xs font-bold px-2 py-0.5 rounded-full ml-1">0</span>
+        </button>
+
+        <button onclick="guardNav('account')" id="nav-account" class="px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
+          <i class="fa-regular fa-circle-user text-slate-500 text-lg"></i>
+          <span id="account-nav-label" class="hidden sm:inline">Account</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Notification Dropdown / Flash Toast -->
+  <div id="toast-banner" class="hidden bg-emerald-600 text-white px-4 py-2.5 text-center text-sm font-semibold shadow-md transition-all">
+    <span id="toast-msg">Alert notification message</span>
+  </div>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 relative">
+
+    <!-- ========================================================= -->
+    <!-- SCREEN 1: SEARCH & LANDING (Sticky 1)                      -->
+    <!-- ========================================================= -->
+    <section id="screen-search" class="space-y-6">
+      <!-- Main Search Box Card -->
+      <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-brand-200">
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2">Find the Best Grocery Prices Nearby</h1>
+        <p class="text-slate-600 mb-6">Compare prices across Walmart, Trader Joe's, Smith's, Costco, and Target in seconds.</p>
+
+        <!-- Search Form Fields -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+          <!-- Item Input -->
+          <div class="md:col-span-6">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Item Search</label>
+            <div class="relative">
+              <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+              <input type="text" id="input-search-term" placeholder="e.g. Gallon Milk, Eggs, Bread..." 
+                class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-medium text-slate-900" />
+            </div>
+          </div>
+
+          <!-- ZIP Input -->
+          <div class="md:col-span-3">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">ZIP Code</label>
+            <div class="relative">
+              <i class="fa-solid fa-location-dot absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+              <input type="text" id="input-zip-code" value="84064" maxlength="5"
+                class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-semibold text-slate-900" />
+            </div>
+          </div>
+
+          <!-- Radius Dropdown -->
+          <div class="md:col-span-3">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Search Radius</label>
+            <select id="select-radius" class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-semibold text-slate-900">
+              <option value="5" selected>5 miles</option>
+              <option value="10">10 miles</option>
+              <option value="15">15 miles</option>
+              <option value="20">20 miles</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Big Obvious Search Button -->
+        <div class="mt-4 flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <span id="search-error-msg" class="text-red-500 font-semibold text-sm hidden"></span>
+          <button onclick="executeSearch()" class="w-full sm:w-auto px-8 py-3.5 bg-accent-blue hover:bg-accent-blueHover text-white font-bold text-lg rounded-xl shadow-md transition flex items-center justify-center gap-2 touch-btn">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            SEARCH!
+          </button>
+        </div>
+      </div>
+
+      <!-- Suggested Staples Fast-Discovery Chips -->
+      <div class="bg-white rounded-2xl p-5 border border-brand-200">
+        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-sparkles text-amber-500"></i> Frequent Family Essentials (Tap to search)
+        </h3>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="quickSearch('Gallon Whole Milk')" class="px-4 py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-full text-sm font-semibold border border-brand-200 transition">
+            🥛 Gallon Whole Milk
+          </button>
+          <button onclick="quickSearch('Large Grade A Eggs')" class="px-4 py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-full text-sm font-semibold border border-brand-200 transition">
+            🥚 Large Grade A Eggs (18pk)
+          </button>
+          <button onclick="quickSearch('Honey Wheat Bread')" class="px-4 py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-full text-sm font-semibold border border-brand-200 transition">
+            🍞 Honey Wheat Bread
+          </button>
+          <button onclick="quickSearch('Ground Beef 80/20')" class="px-4 py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-full text-sm font-semibold border border-brand-200 transition">
+            🥩 Ground Beef 80/20 (3 lb)
+          </button>
+          <button onclick="quickSearch('Bananas')" class="px-4 py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-full text-sm font-semibold border border-brand-200 transition">
+            🍌 Bananas (Fresh Bunch)
+          </button>
+        </div>
+      </div>
+
+      <!-- Sticky 1 Bottom CTA Box -->
+      <div id="unregistered-banner" class="bg-gradient-to-r from-brand-500 to-brand-600 rounded-2xl p-6 text-white shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold">Unlock preferences and suggested items?</h2>
+          <p class="text-brand-100 text-sm mt-0.5">Create your free account to save family cart items, set trip radiuses, and get low price alerts.</p>
+        </div>
+        <button onclick="navigateTo('register')" class="whitespace-nowrap px-6 py-3 bg-white text-brand-600 hover:bg-brand-50 font-bold rounded-xl shadow transition touch-btn">
+          CREATE ACCOUNT
+        </button>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- SCREEN 2: SEARCH RESULTS WITH COLLAPSIBLE CART (Sticky 4) -->
+    <!-- ========================================================= -->
+    <section id="screen-results" class="hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <button onclick="navigateTo('search')" class="text-sm font-bold text-brand-600 hover:underline flex items-center gap-1.5 mb-1">
+            <i class="fa-solid fa-arrow-left"></i> Back to Search
+          </button>
+          <h2 class="text-2xl font-black text-slate-900">
+            Results for: <span id="results-query-label" class="text-accent-blue font-semibold"></span>
+          </h2>
+          <p class="text-sm text-slate-500">Comparing prices within <span id="results-radius-label" class="font-bold">5 miles</span> of <span id="results-zip-label" class="font-bold">84064</span></p>
+        </div>
+
+        <!-- Toggle Preview of Grocery List Button -->
+        <button onclick="toggleCartDrawer()" class="px-4 py-2.5 bg-brand-100 hover:bg-brand-200 text-brand-600 rounded-xl font-bold text-sm flex items-center gap-2 border border-brand-200 transition">
+          <i class="fa-solid fa-list-check"></i>
+          <span>Grocery List Preview (<span id="drawer-counter">0</span>)</span>
+        </button>
+      </div>
+
+      <!-- Main Layout: Results List + Collapsible Preview Side Drawer -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- Results Column -->
+        <div id="results-container" class="lg:col-span-8 space-y-4">
+          <!-- Dynamic Items Injected Here -->
+        </div>
+
+        <!-- Collapsible Preview of Grocery List (Sticky 4 Right Side) -->
+        <aside id="cart-preview-drawer" class="lg:col-span-4 bg-white rounded-2xl p-5 border border-brand-200 shadow-sm sticky top-24">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="font-black text-slate-900 text-base flex items-center gap-2">
+              <i class="fa-solid fa-basket-shopping text-accent-blue"></i>
+              Preview of Grocery List
+            </h3>
+            <span class="text-xs font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full" id="drawer-total-badge">$0.00</span>
+          </div>
+
+          <div id="drawer-items-list" class="divide-y divide-slate-100 max-h-72 overflow-y-auto my-3 text-sm">
+            <p class="py-4 text-center text-slate-400">Your grocery list is empty.<br>Click "Add to List" on any store option!</p>
+          </div>
+
+          <button onclick="guardNav('list')" class="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-bold text-sm shadow transition flex items-center justify-center gap-2 touch-btn">
+            View Full List & Store Totals
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- SCREEN 3: HOT DEALS (Sticky 3)                             -->
+    <!-- ========================================================= -->
+    <section id="screen-deals" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 rounded-2xl border border-brand-200 shadow-sm">
+        <div>
+          <h2 class="text-2xl font-black text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-fire text-amber-500"></i> Hot Deals Nearby
+          </h2>
+          <p class="text-sm text-slate-600">Recent price drops and weekly specials in the Provo/Orem area.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold uppercase text-slate-500">ZIP:</label>
+          <input type="text" id="deals-zip-input" value="84064" maxlength="5" class="w-24 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-bold text-center" />
+          <button onclick="refreshDeals()" class="px-3 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-lg text-sm transition">Update</button>
+        </div>
+      </div>
+
+      <!-- Deals Grid -->
+      <div id="deals-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Rendered from JS -->
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- SCREEN 4: GROCERY LIST / CART (Sticky 5)                   -->
+    <!-- ========================================================= -->
+    <section id="screen-list" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-2xl font-black text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-cart-shopping text-accent-blue"></i>
+            Stephanie's Family Grocery List
+          </h2>
+          <p class="text-sm text-slate-600">Review selected quantities, compare store totals, and plan your route.</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="clearCart()" class="px-4 py-2 border border-slate-300 hover:bg-slate-100 rounded-xl text-sm font-semibold text-slate-600 transition">
+            Clear List
+          </button>
+          <button onclick="guardNav('map')" class="px-5 py-2 bg-accent-blue hover:bg-accent-blueHover text-white font-bold rounded-xl text-sm shadow transition flex items-center gap-2">
+            <i class="fa-solid fa-map-location-dot"></i> View Optimized Map
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Main Cart Items -->
+        <div class="lg:col-span-8 bg-white rounded-2xl p-6 border border-brand-200 shadow-sm space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="font-bold text-slate-700">Selected Items (<span id="cart-item-count">0</span>)</h3>
+            <span class="text-xs text-slate-500">Sorted by best pricing across Provo stores</span>
+          </div>
+
+          <div id="full-cart-items" class="divide-y divide-slate-100">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Store Breakdown & Estimated Totals -->
+        <div class="lg:col-span-4 space-y-4">
+          <div class="bg-white rounded-2xl p-6 border border-brand-200 shadow-sm space-y-4">
+            <h3 class="font-black text-slate-900 text-lg border-b border-slate-100 pb-3">Estimated Totals</h3>
+
+            <!-- Store by Store Comparison -->
+            <div id="store-totals-list" class="space-y-2 text-sm">
+              <!-- Dynamically populated -->
+            </div>
+
+            <div class="pt-4 border-t border-slate-200 flex justify-between items-center">
+              <div>
+                <span class="block text-xs uppercase font-bold text-slate-500">Best Split Total</span>
+                <span class="text-2xl font-black text-brand-600" id="cart-grand-total">$0.00</span>
+              </div>
+              <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-full">Before taxes</span>
+            </div>
+
+            <button onclick="guardNav('map')" class="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow transition flex items-center justify-center gap-2 touch-btn">
+              <i class="fa-solid fa-route"></i>
+              Optimize Stores on Map
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- SCREEN 5: MAP VIEW (Sticky 6 & Option A Logic)             -->
+    <!-- ========================================================= -->
+    <section id="screen-map" class="hidden space-y-4">
+      <!-- Search bar for ZIP at top as a reference with GO button -->
+      <div class="bg-white p-4 rounded-2xl border border-brand-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-bold uppercase text-slate-600">ZIP Code:</label>
+            <input type="text" id="map-zip-input" value="84064" maxlength="5" class="w-24 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-accent-blue" />
+            <button onclick="updateMapLocation()" class="px-4 py-2 bg-accent-blue hover:bg-accent-blueHover text-white font-bold text-sm rounded-lg shadow transition">
+              GO
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-bold uppercase text-slate-600">Radius:</label>
+            <select id="map-radius-select" onchange="updateMapLocation()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-bold text-slate-700">
+              <option value="5" selected>5 miles</option>
+              <option value="10">10 miles</option>
+              <option value="15">15 miles</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="text-sm font-medium text-slate-600 bg-brand-50 px-3 py-1.5 rounded-lg border border-brand-200">
+          <i class="fa-solid fa-road text-brand-500 mr-1"></i> Total driving loop: <strong class="text-slate-900">4.8 miles</strong>
+        </div>
+      </div>
+
+      <!-- Map Display Container -->
+      <div class="relative bg-white rounded-2xl border border-brand-200 shadow-sm overflow-hidden h-[540px]">
+        <div id="carto-map" class="w-full h-full z-10"></div>
+
+        <!-- Legend / Guidance Overlay -->
+        <div class="absolute bottom-4 left-4 z-20 bg-white/95 backdrop-blur px-3 py-2 rounded-xl border border-slate-200 text-xs shadow-md space-y-1">
+          <div class="font-bold text-slate-800">Map Legend:</div>
+          <div class="flex items-center gap-2">
+            <span class="w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">#</span>
+            <span>Items on your list cheapest at this store</span>
+          </div>
+          <p class="text-slate-500 italic">Click any store marker to view itemized breakdown!</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- SCREEN 6: STORE DRILLDOWN MODAL / PANEL (Option A Logic)   -->
+    <!-- ========================================================= -->
+    <div id="modal-store-detail" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-brand-200 space-y-5">
+        <div class="flex items-start justify-between border-b border-slate-100 pb-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 id="store-modal-name" class="text-2xl font-black text-slate-900">Store Name</h3>
+              <span id="store-modal-dist" class="text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded">0.0 mi</span>
+            </div>
+            <p id="store-modal-addr" class="text-xs text-slate-500">Provo / Orem, UT</p>
+          </div>
+          <button onclick="closeStoreModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold">✕</button>
+        </div>
+
+        <!-- Store Estimated Total -->
+        <div class="bg-brand-50 p-4 rounded-xl border border-brand-200 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold uppercase text-brand-600">Store Estimated Total</span>
+            <div id="store-modal-total" class="text-2xl font-black text-brand-600">$0.00</div>
+          </div>
+          <span class="text-xs text-slate-500 font-medium">Calculated before taxes</span>
+        </div>
+
+        <!-- Breakdown Section: Cheapest at this Store -->
+        <div>
+          <h4 class="text-sm font-black uppercase text-emerald-800 tracking-wider mb-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-check text-emerald-600"></i> Best Prices Here (Cheapest)
+          </h4>
+          <div id="store-modal-cheapest-list" class="space-y-2">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Breakdown Section: Items More Expensive Here (with Cross-Out Comparisons) -->
+        <div>
+          <h4 class="text-sm font-black uppercase text-amber-800 tracking-wider mb-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> More Expensive Here (Cheaper Elsewhere)
+          </h4>
+          <div id="store-modal-other-list" class="space-y-2">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Action buttons to direct back to map or list -->
+        <div class="flex flex-col sm:flex-row gap-3 pt-3 border-t border-slate-100">
+          <button onclick="closeStoreModal()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition text-center touch-btn">
+            Back to Map
+          </button>
+          <button onclick="closeStoreModal(); navigateTo('list')" class="flex-1 py-3 bg-accent-blue hover:bg-accent-blueHover text-white font-bold rounded-xl transition text-center touch-btn">
+            Go to Full Grocery List
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- SCREEN 7: LOGIN & REGISTER (Sticky 2)                      -->
+    <!-- ========================================================= -->
+    <section id="screen-login" class="hidden max-w-md mx-auto bg-white p-8 rounded-2xl border border-brand-200 shadow-sm space-y-6">
+      <div class="text-center">
+        <div class="w-12 h-12 rounded-2xl bg-brand-500 text-white flex items-center justify-center text-2xl mx-auto mb-3">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        <h2 class="text-2xl font-black text-slate-900">Welcome Back</h2>
+        <p class="text-slate-500 text-sm">Please log in to manage your grocery list and maps</p>
+      </div>
+
+      <form onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Email</label>
+          <input type="email" id="login-email" value="stephanie.baldwin@example.com" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-medium" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Password</label>
+          <input type="password" id="login-password" value="grocerysaving7" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-medium" />
+        </div>
+
+        <div class="flex items-center justify-between text-xs font-semibold">
+          <a href="#" onclick="alert('Password reset link sent to registered email.'); return false;" class="text-brand-600 hover:underline">Forgot password?</a>
+          <a href="#" onclick="navigateTo('register'); return false;" class="text-accent-blue hover:underline">Create an Account</a>
+        </div>
+
+        <button type="submit" class="w-full py-3.5 bg-accent-blue hover:bg-accent-blueHover text-white font-bold rounded-xl shadow transition touch-btn text-base">
+          Log In
+        </button>
+      </form>
+    </section>
+
+    <!-- SCREEN 8: REGISTER (Sticky 2) -->
+    <section id="screen-register" class="hidden max-w-md mx-auto bg-white p-8 rounded-2xl border border-brand-200 shadow-sm space-y-6">
+      <div class="text-center">
+        <div class="w-12 h-12 rounded-2xl bg-brand-500 text-white flex items-center justify-center text-2xl mx-auto mb-3">
+          <i class="fa-solid fa-user-plus"></i>
+        </div>
+        <h2 class="text-2xl font-black text-slate-900">Create an Account</h2>
+        <p class="text-slate-500 text-sm">Join ShopWyse to optimize your family grocery budget</p>
+      </div>
+
+      <form onsubmit="handleRegister(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Email</label>
+          <input type="email" id="reg-email" placeholder="you@example.com" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Password</label>
+          <input type="password" id="reg-password" placeholder="••••••••" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none" />
+        </div>
+
+        <!-- Required Checkboxes from Spec -->
+        <div class="space-y-3 pt-2">
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" id="reg-marketing" checked class="mt-1 w-4 h-4 text-accent-blue rounded border-slate-300 focus:ring-accent-blue" />
+            <span class="text-xs text-slate-600 leading-snug">Opt-in to marketing emails and weekly low price digest</span>
+          </label>
+
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" id="reg-preferences" checked class="mt-1 w-4 h-4 text-accent-blue rounded border-slate-300 focus:ring-accent-blue" />
+            <span class="text-xs text-slate-600 leading-snug">Save my shopping preferences and Provo store radius</span>
+          </label>
+        </div>
+
+        <button type="submit" class="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow transition touch-btn text-base">
+          Complete Registration
+        </button>
+
+        <p class="text-center text-xs text-slate-500">
+          Already have an account? <a href="#" onclick="navigateTo('login'); return false;" class="text-accent-blue font-bold">Log in</a>
+        </p>
+      </form>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- SCREEN 9: ACCOUNT & NOTIFICATIONS (Sticky 7)               -->
+    <!-- ========================================================= -->
+    <section id="screen-account" class="hidden max-w-lg mx-auto bg-white p-8 rounded-2xl border border-brand-200 shadow-sm space-y-6">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div>
+          <h2 class="text-2xl font-black text-slate-900">Account Profile</h2>
+          <p class="text-xs text-slate-500">Manage credentials and notification alerts</p>
+        </div>
+        <button onclick="handleLogout()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition">
+          Log Out
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-500">Email Address</label>
+          <div id="account-email-display" class="font-bold text-slate-800 text-base">stephanie.baldwin@example.com</div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-500">Password</label>
+          <div class="text-slate-800 font-mono">••••••••••••••</div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100">
+          <h3 class="font-bold text-slate-900 text-sm mb-3">Notification Preferences</h3>
+          
+          <div class="space-y-3">
+            <label class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
+              <span class="text-xs font-semibold text-slate-700">Receive notifications only in-app</span>
+              <input type="checkbox" id="notif-in-app" checked class="w-5 h-5 text-brand-500 rounded border-slate-300 focus:ring-brand-500" />
+            </label>
+
+            <label class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
+              <span class="text-xs font-semibold text-slate-700">Outside notifications (Push & email when price drops)</span>
+              <input type="checkbox" id="notif-push" checked class="w-5 h-5 text-accent-blue rounded border-slate-300 focus:ring-accent-blue" />
+            </label>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100">
+          <button onclick="confirmDeleteAccount()" class="w-full py-3 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl text-sm transition touch-btn">
+            Delete Account
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================================= -->
+  <!-- MODAL: LOGIN REQUIRED POPUP                               -->
+  <!-- ========================================================= -->
+  <div id="modal-auth-interceptor" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl border border-brand-200 space-y-4">
+      <div class="w-14 h-14 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-2xl mx-auto">
+        <i class="fa-solid fa-lock"></i>
+      </div>
+      <div>
+        <h3 class="text-xl font-black text-slate-900">Login Required</h3>
+        <p class="text-slate-500 text-xs mt-1">To view your grocery list, route maps, and low price deals, please log into your ShopWyse account.</p>
+      </div>
+
+      <div class="space-y-2 pt-2">
+        <button onclick="closeAuthModal(); navigateTo('login')" class="w-full py-3 bg-accent-blue hover:bg-accent-blueHover text-white font-bold rounded-xl text-sm shadow transition">
+          Log In Now
+        </button>
+        <button onclick="quickGuestLogin()" class="w-full py-2.5 bg-brand-50 hover:bg-brand-100 text-brand-600 font-bold rounded-xl text-xs transition">
+          One-Click Demo Login (Stephanie)
+        </button>
+        <button onclick="closeAuthModal()" class="w-full py-2 text-slate-400 hover:text-slate-600 font-semibold text-xs">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- JAVASCRIPT STATE ENGINE & MOCK DATA                       -->
+  <!-- ========================================================= -->
+  <script>
+    // --- Global Application State ---
+    const state = {
+      isLoggedIn: false,
+      userEmail: 'stephanie.baldwin@example.com',
+      zipCode: '84064',
+      radius: 5,
+      currentScreen: 'search',
+      cart: [
+        { id: 'item_milk', name: 'Gallon Whole Milk', quantity: 2 },
+        { id: 'item_eggs', name: 'Large Grade A Eggs (18pk)', quantity: 2 },
+        { id: 'item_bread', name: 'Honey Wheat Bread', quantity: 3 }
+      ]
+    };
+
+    // --- Provo/Orem Region Stores & Coordinates ---
+    const STORES = [
+      { id: 'walmart_provo', name: 'Walmart Supercenter', address: '2255 N University Pkwy, Provo', lat: 40.2642, lng: -111.6558, distance: 1.2 },
+      { id: 'smiths_provo', name: "Smith's Food & Drug", address: '350 N Freedom Blvd, Provo', lat: 40.2386, lng: -111.6617, distance: 0.5 },
+      { id: 'traderjoes_orem', name: "Trader Joe's", address: '440 E Park Ave, Orem', lat: 40.2801, lng: -111.6812, distance: 2.1 },
+      { id: 'costco_orem', name: 'Costco Wholesale', address: '648 E 800 S, Orem', lat: 40.2831, lng: -111.6782, distance: 2.8 },
+      { id: 'target_provo', name: 'Target', address: '1290 N State St, Provo', lat: 40.2505, lng: -111.6644, distance: 1.6 }
+    ];
+
+    // --- Products & Store Price Matrix (Simulated Data) ---
+    const PRODUCTS = [
+      {
+        id: 'item_milk',
+        name: 'Gallon Whole Milk',
+        category: 'Dairy',
+        icon: '🥛',
+        prices: {
+          walmart_provo: 3.12,
+          smiths_provo: 3.39,
+          traderjoes_orem: 3.99,
+          costco_orem: 2.95, // Cheapest
+          target_provo: 3.29
+        }
+      },
+      {
+        id: 'item_eggs',
+        name: 'Large Grade A Eggs (18pk)',
+        category: 'Dairy',
+        icon: '🥚',
+        prices: {
+          walmart_provo: 2.88, // Cheapest
+          smiths_provo: 3.49,
+          traderjoes_orem: 3.29,
+          costco_orem: 3.10,
+          target_provo: 3.19
+        }
+      },
+      {
+        id: 'item_bread',
+        name: 'Honey Wheat Bread',
+        category: 'Bakery',
+        icon: '🍞',
+        prices: {
+          walmart_provo: 1.84, // Cheapest
+          smiths_provo: 2.19,
+          traderjoes_orem: 2.49,
+          costco_orem: 2.20,
+          target_provo: 2.29
+        }
+      },
+      {
+        id: 'item_beef',
+        name: 'Ground Beef 80/20 (3 lb)',
+        category: 'Meat',
+        icon: '🥩',
+        prices: {
+          walmart_provo: 13.48,
+          smiths_provo: 14.99,
+          traderjoes_orem: 15.49,
+          costco_orem: 11.99, // Cheapest
+          target_provo: 13.99
+        }
+      },
+      {
+        id: 'item_bananas',
+        name: 'Bananas (Fresh Bunch)',
+        category: 'Produce',
+        icon: '🍌',
+        prices: {
+          walmart_provo: 1.28,
+          smiths_provo: 1.49,
+          traderjoes_orem: 0.99, // Cheapest
+          costco_orem: 1.89,
+          target_provo: 1.39
+        }
+      },
+      {
+        id: 'item_apples',
+        name: 'Honeycrisp Apples (3 lb bag)',
+        category: 'Produce',
+        icon: '🍎',
+        prices: {
+          walmart_provo: 4.98,
+          smiths_provo: 5.49,
+          traderjoes_orem: 4.49, // Cheapest
+          costco_orem: 5.99,
+          target_provo: 5.29
+        }
+      }
+    ];
+
+    // --- Hot Deals Mock Data (Sticky 3) ---
+    const HOT_DEALS = [
+      { id: 'deal_1', name: 'Gallon Whole Milk', storeId: 'costco_orem', oldPrice: 3.99, dealPrice: 2.95, discount: '26% off', icon: '🥛' },
+      { id: 'deal_2', name: 'Fresh Bananas (Bunch)', storeId: 'traderjoes_orem', oldPrice: 1.69, dealPrice: 0.99, discount: '41% off', icon: '🍌' },
+      { id: 'deal_3', name: 'Large Grade A Eggs (18pk)', storeId: 'walmart_provo', oldPrice: 4.49, dealPrice: 2.88, discount: '36% off', icon: '🥚' },
+      { id: 'deal_4', name: 'Ground Beef 80/20 (3 lb)', storeId: 'costco_orem', oldPrice: 16.99, dealPrice: 11.99, discount: '30% off', icon: '🥩' },
+      { id: 'deal_5', name: 'Cereal Family Size', storeId: 'smiths_provo', oldPrice: 5.99, dealPrice: 2.99, discount: '50% off', icon: '🥣' },
+      { id: 'deal_6', name: 'Orange Juice 52oz', storeId: 'target_provo', oldPrice: 4.29, dealPrice: 2.49, discount: '42% off', icon: '🍊' }
+    ];
+
+    // Leaflet map instance
+    let leafletMap = null;
+    let mapMarkers = [];
+
+    // --- Navigation Guard & Switching ---
+    function guardNav(screenId) {
+      if (!state.isLoggedIn && (screenId === 'deals' || screenId === 'map' || screenId === 'list' || screenId === 'account')) {
+        document.getElementById('modal-auth-interceptor').classList.remove('hidden');
+        return;
+      }
+      navigateTo(screenId);
+    }
+
+    function closeAuthModal() {
+      document.getElementById('modal-auth-interceptor').classList.add('hidden');
+    }
+
+    function quickGuestLogin() {
+      state.isLoggedIn = true;
+      updateAuthUI();
+      closeAuthModal();
+      showToast('Logged in as Stephanie Baldwin (Demo)');
+      navigateTo('list');
+    }
+
+    function navigateTo(screenId) {
+      const screens = ['search', 'results', 'deals', 'list', 'map', 'login', 'register', 'account'];
+      screens.forEach(s => {
+        const el = document.getElementById(`screen-${s}`);
+        if (el) el.classList.add('hidden');
+      });
+
+      const target = document.getElementById(`screen-${screenId}`);
+      if (target) target.classList.remove('hidden');
+      state.currentScreen = screenId;
+      window.scrollTo(0, 0);
+
+      // Trigger screen-specific rendering
+      if (screenId === 'deals') renderDeals();
+      if (screenId === 'list') renderGroceryList();
+      if (screenId === 'map') initOrUpdateMap();
+    }
+
+    function updateAuthUI() {
+      const label = document.getElementById('account-nav-label');
+      const banner = document.getElementById('unregistered-banner');
+      if (state.isLoggedIn) {
+        if (label) label.textContent = 'Stephanie (Account)';
+        if (banner) banner.classList.add('hidden');
+      } else {
+        if (label) label.textContent = 'Account';
+        if (banner) banner.classList.remove('hidden');
+      }
+    }
+
+    // --- Search Execution (Sticky 1 & 4) ---
+    function executeSearch() {
+      const term = document.getElementById('input-search-term').value.trim();
+      const zip = document.getElementById('input-zip-code').value.trim();
+      const radius = parseInt(document.getElementById('select-radius').value, 10);
+      const errorMsg = document.getElementById('search-error-msg');
+
+      if (!zip || zip.length < 5) {
+        errorMsg.textContent = 'Please enter a valid 5-digit ZIP code.';
+        errorMsg.classList.remove('hidden');
+        return;
+      }
+      errorMsg.classList.add('hidden');
+
+      state.zipCode = zip;
+      state.radius = radius;
+
+      // Update label displays
+      document.getElementById('results-query-label').textContent = term || 'Household Essentials';
+      document.getElementById('results-zip-label').textContent = zip;
+      document.getElementById('results-radius-label').textContent = `${radius} miles`;
+
+      renderSearchResults(term);
+      navigateTo('results');
+    }
+
+    function quickSearch(stapleTerm) {
+      document.getElementById('input-search-term').value = stapleTerm;
+      executeSearch();
+    }
+
+    // --- Render Search Results Screen (Sticky 4) ---
+    function renderSearchResults(term) {
+      const container = document.getElementById('results-container');
+      container.innerHTML = '';
+
+      let matches = PRODUCTS;
+      if (term) {
+        matches = PRODUCTS.filter(p => p.name.toLowerCase().includes(term.toLowerCase()));
+      }
+      if (matches.length === 0) matches = PRODUCTS;
+
+      matches.forEach(product => {
+        // Calculate cheapest store for this product
+        let cheapestStoreId = null;
+        let lowestPrice = Infinity;
+        Object.entries(product.prices).forEach(([sId, price]) => {
+          if (price < lowestPrice) {
+            lowestPrice = price;
+            cheapestStoreId = sId;
+          }
+        });
+
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-2xl p-5 border border-brand-200 shadow-sm space-y-4';
+
+        let storeOptionsHtml = '';
+        STORES.forEach(store => {
+          const price = product.prices[store.id] || 0;
+          const isCheapest = store.id === cheapestStoreId;
+          storeOptionsHtml += `
+            <div class="flex items-center justify-between p-3 rounded-xl ${isCheapest ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-100'}">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-store text-slate-400 text-sm"></i>
+                <span class="font-bold text-slate-800 text-sm">${store.name}</span>
+                <span class="text-xs text-slate-500 font-medium">(${store.distance} mi)</span>
+                ${isCheapest ? '<span class="text-[10px] bg-emerald-600 text-white font-black px-2 py-0.5 rounded-full">BEST PRICE</span>' : ''}
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="font-extrabold text-base ${isCheapest ? 'text-emerald-700' : 'text-slate-700'}">$${price.toFixed(2)}</span>
+                <button onclick="addToCart('${product.id}', '${store.id}')" class="px-3 py-1.5 bg-accent-blue hover:bg-accent-blueHover text-white text-xs font-bold rounded-lg shadow-sm transition">
+                  + Add to List
+                </button>
+              </div>
+            </div>
+          `;
+        });
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-3xl">${product.icon}</span>
+              <div>
+                <h3 class="text-lg font-black text-slate-900">${product.name}</h3>
+                <span class="text-xs text-slate-500 font-medium">Category: ${product.category}</span>
+              </div>
+            </div>
+            <button onclick="addToCart('${product.id}')" class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs shadow transition">
+              <i class="fa-solid fa-plus"></i> Add Best Deal to List
+            </button>
+          </div>
+          <div class="space-y-2">
+            ${storeOptionsHtml}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      renderCartDrawer();
+    }
+
+    // --- Collapsible Cart Drawer (Sticky 4) ---
+    function toggleCartDrawer() {
+      const drawer = document.getElementById('cart-preview-drawer');
+      drawer.classList.toggle('hidden');
+    }
+
+    function renderCartDrawer() {
+      const container = document.getElementById('drawer-items-list');
+      const counter = document.getElementById('drawer-counter');
+      const badgeTotal = document.getElementById('drawer-total-badge');
+      const navBadge = document.getElementById('cart-counter-badge');
+
+      const totalItemsCount = state.cart.reduce((acc, curr) => acc + curr.quantity, 0);
+      counter.textContent = totalItemsCount;
+      navBadge.textContent = totalItemsCount;
+
+      if (state.cart.length === 0) {
+        container.innerHTML = '<p class="py-4 text-center text-slate-400">Your list is currently empty.</p>';
+        badgeTotal.textContent = '$0.00';
+        return;
+      }
+
+      let grandTotal = 0;
+      let html = '';
+
+      state.cart.forEach(cartItem => {
+        const prod = PRODUCTS.find(p => p.id === cartItem.id);
+        if (!prod) return;
+
+        // Find lowest price
+        let minPrice = Math.min(...Object.values(prod.prices));
+        let itemTotal = minPrice * cartItem.quantity;
+        grandTotal += itemTotal;
+
+        html += `
+          <div class="py-2.5 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">${prod.icon}</span>
+              <div>
+                <p class="font-bold text-slate-800 text-xs">${prod.name}</p>
+                <p class="text-[11px] text-slate-500">Qty: ${cartItem.quantity} × $${minPrice.toFixed(2)}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-black text-xs text-brand-600">$${itemTotal.toFixed(2)}</span>
+              <button onclick="removeFromCart('${cartItem.id}')" class="text-slate-300 hover:text-red-500 text-xs px-1">✕</button>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+      badgeTotal.textContent = `$${grandTotal.toFixed(2)}`;
+    }
+
+    // --- Cart Actions ---
+    function addToCart(productId) {
+      const existing = state.cart.find(item => item.id === productId);
+      if (existing) {
+        existing.quantity += 1;
+      } else {
+        state.cart.push({ id: productId, quantity: 1 });
+      }
+      renderCartDrawer();
+      showToast('Item added to grocery list!');
+    }
+
+    function updateCartQuantity(productId, delta) {
+      const item = state.cart.find(i => i.id === productId);
+      if (item) {
+        item.quantity += delta;
+        if (item.quantity <= 0) {
+          state.cart = state.cart.filter(i => i.id !== productId);
+        }
+      }
+      renderGroceryList();
+      renderCartDrawer();
+    }
+
+    function removeFromCart(productId) {
+      state.cart = state.cart.filter(i => i.id !== productId);
+      renderGroceryList();
+      renderCartDrawer();
+    }
+
+    function clearCart() {
+      if (confirm('Clear all items from your grocery list?')) {
+        state.cart = [];
+        renderGroceryList();
+        renderCartDrawer();
+      }
+    }
+
+    // --- Render Grocery List Screen (Sticky 5) ---
+    function renderGroceryList() {
+      const container = document.getElementById('full-cart-items');
+      const countLabel = document.getElementById('cart-item-count');
+      const storeTotalsContainer = document.getElementById('store-totals-list');
+      const grandTotalLabel = document.getElementById('cart-grand-total');
+
+      const totalItemsCount = state.cart.reduce((acc, curr) => acc + curr.quantity, 0);
+      countLabel.textContent = totalItemsCount;
+
+      if (state.cart.length === 0) {
+        container.innerHTML = '<p class="py-8 text-center text-slate-400">No items in your grocery list. Search items or browse hot deals to add them!</p>';
+        storeTotalsContainer.innerHTML = '<p class="text-xs text-slate-400">No active store estimates.</p>';
+        grandTotalLabel.textContent = '$0.00';
+        return;
+      }
+
+      let bestSplitTotal = 0;
+      let storeBaskets = {};
+      STORES.forEach(s => storeBaskets[s.id] = { store: s, total: 0, itemsCheapestCount: 0 });
+
+      let itemsHtml = '';
+
+      state.cart.forEach(cartItem => {
+        const prod = PRODUCTS.find(p => p.id === cartItem.id);
+        if (!prod) return;
+
+        // Determine which store is cheapest
+        let cheapestStoreId = null;
+        let lowestPrice = Infinity;
+
+        STORES.forEach(s => {
+          const p = prod.prices[s.id];
+          if (p < lowestPrice) {
+            lowestPrice = p;
+            cheapestStoreId = s.id;
+          }
+          storeBaskets[s.id].total += p * cartItem.quantity;
+        });
+
+        storeBaskets[cheapestStoreId].itemsCheapestCount += 1;
+        const itemLineTotal = lowestPrice * cartItem.quantity;
+        bestSplitTotal += itemLineTotal;
+
+        const bestStore = STORES.find(s => s.id === cheapestStoreId);
+
+        itemsHtml += `
+          <div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <span class="text-3xl">${prod.icon}</span>
+              <div>
+                <h4 class="font-black text-slate-900 text-base">${prod.name}</h4>
+                <div class="flex items-center gap-2 mt-0.5">
+                  <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Cheapest at: ${bestStore.name}</span>
+                  <span class="text-xs text-slate-500 font-medium">($${lowestPrice.toFixed(2)} each)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Qty & Remove Controls -->
+            <div class="flex items-center justify-between sm:justify-end gap-4">
+              <div class="flex items-center border border-slate-200 rounded-xl bg-slate-50">
+                <button onclick="updateCartQuantity('${cartItem.id}', -1)" class="w-8 h-8 flex items-center justify-center text-slate-600 font-bold hover:bg-slate-200 rounded-l-xl">-</button>
+                <span class="w-8 text-center text-sm font-black text-slate-800">${cartItem.quantity}</span>
+                <button onclick="updateCartQuantity('${cartItem.id}', 1)" class="w-8 h-8 flex items-center justify-center text-slate-600 font-bold hover:bg-slate-200 rounded-r-xl">+</button>
+              </div>
+              <span class="font-black text-base text-slate-900 w-16 text-right">$${itemLineTotal.toFixed(2)}</span>
+              <button onclick="removeFromCart('${cartItem.id}')" class="text-slate-400 hover:text-red-500 p-2">
+                <i class="fa-solid fa-trash-can text-sm"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = itemsHtml;
+      grandTotalLabel.textContent = `$${bestSplitTotal.toFixed(2)}`;
+
+      // Store by Store comparison list
+      let storeListHtml = '';
+      Object.values(storeBaskets).forEach(sb => {
+        storeListHtml += `
+          <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50">
+            <div>
+              <span class="font-bold text-slate-800">${sb.store.name}</span>
+              <span class="text-[11px] block text-slate-500">${sb.itemsCheapestCount} items cheapest here</span>
+            </div>
+            <span class="font-black text-slate-700">$${sb.total.toFixed(2)}</span>
+          </div>
+        `;
+      });
+      storeTotalsContainer.innerHTML = storeListHtml;
+    }
+
+    // --- Render Hot Deals (Sticky 3) ---
+    function renderDeals() {
+      const container = document.getElementById('deals-container');
+      container.innerHTML = '';
+
+      HOT_DEALS.forEach(deal => {
+        const store = STORES.find(s => s.id === deal.storeId);
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-2xl p-5 border border-brand-200 shadow-sm flex flex-col justify-between';
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-3xl">${deal.icon}</span>
+              <span class="text-xs bg-red-100 text-red-700 font-black px-2.5 py-1 rounded-full">${deal.discount}</span>
+            </div>
+            <h4 class="font-black text-slate-900 text-base">${deal.name}</h4>
+            <p class="text-xs text-slate-500 font-medium flex items-center gap-1 mt-1">
+              <i class="fa-solid fa-location-dot text-brand-500"></i> ${store.name} (${store.distance} mi)
+            </p>
+            <div class="mt-3 flex items-baseline gap-2">
+              <span class="text-2xl font-black text-brand-600">$${deal.dealPrice.toFixed(2)}</span>
+              <span class="text-sm text-slate-400 line-through">$${deal.oldPrice.toFixed(2)}</span>
+            </div>
+          </div>
+          <button onclick="addDealToCart('${deal.name}')" class="mt-4 w-full py-2.5 bg-accent-blue hover:bg-accent-blueHover text-white font-bold text-xs rounded-xl shadow-sm transition touch-btn flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-cart-plus"></i> Add Deal to Cart
+          </button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function addDealToCart(productName) {
+      const matched = PRODUCTS.find(p => p.name.includes(productName) || productName.includes(p.name));
+      if (matched) {
+        addToCart(matched.id);
+      } else {
+        showToast('Deal added to cart!');
+      }
+    }
+
+    function refreshDeals() {
+      const zip = document.getElementById('deals-zip-input').value;
+      state.zipCode = zip;
+      showToast(`Updated Hot Deals for ZIP ${zip}`);
+    }
+
+    // --- MAP VIEW (Sticky 6 & Option A Logic) ---
+    function initOrUpdateMap() {
+      setTimeout(() => {
+        if (!leafletMap) {
+          // Initialize Leaflet map with Carto Voyager tiles
+          leafletMap = L.map('carto-map').setView([40.2672, -111.6911], 12);
+          L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+            maxZoom: 19
+          }).addTo(leafletMap);
+        } else {
+          leafletMap.invalidateSize();
+        }
+
+        renderMapStoreMarkers();
+      }, 100);
+    }
+
+    function updateMapLocation() {
+      const zip = document.getElementById('map-zip-input').value.trim();
+      const radius = parseInt(document.getElementById('map-radius-select').value, 10);
+      if (!zip || zip.length < 5) {
+        alert('Please enter a valid 5-digit ZIP code.');
+        return;
+      }
+      state.zipCode = zip;
+      state.radius = radius;
+      showToast(`Map updated for ZIP ${zip} within ${radius} miles`);
+      renderMapStoreMarkers();
+    }
+
+    function renderMapStoreMarkers() {
+      if (!leafletMap) return;
+
+      // Clear existing markers
+      mapMarkers.forEach(m => leafletMap.removeLayer(m));
+      mapMarkers = [];
+
+      // Calculate for each store: how many items in cart are CHEAPEST at that store (Option A)
+      const cheapestCounts = {};
+      STORES.forEach(s => cheapestCounts[s.id] = 0);
+
+      state.cart.forEach(cartItem => {
+        const prod = PRODUCTS.find(p => p.id === cartItem.id);
+        if (!prod) return;
+
+        let bestStoreId = null;
+        let lowestPrice = Infinity;
+        STORES.forEach(s => {
+          const price = prod.prices[s.id];
+          if (price < lowestPrice) {
+            lowestPrice = price;
+            bestStoreId = s.id;
+          }
+        });
+        if (bestStoreId) {
+          cheapestCounts[bestStoreId] += 1;
+        }
+      });
+
+      // Filter stores by radius
+      const visibleStores = STORES.filter(s => s.distance <= state.radius);
+
+      visibleStores.forEach(store => {
+        const count = cheapestCounts[store.id] || 0;
+
+        // Create Custom HTML Marker with Red Bubble Badge
+        const customIcon = L.divIcon({
+          className: 'store-marker-pin',
+          html: `
+            <div style="background-color: #2D6A4F; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(0,0,0,0.3); border: 2px solid white;">
+              <i class="fa-solid fa-store" style="font-size: 15px;"></i>
+              <div class="store-badge-bubble">${count}</div>
+            </div>
+          `,
+          iconSize: [36, 36],
+          iconAnchor: [18, 18]
+        });
+
+        const marker = L.marker([store.lat, store.lng], { icon: customIcon }).addTo(leafletMap);
+        marker.on('click', () => openStoreDrilldown(store));
+        mapMarkers.push(marker);
+      });
+    }
+
+    // --- Option A Store Breakdown Modal ---
+    function openStoreDrilldown(store) {
+      document.getElementById('store-modal-name').textContent = store.name;
+      document.getElementById('store-modal-addr').textContent = store.address;
+      document.getElementById('store-modal-dist').textContent = `${store.distance} miles away`;
+
+      const cheapestListEl = document.getElementById('store-modal-cheapest-list');
+      const otherListEl = document.getElementById('store-modal-other-list');
+      cheapestListEl.innerHTML = '';
+      otherListEl.innerHTML = '';
+
+      let storeEstimatedTotal = 0;
+      let cheapestCount = 0;
+      let otherCount = 0;
+
+      state.cart.forEach(cartItem => {
+        const prod = PRODUCTS.find(p => p.id === cartItem.id);
+        if (!prod) return;
+
+        const thisStorePrice = prod.prices[store.id];
+        storeEstimatedTotal += thisStorePrice * cartItem.quantity;
+
+        // Find absolute cheapest store for this item
+        let absoluteBestStoreId = null;
+        let lowestPrice = Infinity;
+        STORES.forEach(s => {
+          if (prod.prices[s.id] < lowestPrice) {
+            lowestPrice = prod.prices[s.id];
+            absoluteBestStoreId = s.id;
+          }
+        });
+
+        const isCheapestHere = (store.id === absoluteBestStoreId);
+
+        if (isCheapestHere) {
+          cheapestCount++;
+          const row = document.createElement('div');
+          row.className = 'p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs sm:text-sm';
+          row.innerHTML = `
+            <div class="flex items-center gap-2">
+              <span class="text-xl">${prod.icon}</span>
+              <div>
+                <span class="font-black text-slate-800">${prod.name} (Qty: ${cartItem.quantity})</span>
+                <span class="block text-[11px] text-emerald-700 font-bold">Lowest price in Provo!</span>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="font-extrabold text-emerald-800 text-base">$${(thisStorePrice * cartItem.quantity).toFixed(2)}</span>
+              <span class="block text-[10px] text-slate-500 font-medium">($${thisStorePrice.toFixed(2)} ea)</span>
+            </div>
+          `;
+          cheapestListEl.appendChild(row);
+        } else {
+          otherCount++;
+          const bestStoreObj = STORES.find(s => s.id === absoluteBestStoreId);
+          const diff = (thisStorePrice - lowestPrice) * cartItem.quantity;
+
+          const row = document.createElement('div');
+          row.className = 'p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs sm:text-sm';
+          row.innerHTML = `
+            <div class="flex items-center gap-2">
+              <span class="text-xl">${prod.icon}</span>
+              <div>
+                <span class="font-black text-slate-800">${prod.name} (Qty: ${cartItem.quantity})</span>
+                <span class="block text-[11px] text-amber-700 font-medium">
+                  Cheaper at <strong class="text-slate-800">${bestStoreObj.name}</strong> ($${lowestPrice.toFixed(2)} ea)
+                </span>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="font-bold text-slate-500 line-through text-xs mr-1">$${(thisStorePrice * cartItem.quantity).toFixed(2)}</span>
+              <span class="font-extrabold text-brand-600 text-sm">$${(lowestPrice * cartItem.quantity).toFixed(2)}</span>
+              <span class="block text-[10px] text-red-600 font-bold">+$${diff.toFixed(2)} more here</span>
+            </div>
+          `;
+          otherListEl.appendChild(row);
+        }
+      });
+
+      if (cheapestCount === 0) {
+        cheapestListEl.innerHTML = '<p class="text-xs text-slate-400 italic">No cart items are at their lowest price here.</p>';
+      }
+      if (otherCount === 0) {
+        otherListEl.innerHTML = '<p class="text-xs text-emerald-600 font-semibold">Every single item on your list is cheapest at this store!</p>';
+      }
+
+      document.getElementById('store-modal-total').textContent = `$${storeEstimatedTotal.toFixed(2)}`;
+      document.getElementById('modal-store-detail').classList.remove('hidden');
+    }
+
+    function closeStoreModal() {
+      document.getElementById('modal-store-detail').classList.add('hidden');
+    }
+
+    // --- Authentication Actions (Sticky 2) ---
+    function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value;
+      state.isLoggedIn = true;
+      state.userEmail = email;
+      document.getElementById('account-email-display').textContent = email;
+      updateAuthUI();
+      showToast('Successfully logged in!');
+      navigateTo('list');
+    }
+
+    function handleRegister(e) {
+      e.preventDefault();
+      const email = document.getElementById('reg-email').value;
+      state.isLoggedIn = true;
+      state.userEmail = email;
+      document.getElementById('account-email-display').textContent = email;
+      updateAuthUI();
+      showToast('Account created successfully! Preferences saved.');
+      navigateTo('search');
+    }
+
+    function handleLogout() {
+      state.isLoggedIn = false;
+      updateAuthUI();
+      showToast('Logged out of ShopWyse');
+      navigateTo('search');
+    }
+
+    function confirmDeleteAccount() {
+      if (confirm('Are you sure you want to delete your ShopWyse account? This cannot be undone.')) {
+        handleLogout();
+      }
+    }
+
+    // --- Toast Notification Helper ---
+    function showToast(msg) {
+      const banner = document.getElementById('toast-banner');
+      const text = document.getElementById('toast-msg');
+      text.textContent = msg;
+      banner.classList.remove('hidden');
+      setTimeout(() => banner.classList.add('hidden'), 3500);
+    }
+
+    // --- App Boot ---
+    window.addEventListener('DOMContentLoaded', () => {
+      renderCartDrawer();
+      updateAuthUI();
+    });
+  </script>
+</body>
+</html>
