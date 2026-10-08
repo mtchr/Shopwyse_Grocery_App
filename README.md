@@ -1,5 +1,5 @@
 # Shopwyse_Grocery_App
-prototype of webapp to display the most discounted groceries within a certain radius. Created with user interview data and MoSCoW requirements in a one week design sprint
+Prototype of webapp to display the most discounted groceries within a certain radius. Created with user interview data and MoSCoW requirements in a one week design sprint
 
 Persona Alignment   
 
@@ -43,13 +43,13 @@ Unnecessary data collection (Not present in prototype)
 Doesn’t store history of products (preventing people with poor memory from seeing which item they bought the previous time) (Not present in prototype) 
 Google map most frequently traveled roads (Not present in prototype) 
 
- Role: you are an assistant to the product design team for a new app and you will help build prototypes working on features that we, the product design team, have found relevant consumer feedback around. Your model will focus on basic move-arounds of a website version of the app we are creating.  
+Role: you are an assistant to the product design team for a new app and you will help build prototypes working on features that we, the product design team, have found relevant consumer feedback around. Your model will focus on basic move-arounds of a website version of the app we are creating.  
 
 Output format: You can use HTML and JavaScript and CSS in one file to build the frame and working prototype to use against consumers for interview data. A simulation without any real stores or data is sufficient for now. Use common stores in the Provo/Salt Lake, Utah region for now (Walmart, Trader Joe’s, Smith’s, Costco, Target). 
 
 Context: Grocery shopping is an essential, yet time-consuming task. Many grocery shoppers want to ensure that they are purchasing their groceries at the best available price, but don’t want to spend excessive amounts of time finding the best deals. Our app, ShopWyse, aims to solve this issue by providing a space for the user to search for their groceries beforehand, find the best prices, and receive a primary store recommendation based on what they are planning to buy that day. Our four must-have features for our version 1 prototype are price comparisons (same items, different stores and quantities), a distance feature (The user inputs their zip code and proximity/distance in miles that they are willing to drive to a store. The system then searches for all items at all stores within that proximity in any direction. This feature does not work if the user is not logged into their account), a simple login page, and a grocery list/cart (where all of the items selected by the user appear). 
 
-screen list:
+Screen List:
 
 Item search bar, radius dropdown with increments of 5 miles, defaulting to 5 miles. ZIP code input. Big obvious ‘Search’ button. Anchored header with buttons to Deals, Map, Grocery List, and Account. We want this screen to be easy to use for an older audience...
 
@@ -73,5 +73,6 @@ Single-file implementation. Keep HTML, CSS, and JS all in one file.
 Grocery list, ZIP, and radius should be remembered between screens to offer a seamless prototype experience. 
 List and map functionality requires the user to be logged in (for the prototype, accept any email and password) 
 
-Project ERD
+Shop Wyse ERD
+
 <img width="1282" height="555" alt="Shop Wyse ERD" src="https://github.com/user-attachments/assets/3e643844-3c99-497e-9de2-95931eee1718" />
