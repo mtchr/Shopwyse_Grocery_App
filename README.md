@@ -1,78 +1,60 @@
-# Shopwyse_Grocery_App
-Prototype of webapp to display the most discounted groceries within a certain radius. Created with user interview data and MoSCoW requirements in a one week design sprint
+# ShopWyse Grocery App
 
-Persona Alignment   
+## App Summary
 
-Our persona, Stephanie Baldwin, is a 45-year-old woman who is the primary shopper for a family of 7. She is always looking to make grocery shopping cost-efficient, and
-frequently experienced pain points when deciding which store to buy groceries from, as well as mid-shopping while realizing that groceries are more expensive than she had
-initially planned. This frustration grows when she realizes that other stores had the groceries she was looking for with better prices.  
+Grocery shopping is an essential but time-consuming task, and shoppers who want the best prices often have to check several stores to find them. Our primary persona, Stephanie Baldwin, is a 45-year-old shopping for a family of seven who is always looking to keep grocery costs down. She often discovers mid-trip that her groceries cost more than planned, and that another store nearby had the same items for less. ShopWyse solves this by letting shoppers search for their groceries ahead of time and compare prices across nearby stores (Walmart, Trader Joe's, Smith's, Costco, and Target in the Provo/Salt Lake area). Users enter a ZIP code and a driving radius, add items to a grocery list, and see which store gives them the lowest total. The app also includes a Hot Deals tab for recent low prices, a map of nearby stores, and notification preferences. It is designed to be simple and frictionless for a busy, older audience, with big buttons and a minimal login.
 
-Scope 
-
-The scope of this version of our project, ShopWyse, is focused on only the primary functions of the app. We will include a price comparison feature, a distance feature, simple
-login, a grocery cart where users can add all the items they are shopping for, a deals tab showing recent low prices, and notification preferences. The prototype will include
-these functions with room for additions.  
-
-Must-Have 
-
-Price comparisons (Present in prototype) 
-Distance feature (Present in prototype) 
-Simple login (Present in prototype) 
-Grocery list/cart (where all of the items selected by the user appear) (Present in prototype) 
-
-Should Have 
-
-Grocery list upload (Not present in prototype) 
-Secondary options for products (displays the three cheapest versions of a product) (Not present in prototype) 
-Deals tab showing recent low prices (Present in prototype) 
-Notification preferences (Present in prototype) 
-
-Could Have 
-
-Delivery/Grocery Carpool (Not present in prototype) 
-Substitution preferences 
-Collaborative/AI list creation (Not present in prototype) 
-Coupon upload (Not present in prototype) 
-Map to show routes to different stores (Not present in prototype) 
-
-Won’t Have 
-
-Unrelated advertisements (Not present in prototype) 
-Unnecessary data collection (Not present in prototype) 
-“Most to Least” filtering option for pricing (Not present in prototype) 
-Doesn’t store history of products (preventing people with poor memory from seeing which item they bought the previous time) (Not present in prototype) 
-Google map most frequently traveled roads (Not present in prototype) 
-
-Role: you are an assistant to the product design team for a new app and you will help build prototypes working on features that we, the product design team, have found relevant consumer feedback around. Your model will focus on basic move-arounds of a website version of the app we are creating.  
-
-Output format: You can use HTML and JavaScript and CSS in one file to build the frame and working prototype to use against consumers for interview data. A simulation without any real stores or data is sufficient for now. Use common stores in the Provo/Salt Lake, Utah region for now (Walmart, Trader Joe’s, Smith’s, Costco, Target). 
-
-Context: Grocery shopping is an essential, yet time-consuming task. Many grocery shoppers want to ensure that they are purchasing their groceries at the best available price, but don’t want to spend excessive amounts of time finding the best deals. Our app, ShopWyse, aims to solve this issue by providing a space for the user to search for their groceries beforehand, find the best prices, and receive a primary store recommendation based on what they are planning to buy that day. Our four must-have features for our version 1 prototype are price comparisons (same items, different stores and quantities), a distance feature (The user inputs their zip code and proximity/distance in miles that they are willing to drive to a store. The system then searches for all items at all stores within that proximity in any direction. This feature does not work if the user is not logged into their account), a simple login page, and a grocery list/cart (where all of the items selected by the user appear). 
-
-Screen List:
-
-Item search bar, radius dropdown with increments of 5 miles, defaulting to 5 miles. ZIP code input. Big obvious ‘Search’ button. Anchored header with buttons to Deals, Map, Grocery List, and Account. We want this screen to be easy to use for an older audience...
-
-Simple login screen requiring only email and password. Also include two links, one for “Forgot Password” and the other for “Create an Account”, linking to the account creation page. Again, we want this frictionless and non-invasive for a busy, older audience.  
-
-Simple account creation screen requiring only email and password. Two optional check boxes, one “Opt-in to marketing emails” and the other “Save my shopping preferences”. 
-
-“Hot Deals” screen that shows low prices nearby. Prompt the user to provide ZIP if needed. 
-
-Search Results screen showing items related to Item Search. To make this easy to use, include big icons, a list view, and an obvious ‘add to list’ button for each item. We also want a collapsible preview of the user’s list...
-
-Grocery List Screen showing all items that a user has added from item search results. Again, easy to use buttons to remove...  
-
-Map view showing a tag on each store showing the number of items from the list to be bought there. When a store is clicked on, it redirects the user to the itemized grocery list for items at that specific store with an estimated total for each item as well as the store, before taxes. The user should then be able to direct themself back to the map or the full grocery list from that page...
-
- 
-Constraints:  
-
-Prototype only. Use simulated item data for Trader Joes, Costco, and Walmart in Provo. 
-Single-file implementation. Keep HTML, CSS, and JS all in one file. 
-Grocery list, ZIP, and radius should be remembered between screens to offer a seamless prototype experience. 
-List and map functionality requires the user to be logged in (for the prototype, accept any email and password) 
-
-Shop Wyse ERD
+## ERD
 
 <img width="1282" height="555" alt="Shop Wyse ERD" src="https://github.com/user-attachments/assets/3e643844-3c99-497e-9de2-95931eee1718" />
+
+## Tech Stack
+
+| Layer | What we used | Why |
+| --- | --- | --- |
+| Frontend | A single HTML file (`shopwyseapp.html`) with plain JavaScript, styled with Tailwind CSS (CDN), plus Leaflet for the map and Font Awesome for icons | No build step or installs. Anyone on the team can open the file in a browser, make a change, and see it immediately, which fits a fast design-sprint prototype. |
+| Backend / API | Supabase's auto-generated REST API, called with `supabase-js` (CDN) | Supabase creates an API for every table automatically, so we didn't have to write or host a server. |
+| Database | Supabase (hosted PostgreSQL) | A real relational database that matches our ERD, with a web dashboard where the team can view and edit rows without writing SQL. |
+
+This approach fits our team because we are a product design team building a prototype for user interviews, not a production system. Keeping everything in one file with a hosted database means less setup and more time spent testing with users. Because this is a demo, passwords are stored in plain text and Row Level Security is turned off. Use throwaway passwords only.
+
+## How to Get It Running
+
+1. Get a copy of the code:
+   ```
+   git clone https://github.com/mtchr/Shopwyse_Grocery_App.git
+   ```
+   Or, on GitHub, click **Code → Download ZIP** and unzip it.
+2. Open the project folder and double-click `shopwyseapp.html` to open it in a web browser (Chrome, Edge, Firefox, or Safari). An internet connection is required, because the styling, map, and database are loaded online.
+3. That's it. The Supabase project URL and publishable key are already in `shopwyseapp.html`, so the app connects to our shared database automatically.
+
+**Using your own Supabase project instead (optional):**
+
+1. Create a project at [supabase.com](https://supabase.com).
+2. In the **SQL Editor**, create the users table:
+   ```sql
+   create table public.users (
+     userid bigint generated always as identity primary key,
+     created_at timestamptz not null default now(),
+     "firstName" text not null,
+     "lastName" text not null,
+     email text not null,
+     password text not null,
+     notifications boolean,
+     "recentZip" integer
+   );
+   alter table public.users disable row level security;
+   ```
+3. Go to **Project Settings → API Keys** and copy the **Project URL** and **publishable key**. Never use the secret key in this app, because anyone who opens the page can read it.
+4. In `shopwyseapp.html`, replace the values of `SUPABASE_URL` and `SUPABASE_ANON_KEY` near the top of the main `<script>` block, then open the file in a browser.
+
+## Verifying the Vertical Slice
+
+Our vertical slice is account creation and login: the **Complete Registration** button saves a new user to the Supabase `users` table, and the **Log In** button checks entered credentials against that table.
+
+1. Open `shopwyseapp.html` and click **CREATE ACCOUNT** in the green banner on the home screen.
+2. Enter a first name, last name, email, and password, then click **Complete Registration**. You should see "Account created successfully!" and your first name in the header.
+3. **Refresh the page.** The app returns to its logged-out state, but your account is stored in the database.
+4. Click **Account** in the header, then **Log In Now** in the pop-up. Enter the same email and password and click **Log In**. You should see "Successfully logged in!", your first name in the header, and "{First name}'s Grocery List" on the list screen. This proves the account survived the refresh.
+5. To confirm it fails correctly, refresh the page again and try logging in with an email that has no account, or with the wrong password. You should see "Incorrect email or password" and stay on the login screen.
+6. Optional: in the Supabase dashboard, open **Table Editor → users** to see the new row with the name, email, password, and notification preference you entered.
