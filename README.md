@@ -74,4 +74,4 @@ Grocery list, ZIP, and radius should be remembered between screens to offer a se
 List and map functionality requires the user to be logged in (for the prototype, accept any email and password) 
 
 Project ERD
-<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/2bc836dd-06a8-4223-8f52-dcf74481975a" />
+<img width="1282" height="555" alt="Shop Wyse ERD" src="https://github.com/user-attachments/assets/3e643844-3c99-497e-9de2-95931eee1718" />
