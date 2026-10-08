@@ -7,6 +7,9 @@
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Supabase JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -290,7 +293,7 @@
         <div>
           <h2 class="text-2xl font-black text-slate-900 flex items-center gap-2">
             <i class="fa-solid fa-cart-shopping text-accent-blue"></i>
-            Stephanie's Family Grocery List
+            <span id="list-title">Your Grocery List</span>
           </h2>
           <p class="text-sm text-slate-600">Review selected quantities, compare store totals, and plan your route.</p>
         </div>
@@ -462,12 +465,12 @@
       <form onsubmit="handleLogin(event)" class="space-y-4">
         <div>
           <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Email</label>
-          <input type="email" id="login-email" value="stephanie.baldwin@example.com" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-medium" />
+          <input type="email" id="login-email" placeholder="you@example.com" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-medium" />
         </div>
 
         <div>
           <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Password</label>
-          <input type="password" id="login-password" value="grocerysaving7" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-medium" />
+          <input type="password" id="login-password" placeholder="••••••••" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-medium" />
         </div>
 
         <div class="flex items-center justify-between text-xs font-semibold">
@@ -492,6 +495,17 @@
       </div>
 
       <form onsubmit="handleRegister(event)" class="space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">First Name</label>
+            <input type="text" id="reg-first-name" placeholder="First" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Last Name</label>
+            <input type="text" id="reg-last-name" placeholder="Last" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none" />
+          </div>
+        </div>
+
         <div>
           <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Email</label>
           <input type="email" id="reg-email" placeholder="you@example.com" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none" />
@@ -542,7 +556,7 @@
       <div class="space-y-4">
         <div>
           <label class="block text-xs font-bold uppercase text-slate-500">Email Address</label>
-          <div id="account-email-display" class="font-bold text-slate-800 text-base">stephanie.baldwin@example.com</div>
+          <div id="account-email-display" class="font-bold text-slate-800 text-base"></div>
         </div>
 
         <div>
@@ -593,9 +607,6 @@
         <button onclick="closeAuthModal(); navigateTo('login')" class="w-full py-3 bg-accent-blue hover:bg-accent-blueHover text-white font-bold rounded-xl text-sm shadow transition">
           Log In Now
         </button>
-        <button onclick="quickGuestLogin()" class="w-full py-2.5 bg-brand-50 hover:bg-brand-100 text-brand-600 font-bold rounded-xl text-xs transition">
-          One-Click Demo Login (Stephanie)
-        </button>
         <button onclick="closeAuthModal()" class="w-full py-2 text-slate-400 hover:text-slate-600 font-semibold text-xs">
           Cancel
         </button>
@@ -607,10 +618,17 @@
   <!-- JAVASCRIPT STATE ENGINE & MOCK DATA                       -->
   <!-- ========================================================= -->
   <script>
+    // --- Supabase Connection ---
+    const SUPABASE_URL = 'https://cefssdvrcbtqajozmrsm.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_89gl4eW_LKdoprECGWfOZQ_7dtlG4bl';
+    const USERS_TABLE = 'users';
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
     // --- Global Application State ---
     const state = {
       isLoggedIn: false,
-      userEmail: 'stephanie.baldwin@example.com',
+      userEmail: '',
+      userFirstName: '',
       zipCode: '84064',
       radius: 5,
       currentScreen: 'search',
@@ -739,14 +757,6 @@
       document.getElementById('modal-auth-interceptor').classList.add('hidden');
     }
 
-    function quickGuestLogin() {
-      state.isLoggedIn = true;
-      updateAuthUI();
-      closeAuthModal();
-      showToast('Logged in as Stephanie Baldwin (Demo)');
-      navigateTo('list');
-    }
-
     function navigateTo(screenId) {
       const screens = ['search', 'results', 'deals', 'list', 'map', 'login', 'register', 'account'];
       screens.forEach(s => {
@@ -768,8 +778,10 @@
     function updateAuthUI() {
       const label = document.getElementById('account-nav-label');
       const banner = document.getElementById('unregistered-banner');
+      const listTitle = document.getElementById('list-title');
+      if (listTitle) listTitle.textContent = state.isLoggedIn && state.userFirstName ? `${state.userFirstName}'s Grocery List` : 'Your Grocery List';
       if (state.isLoggedIn) {
-        if (label) label.textContent = 'Stephanie (Account)';
+        if (label) label.textContent = `${state.userFirstName || state.userEmail} (Account)`;
         if (banner) banner.classList.add('hidden');
       } else {
         if (label) label.textContent = 'Account';
@@ -1292,22 +1304,74 @@
     }
 
     // --- Authentication Actions (Sticky 2) ---
-    function handleLogin(e) {
+    async function handleLogin(e) {
       e.preventDefault();
-      const email = document.getElementById('login-email').value;
+      const email = document.getElementById('login-email').value.trim().toLowerCase();
+      const password = document.getElementById('login-password').value;
+
+      const { data, error } = await db
+        .from(USERS_TABLE)
+        .select('*')
+        .eq('email', email)
+        .eq('password', password)
+        .maybeSingle();
+
+      if (error) {
+        console.error(error);
+        showToast('Login failed: ' + error.message);
+        return;
+      }
+      if (!data) {
+        showToast('Incorrect email or password');
+        return;
+      }
+
       state.isLoggedIn = true;
       state.userEmail = email;
+      state.userFirstName = data.firstName || '';
       document.getElementById('account-email-display').textContent = email;
       updateAuthUI();
       showToast('Successfully logged in!');
       navigateTo('list');
     }
 
-    function handleRegister(e) {
+    async function handleRegister(e) {
       e.preventDefault();
-      const email = document.getElementById('reg-email').value;
+      const firstName = document.getElementById('reg-first-name').value.trim();
+      const lastName = document.getElementById('reg-last-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim().toLowerCase();
+      const password = document.getElementById('reg-password').value;
+      const notifications = document.getElementById('reg-marketing').checked;
+
+      const { data: existing, error: lookupError } = await db
+        .from(USERS_TABLE)
+        .select('email')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (lookupError) {
+        console.error(lookupError);
+        showToast('Sign up failed: ' + lookupError.message);
+        return;
+      }
+      if (existing) {
+        showToast('An account with that email already exists');
+        return;
+      }
+
+      const { error } = await db
+        .from(USERS_TABLE)
+        .insert({ firstName, lastName, email, password, notifications, recentZip: state.zipCode });
+
+      if (error) {
+        console.error(error);
+        showToast('Sign up failed: ' + error.message);
+        return;
+      }
+
       state.isLoggedIn = true;
       state.userEmail = email;
+      state.userFirstName = firstName;
       document.getElementById('account-email-display').textContent = email;
       updateAuthUI();
       showToast('Account created successfully! Preferences saved.');
@@ -1316,6 +1380,9 @@
 
     function handleLogout() {
       state.isLoggedIn = false;
+      state.userEmail = '';
+      state.userFirstName = '';
+      document.getElementById('account-email-display').textContent = '';
       updateAuthUI();
       showToast('Logged out of ShopWyse');
       navigateTo('search');
