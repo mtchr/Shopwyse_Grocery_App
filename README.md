@@ -72,3 +72,6 @@ Prototype only. Use simulated item data for Trader Joes, Costco, and Walmart in 
 Single-file implementation. Keep HTML, CSS, and JS all in one file. 
 Grocery list, ZIP, and radius should be remembered between screens to offer a seamless prototype experience. 
 List and map functionality requires the user to be logged in (for the prototype, accept any email and password) 
+
+Project ERD
+<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/2bc836dd-06a8-4223-8f52-dcf74481975a" />
