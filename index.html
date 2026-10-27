@@ -77,17 +77,28 @@
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
       <!-- App Brand -->
       <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('search')">
-        <div class="w-10 h-10 rounded-xl bg-brand-500 text-white flex items-center justify-center text-xl font-bold shadow-sm">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-brand-500 text-white flex items-center justify-center text-lg sm:text-xl font-bold shadow-sm">
           <i class="fa-solid fa-basket-shopping"></i>
         </div>
         <div>
-          <span class="text-2xl font-black tracking-tight text-brand-600">Shop<span class="text-accent-blue">Wyse</span></span>
+          <span class="text-xl sm:text-2xl font-black tracking-tight text-brand-600">Shop<span class="text-accent-blue">Wyse</span></span>
           <span class="hidden sm:inline-block ml-2 text-xs bg-brand-100 text-brand-600 px-2 py-0.5 rounded-full font-semibold">Provo / Salt Lake</span>
         </div>
       </div>
 
-      <!-- Anchored Navigation Buttons -->
-      <nav class="flex items-center gap-1 sm:gap-2">
+      <!-- Mobile Header Buttons: cart + hamburger (phones only) -->
+      <div class="flex sm:hidden items-center gap-1">
+        <button onclick="closeMobileMenu(); guardNav('list')" class="relative w-11 h-11 rounded-lg text-slate-600 hover:bg-brand-50 flex items-center justify-center">
+          <i class="fa-solid fa-cart-shopping text-accent-blue text-lg"></i>
+          <span id="mobile-cart-badge" class="absolute top-0 right-0 bg-accent-blue text-white text-[10px] font-bold px-1.5 rounded-full">0</span>
+        </button>
+        <button onclick="toggleMobileMenu()" class="w-11 h-11 rounded-lg text-slate-700 hover:bg-brand-50 flex items-center justify-center text-xl">
+          <i id="menu-button-icon" class="fa-solid fa-bars"></i>
+        </button>
+      </div>
+
+      <!-- Anchored Navigation Buttons (tablet and desktop) -->
+      <nav class="hidden sm:flex items-center gap-1 sm:gap-2">
         <button onclick="guardNav('deals')" id="nav-deals" class="px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
           <i class="fa-solid fa-fire text-amber-500"></i>
           <span class="hidden md:inline">Hot</span> Deals
@@ -106,9 +117,25 @@
 
         <button onclick="guardNav('account')" id="nav-account" class="px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
           <i class="fa-regular fa-circle-user text-slate-500 text-lg"></i>
-          <span id="account-nav-label" class="hidden sm:inline">Account</span>
+          <span id="account-nav-label" class="hidden md:inline">Account</span>
         </button>
       </nav>
+    </div>
+
+    <!-- Mobile Dropdown Menu (opened by the hamburger button) -->
+    <div id="mobile-menu" class="hidden sm:hidden border-t border-brand-200 bg-white px-4 py-2">
+      <button onclick="closeMobileMenu(); guardNav('deals')" class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 border-b border-slate-100 touch-btn">
+        <i class="fa-solid fa-fire text-amber-500 w-5"></i> Hot Deals
+      </button>
+      <button onclick="closeMobileMenu(); guardNav('map')" class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 border-b border-slate-100 touch-btn">
+        <i class="fa-solid fa-map-location-dot text-brand-500 w-5"></i> Map
+      </button>
+      <button onclick="closeMobileMenu(); guardNav('list')" class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 border-b border-slate-100 touch-btn">
+        <i class="fa-solid fa-cart-shopping text-accent-blue w-5"></i> Grocery List
+      </button>
+      <button onclick="closeMobileMenu(); guardNav('account')" class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 touch-btn">
+        <i class="fa-regular fa-circle-user text-slate-500 w-5"></i> Account
+      </button>
     </div>
   </header>
 
@@ -125,7 +152,7 @@
     <!-- ========================================================= -->
     <section id="screen-search" class="space-y-6">
       <!-- Main Search Box Card -->
-      <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-brand-200">
+      <div class="bg-white rounded-2xl p-5 sm:p-8 shadow-sm border border-brand-200">
         <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2">Find the Best Grocery Prices Nearby</h1>
         <p class="text-slate-600 mb-6">Compare prices across Walmart, Trader Joe's, Smith's, Costco, and Target in seconds.</p>
 
@@ -146,7 +173,7 @@
             <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">ZIP Code</label>
             <div class="relative">
               <i class="fa-solid fa-location-dot absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-              <input type="text" id="input-zip-code" value="84064" maxlength="5"
+              <input type="text" id="input-zip-code" value="84064" maxlength="5" inputmode="numeric"
                 class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-semibold text-slate-900" />
             </div>
           </div>
@@ -176,34 +203,35 @@
       <!-- Suggested Staples Fast-Discovery Chips -->
       <div class="bg-white rounded-2xl p-5 border border-brand-200">
         <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
-          <i class="fa-solid fa-sparkles text-amber-500"></i> Frequent Family Essentials (Tap to search)
+          <i class="fa-solid fa-star text-amber-500"></i> Frequent Family Essentials (Tap to search)
         </h3>
-        <div class="flex flex-wrap gap-2">
-          <button onclick="quickSearch('Gallon Whole Milk')" class="px-4 py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-full text-sm font-semibold border border-brand-200 transition">
+        <!-- On phones the chips stack in a 2-column grid; on bigger screens they wrap in a row -->
+        <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+          <button onclick="quickSearch('Gallon Whole Milk')" class="px-3 py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-xl sm:rounded-full text-sm font-semibold border border-brand-200 transition">
             🥛 Gallon Whole Milk
           </button>
-          <button onclick="quickSearch('Large Grade A Eggs')" class="px-4 py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-full text-sm font-semibold border border-brand-200 transition">
+          <button onclick="quickSearch('Large Grade A Eggs')" class="px-3 py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-xl sm:rounded-full text-sm font-semibold border border-brand-200 transition">
             🥚 Large Grade A Eggs (18pk)
           </button>
-          <button onclick="quickSearch('Honey Wheat Bread')" class="px-4 py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-full text-sm font-semibold border border-brand-200 transition">
+          <button onclick="quickSearch('Honey Wheat Bread')" class="px-3 py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-xl sm:rounded-full text-sm font-semibold border border-brand-200 transition">
             🍞 Honey Wheat Bread
           </button>
-          <button onclick="quickSearch('Ground Beef 80/20')" class="px-4 py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-full text-sm font-semibold border border-brand-200 transition">
+          <button onclick="quickSearch('Ground Beef 80/20')" class="px-3 py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-xl sm:rounded-full text-sm font-semibold border border-brand-200 transition">
             🥩 Ground Beef 80/20 (3 lb)
           </button>
-          <button onclick="quickSearch('Bananas')" class="px-4 py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-full text-sm font-semibold border border-brand-200 transition">
+          <button onclick="quickSearch('Bananas')" class="px-3 py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-xl sm:rounded-full text-sm font-semibold border border-brand-200 transition">
             🍌 Bananas (Fresh Bunch)
           </button>
         </div>
       </div>
 
       <!-- Sticky 1 Bottom CTA Box -->
-      <div id="unregistered-banner" class="bg-gradient-to-r from-brand-500 to-brand-600 rounded-2xl p-6 text-white shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
-        <div>
+      <div id="unregistered-banner" class="bg-gradient-to-r from-brand-500 to-brand-600 rounded-2xl p-5 sm:p-6 text-white shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="text-center md:text-left">
           <h2 class="text-xl font-bold">Unlock preferences and suggested items?</h2>
           <p class="text-brand-100 text-sm mt-0.5">Create your free account to save family cart items, set trip radiuses, and get low price alerts.</p>
         </div>
-        <button onclick="navigateTo('register')" class="whitespace-nowrap px-6 py-3 bg-white text-brand-600 hover:bg-brand-50 font-bold rounded-xl shadow transition touch-btn">
+        <button onclick="navigateTo('register')" class="w-full md:w-auto whitespace-nowrap px-6 py-3 bg-white text-brand-600 hover:bg-brand-50 font-bold rounded-xl shadow transition touch-btn">
           CREATE ACCOUNT
         </button>
       </div>
@@ -212,8 +240,8 @@
     <!-- ========================================================= -->
     <!-- SCREEN 2: SEARCH RESULTS WITH COLLAPSIBLE CART (Sticky 4) -->
     <!-- ========================================================= -->
-    <section id="screen-results" class="hidden space-y-6">
-      <div class="flex items-center justify-between">
+    <section id="screen-results" class="hidden space-y-6 pb-24 lg:pb-0">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <button onclick="navigateTo('search')" class="text-sm font-bold text-brand-600 hover:underline flex items-center gap-1.5 mb-1">
             <i class="fa-solid fa-arrow-left"></i> Back to Search
@@ -224,8 +252,8 @@
           <p class="text-sm text-slate-500">Comparing prices within <span id="results-radius-label" class="font-bold">5 miles</span> of <span id="results-zip-label" class="font-bold">84064</span></p>
         </div>
 
-        <!-- Toggle Preview of Grocery List Button -->
-        <button onclick="toggleCartDrawer()" class="px-4 py-2.5 bg-brand-100 hover:bg-brand-200 text-brand-600 rounded-xl font-bold text-sm flex items-center gap-2 border border-brand-200 transition">
+        <!-- Toggle Preview of Grocery List Button (desktop only; phones use the bottom bar) -->
+        <button onclick="toggleCartDrawer()" class="hidden lg:flex px-4 py-2.5 bg-brand-100 hover:bg-brand-200 text-brand-600 rounded-xl font-bold text-sm flex items-center gap-2 border border-brand-200 transition">
           <i class="fa-solid fa-list-check"></i>
           <span>Grocery List Preview (<span id="drawer-counter">0</span>)</span>
         </button>
@@ -240,7 +268,8 @@
         </div>
 
         <!-- Collapsible Preview of Grocery List (Sticky 4 Right Side) -->
-        <aside id="cart-preview-drawer" class="lg:col-span-4 bg-white rounded-2xl p-5 border border-brand-200 shadow-sm sticky top-24">
+        <!-- Only shown on desktop. On phones the bottom bar below opens the same list instead. -->
+        <aside id="cart-preview-drawer" class="hidden lg:block lg:col-span-4 bg-white rounded-2xl p-5 border border-brand-200 shadow-sm sticky top-24">
           <div class="flex items-center justify-between pb-3 border-b border-slate-100">
             <h3 class="font-black text-slate-900 text-base flex items-center gap-2">
               <i class="fa-solid fa-basket-shopping text-accent-blue"></i>
@@ -258,6 +287,41 @@
             <i class="fa-solid fa-arrow-right"></i>
           </button>
         </aside>
+      </div>
+
+      <!-- Mobile Bottom Bar: stays at the bottom of the screen on phones -->
+      <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-brand-200 shadow-lg px-4 py-3">
+        <button onclick="openMobileCartSheet()" class="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-bold flex items-center justify-between px-4 touch-btn">
+          <span class="flex items-center gap-2">
+            <i class="fa-solid fa-basket-shopping"></i>
+            <span id="mobile-bar-count">0</span> items
+          </span>
+          <span class="flex items-center gap-2">
+            <span id="mobile-bar-total">$0.00</span>
+            <i class="fa-solid fa-chevron-up"></i>
+          </span>
+        </button>
+      </div>
+
+      <!-- Mobile Cart Sheet: slides up from the bottom when the bar is tapped -->
+      <!-- Tapping the dark background (but not the white panel) closes it -->
+      <div id="mobile-cart-sheet" onclick="if (event.target === this) closeMobileCartSheet()" class="hidden lg:hidden fixed inset-0 z-50 bg-black/50 flex items-end">
+        <div class="bg-white w-full rounded-t-2xl p-5 max-h-[80vh] overflow-y-auto">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="font-black text-slate-900 text-base flex items-center gap-2">
+              <i class="fa-solid fa-basket-shopping text-accent-blue"></i>
+              Preview of Grocery List
+            </h3>
+            <button onclick="closeMobileCartSheet()" class="w-11 h-11 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold">✕</button>
+          </div>
+
+          <div id="mobile-sheet-items" class="divide-y divide-slate-100 my-3 text-sm"></div>
+
+          <button onclick="closeMobileCartSheet(); guardNav('list')" class="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-bold text-sm shadow transition flex items-center justify-center gap-2 touch-btn">
+            View Full List & Store Totals
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
       </div>
     </section>
 
@@ -288,7 +352,7 @@
     <!-- ========================================================= -->
     <!-- SCREEN 4: GROCERY LIST / CART (Sticky 5)                   -->
     <!-- ========================================================= -->
-    <section id="screen-list" class="hidden space-y-6">
+    <section id="screen-list" class="hidden space-y-6 pb-24 lg:pb-0">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 class="text-2xl font-black text-slate-900 flex items-center gap-2">
@@ -298,10 +362,11 @@
           <p class="text-sm text-slate-600">Review selected quantities, compare store totals, and plan your route.</p>
         </div>
         <div class="flex gap-2">
-          <button onclick="clearCart()" class="px-4 py-2 border border-slate-300 hover:bg-slate-100 rounded-xl text-sm font-semibold text-slate-600 transition">
+          <button onclick="clearCart()" class="px-4 py-2 min-h-[44px] border border-slate-300 hover:bg-slate-100 rounded-xl text-sm font-semibold text-slate-600 transition">
             Clear List
           </button>
-          <button onclick="guardNav('map')" class="px-5 py-2 bg-accent-blue hover:bg-accent-blueHover text-white font-bold rounded-xl text-sm shadow transition flex items-center gap-2">
+          <!-- Desktop only; phones use the bottom bar instead -->
+          <button onclick="guardNav('map')" class="hidden lg:flex px-5 py-2 bg-accent-blue hover:bg-accent-blueHover text-white font-bold rounded-xl text-sm shadow transition flex items-center gap-2">
             <i class="fa-solid fa-map-location-dot"></i> View Optimized Map
           </button>
         </div>
@@ -309,10 +374,10 @@
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <!-- Main Cart Items -->
-        <div class="lg:col-span-8 bg-white rounded-2xl p-6 border border-brand-200 shadow-sm space-y-4">
+        <div class="lg:col-span-8 bg-white rounded-2xl p-4 sm:p-6 border border-brand-200 shadow-sm space-y-4">
           <div class="flex items-center justify-between pb-3 border-b border-slate-100">
             <h3 class="font-bold text-slate-700">Selected Items (<span id="cart-item-count">0</span>)</h3>
-            <span class="text-xs text-slate-500">Sorted by best pricing across Provo stores</span>
+            <span class="hidden sm:inline text-xs text-slate-500">Sorted by best pricing across Provo stores</span>
           </div>
 
           <div id="full-cart-items" class="divide-y divide-slate-100">
@@ -322,7 +387,7 @@
 
         <!-- Store Breakdown & Estimated Totals -->
         <div class="lg:col-span-4 space-y-4">
-          <div class="bg-white rounded-2xl p-6 border border-brand-200 shadow-sm space-y-4">
+          <div class="bg-white rounded-2xl p-4 sm:p-6 border border-brand-200 shadow-sm space-y-4">
             <h3 class="font-black text-slate-900 text-lg border-b border-slate-100 pb-3">Estimated Totals</h3>
 
             <!-- Store by Store Comparison -->
@@ -338,12 +403,25 @@
               <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-full">Before taxes</span>
             </div>
 
-            <button onclick="guardNav('map')" class="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow transition flex items-center justify-center gap-2 touch-btn">
+            <!-- Desktop only; phones use the bottom bar instead -->
+            <button onclick="guardNav('map')" class="hidden lg:flex w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow transition items-center justify-center gap-2 touch-btn">
               <i class="fa-solid fa-route"></i>
               Optimize Stores on Map
             </button>
           </div>
         </div>
+      </div>
+
+      <!-- Mobile Bottom Bar: total on the left, map button on the right -->
+      <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-brand-200 shadow-lg px-4 py-3 flex items-center justify-between gap-3">
+        <div>
+          <span class="block text-[11px] uppercase font-bold text-slate-500">Best Split Total</span>
+          <span id="mobile-list-total" class="text-xl font-black text-brand-600">$0.00</span>
+        </div>
+        <button onclick="guardNav('map')" class="px-5 py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow transition flex items-center gap-2 touch-btn">
+          <i class="fa-solid fa-route"></i>
+          Optimize on Map
+        </button>
       </div>
     </section>
 
@@ -353,18 +431,19 @@
     <section id="screen-map" class="hidden space-y-4">
       <!-- Search bar for ZIP at top as a reference with GO button -->
       <div class="bg-white p-4 rounded-2xl border border-brand-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <div class="flex items-center gap-2">
-            <label class="text-xs font-bold uppercase text-slate-600">ZIP Code:</label>
-            <input type="text" id="map-zip-input" value="84064" maxlength="5" class="w-24 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-accent-blue" />
-            <button onclick="updateMapLocation()" class="px-4 py-2 bg-accent-blue hover:bg-accent-blueHover text-white font-bold text-sm rounded-lg shadow transition">
+        <!-- On phones the ZIP row takes the full width and Radius drops to the next line -->
+        <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <label class="text-xs font-bold uppercase text-slate-600 whitespace-nowrap">ZIP Code:</label>
+            <input type="text" id="map-zip-input" value="84064" maxlength="5" inputmode="numeric" class="flex-1 min-w-0 sm:flex-none sm:w-24 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-base sm:text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-accent-blue" />
+            <button onclick="updateMapLocation()" class="px-5 py-2 min-h-[44px] bg-accent-blue hover:bg-accent-blueHover text-white font-bold text-sm rounded-lg shadow transition">
               GO
             </button>
           </div>
 
           <div class="flex items-center gap-2">
             <label class="text-xs font-bold uppercase text-slate-600">Radius:</label>
-            <select id="map-radius-select" onchange="updateMapLocation()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-bold text-slate-700">
+            <select id="map-radius-select" onchange="updateMapLocation()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-base sm:text-sm font-bold text-slate-700">
               <option value="5" selected>5 miles</option>
               <option value="10">10 miles</option>
               <option value="15">15 miles</option>
@@ -378,17 +457,24 @@
       </div>
 
       <!-- Map Display Container -->
-      <div class="relative bg-white rounded-2xl border border-brand-200 shadow-sm overflow-hidden h-[540px]">
+      <!-- Map is 60% of the screen height on phones, 540px on bigger screens -->
+      <div class="relative bg-white rounded-2xl border border-brand-200 shadow-sm overflow-hidden h-[60vh] min-h-[360px] sm:h-[540px]">
         <div id="carto-map" class="w-full h-full z-10"></div>
 
         <!-- Legend / Guidance Overlay -->
-        <div class="absolute bottom-4 left-4 z-20 bg-white/95 backdrop-blur px-3 py-2 rounded-xl border border-slate-200 text-xs shadow-md space-y-1">
-          <div class="font-bold text-slate-800">Map Legend:</div>
-          <div class="flex items-center gap-2">
-            <span class="w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">#</span>
-            <span>Items on your list cheapest at this store</span>
+        <div class="absolute bottom-4 left-4 z-20">
+          <!-- Hidden on phones until the Legend button is tapped; always shown on bigger screens -->
+          <div id="map-legend" class="hidden sm:block mb-2 bg-white/95 backdrop-blur px-3 py-2 rounded-xl border border-slate-200 text-xs shadow-md space-y-1">
+            <div class="font-bold text-slate-800">Map Legend:</div>
+            <div class="flex items-center gap-2">
+              <span class="w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">#</span>
+              <span>Items on your list cheapest at this store</span>
+            </div>
+            <p class="text-slate-500 italic">Tap any store marker to view itemized breakdown!</p>
           </div>
-          <p class="text-slate-500 italic">Click any store marker to view itemized breakdown!</p>
+          <button onclick="toggleMapLegend()" class="sm:hidden min-h-[44px] px-4 bg-white rounded-xl border border-slate-200 shadow-md text-sm font-bold text-slate-700 flex items-center gap-2">
+            <i class="fa-solid fa-circle-info text-brand-500"></i> Legend
+          </button>
         </div>
       </div>
     </section>
@@ -396,17 +482,18 @@
     <!-- ========================================================= -->
     <!-- SCREEN 6: STORE DRILLDOWN MODAL / PANEL (Option A Logic)   -->
     <!-- ========================================================= -->
-    <div id="modal-store-detail" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-brand-200 space-y-5">
+    <!-- On phones this slides up from the bottom; on bigger screens it sits in the middle -->
+    <div id="modal-store-detail" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
+      <div class="bg-white rounded-t-2xl sm:rounded-2xl max-w-2xl w-full max-h-[85vh] sm:max-h-[90vh] overflow-y-auto p-5 sm:p-6 shadow-2xl border border-brand-200 space-y-5">
         <div class="flex items-start justify-between border-b border-slate-100 pb-3">
           <div>
             <div class="flex items-center gap-2">
               <h3 id="store-modal-name" class="text-2xl font-black text-slate-900">Store Name</h3>
-              <span id="store-modal-dist" class="text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded">0.0 mi</span>
+              <span id="store-modal-dist" class="whitespace-nowrap text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded">0.0 mi</span>
             </div>
             <p id="store-modal-addr" class="text-xs text-slate-500">Provo / Orem, UT</p>
           </div>
-          <button onclick="closeStoreModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold">✕</button>
+          <button onclick="closeStoreModal()" class="w-11 h-11 shrink-0 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold">✕</button>
         </div>
 
         <!-- Store Estimated Total -->
@@ -850,17 +937,23 @@
           const price = product.prices[store.id] || 0;
           const isCheapest = store.id === cheapestStoreId;
           storeOptionsHtml += `
-            <div class="flex items-center justify-between p-3 rounded-xl ${isCheapest ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-100'}">
-              <div class="flex items-center gap-2">
-                <i class="fa-solid fa-store text-slate-400 text-sm"></i>
-                <span class="font-bold text-slate-800 text-sm">${store.name}</span>
-                <span class="text-xs text-slate-500 font-medium">(${store.distance} mi)</span>
-                ${isCheapest ? '<span class="text-[10px] bg-emerald-600 text-white font-black px-2 py-0.5 rounded-full">BEST PRICE</span>' : ''}
+            <div class="flex items-center justify-between gap-3 p-3 rounded-xl ${isCheapest ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-100'}">
+              <!-- Left side: store name on top, distance and badge underneath -->
+              <div>
+                <div class="flex items-center gap-2">
+                  <i class="fa-solid fa-store text-slate-400 text-sm"></i>
+                  <span class="font-bold text-slate-800 text-sm">${store.name}</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 mt-0.5">
+                  <span class="text-xs text-slate-500 font-medium">${store.distance} mi</span>
+                  ${isCheapest ? '<span class="text-[10px] bg-emerald-600 text-white font-black px-2 py-0.5 rounded-full">BEST PRICE</span>' : ''}
+                </div>
               </div>
-              <div class="flex items-center gap-3">
+              <!-- Right side: price and button (stacked on phones, side by side on bigger screens) -->
+              <div class="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 shrink-0">
                 <span class="font-extrabold text-base ${isCheapest ? 'text-emerald-700' : 'text-slate-700'}">$${price.toFixed(2)}</span>
-                <button onclick="addToCart('${product.id}', '${store.id}')" class="px-3 py-1.5 bg-accent-blue hover:bg-accent-blueHover text-white text-xs font-bold rounded-lg shadow-sm transition">
-                  + Add to List
+                <button onclick="addToCart('${product.id}', '${store.id}')" class="px-3 py-2 min-h-[40px] bg-accent-blue hover:bg-accent-blueHover text-white text-xs font-bold rounded-lg shadow-sm transition">
+                  + Add<span class="hidden sm:inline"> to List</span>
                 </button>
               </div>
             </div>
@@ -883,6 +976,10 @@
           <div class="space-y-2">
             ${storeOptionsHtml}
           </div>
+          <!-- Phones only: the "best deal" button goes full width at the bottom of the card -->
+          <button onclick="addToCart('${product.id}')" class="sm:hidden w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-sm shadow transition flex items-center justify-center gap-2 touch-btn">
+            <i class="fa-solid fa-plus"></i> Add Best Deal to List
+          </button>
         `;
         container.appendChild(card);
       });
@@ -892,8 +989,37 @@
 
     // --- Collapsible Cart Drawer (Sticky 4) ---
     function toggleCartDrawer() {
+      // The drawer only shows on desktop (lg:block), so toggling that class shows or hides it
       const drawer = document.getElementById('cart-preview-drawer');
-      drawer.classList.toggle('hidden');
+      drawer.classList.toggle('lg:block');
+    }
+
+    // --- Mobile Cart Sheet (phones only) ---
+    function openMobileCartSheet() {
+      document.getElementById('mobile-cart-sheet').classList.remove('hidden');
+    }
+
+    function closeMobileCartSheet() {
+      document.getElementById('mobile-cart-sheet').classList.add('hidden');
+    }
+
+    // --- Mobile Hamburger Menu (phones only) ---
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobile-menu');
+      const icon = document.getElementById('menu-button-icon');
+      menu.classList.toggle('hidden');
+
+      // Show an X while the menu is open, and the 3 lines while it is closed
+      if (menu.classList.contains('hidden')) {
+        icon.className = 'fa-solid fa-bars';
+      } else {
+        icon.className = 'fa-solid fa-xmark';
+      }
+    }
+
+    function closeMobileMenu() {
+      document.getElementById('mobile-menu').classList.add('hidden');
+      document.getElementById('menu-button-icon').className = 'fa-solid fa-bars';
     }
 
     function renderCartDrawer() {
@@ -901,14 +1027,22 @@
       const counter = document.getElementById('drawer-counter');
       const badgeTotal = document.getElementById('drawer-total-badge');
       const navBadge = document.getElementById('cart-counter-badge');
+      const mobileBadge = document.getElementById('mobile-cart-badge');
+      const mobileBarCount = document.getElementById('mobile-bar-count');
+      const mobileBarTotal = document.getElementById('mobile-bar-total');
+      const mobileSheetList = document.getElementById('mobile-sheet-items');
 
       const totalItemsCount = state.cart.reduce((acc, curr) => acc + curr.quantity, 0);
       counter.textContent = totalItemsCount;
       navBadge.textContent = totalItemsCount;
+      mobileBadge.textContent = totalItemsCount;
+      mobileBarCount.textContent = totalItemsCount;
 
       if (state.cart.length === 0) {
         container.innerHTML = '<p class="py-4 text-center text-slate-400">Your list is currently empty.</p>';
+        mobileSheetList.innerHTML = '<p class="py-4 text-center text-slate-400">Your list is currently empty.</p>';
         badgeTotal.textContent = '$0.00';
+        mobileBarTotal.textContent = '$0.00';
         return;
       }
 
@@ -935,14 +1069,16 @@
             </div>
             <div class="flex items-center gap-2">
               <span class="font-black text-xs text-brand-600">$${itemTotal.toFixed(2)}</span>
-              <button onclick="removeFromCart('${cartItem.id}')" class="text-slate-300 hover:text-red-500 text-xs px-1">✕</button>
+              <button onclick="removeFromCart('${cartItem.id}')" class="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-red-500 text-sm">✕</button>
             </div>
           </div>
         `;
       });
 
       container.innerHTML = html;
+      mobileSheetList.innerHTML = html;
       badgeTotal.textContent = `$${grandTotal.toFixed(2)}`;
+      mobileBarTotal.textContent = `$${grandTotal.toFixed(2)}`;
     }
 
     // --- Cart Actions ---
@@ -989,6 +1125,7 @@
       const countLabel = document.getElementById('cart-item-count');
       const storeTotalsContainer = document.getElementById('store-totals-list');
       const grandTotalLabel = document.getElementById('cart-grand-total');
+      const mobileTotalLabel = document.getElementById('mobile-list-total');
 
       const totalItemsCount = state.cart.reduce((acc, curr) => acc + curr.quantity, 0);
       countLabel.textContent = totalItemsCount;
@@ -997,6 +1134,7 @@
         container.innerHTML = '<p class="py-8 text-center text-slate-400">No items in your grocery list. Search items or browse hot deals to add them!</p>';
         storeTotalsContainer.innerHTML = '<p class="text-xs text-slate-400">No active store estimates.</p>';
         grandTotalLabel.textContent = '$0.00';
+        mobileTotalLabel.textContent = '$0.00';
         return;
       }
 
@@ -1035,7 +1173,7 @@
               <span class="text-3xl">${prod.icon}</span>
               <div>
                 <h4 class="font-black text-slate-900 text-base">${prod.name}</h4>
-                <div class="flex items-center gap-2 mt-0.5">
+                <div class="flex flex-wrap items-center gap-2 mt-0.5">
                   <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Cheapest at: ${bestStore.name}</span>
                   <span class="text-xs text-slate-500 font-medium">($${lowestPrice.toFixed(2)} each)</span>
                 </div>
@@ -1045,12 +1183,12 @@
             <!-- Qty & Remove Controls -->
             <div class="flex items-center justify-between sm:justify-end gap-4">
               <div class="flex items-center border border-slate-200 rounded-xl bg-slate-50">
-                <button onclick="updateCartQuantity('${cartItem.id}', -1)" class="w-8 h-8 flex items-center justify-center text-slate-600 font-bold hover:bg-slate-200 rounded-l-xl">-</button>
+                <button onclick="updateCartQuantity('${cartItem.id}', -1)" class="w-11 h-11 flex items-center justify-center text-slate-600 text-lg font-bold hover:bg-slate-200 rounded-l-xl">-</button>
                 <span class="w-8 text-center text-sm font-black text-slate-800">${cartItem.quantity}</span>
-                <button onclick="updateCartQuantity('${cartItem.id}', 1)" class="w-8 h-8 flex items-center justify-center text-slate-600 font-bold hover:bg-slate-200 rounded-r-xl">+</button>
+                <button onclick="updateCartQuantity('${cartItem.id}', 1)" class="w-11 h-11 flex items-center justify-center text-slate-600 text-lg font-bold hover:bg-slate-200 rounded-r-xl">+</button>
               </div>
               <span class="font-black text-base text-slate-900 w-16 text-right">$${itemLineTotal.toFixed(2)}</span>
-              <button onclick="removeFromCart('${cartItem.id}')" class="text-slate-400 hover:text-red-500 p-2">
+              <button onclick="removeFromCart('${cartItem.id}')" class="w-11 h-11 flex items-center justify-center text-slate-400 hover:text-red-500">
                 <i class="fa-solid fa-trash-can text-sm"></i>
               </button>
             </div>
@@ -1060,6 +1198,7 @@
 
       container.innerHTML = itemsHtml;
       grandTotalLabel.textContent = `$${bestSplitTotal.toFixed(2)}`;
+      mobileTotalLabel.textContent = `$${bestSplitTotal.toFixed(2)}`;
 
       // Store by Store comparison list
       let storeListHtml = '';
@@ -1155,6 +1294,11 @@
       renderMapStoreMarkers();
     }
 
+    // Phones only: show or hide the map legend when the Legend button is tapped
+    function toggleMapLegend() {
+      document.getElementById('map-legend').classList.toggle('hidden');
+    }
+
     function renderMapStoreMarkers() {
       if (!leafletMap) return;
 
@@ -1246,7 +1390,7 @@
         if (isCheapestHere) {
           cheapestCount++;
           const row = document.createElement('div');
-          row.className = 'p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs sm:text-sm';
+          row.className = 'p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-3 text-xs sm:text-sm';
           row.innerHTML = `
             <div class="flex items-center gap-2">
               <span class="text-xl">${prod.icon}</span>
@@ -1255,7 +1399,7 @@
                 <span class="block text-[11px] text-emerald-700 font-bold">Lowest price in Provo!</span>
               </div>
             </div>
-            <div class="text-right">
+            <div class="text-right shrink-0">
               <span class="font-extrabold text-emerald-800 text-base">$${(thisStorePrice * cartItem.quantity).toFixed(2)}</span>
               <span class="block text-[10px] text-slate-500 font-medium">($${thisStorePrice.toFixed(2)} ea)</span>
             </div>
@@ -1267,7 +1411,7 @@
           const diff = (thisStorePrice - lowestPrice) * cartItem.quantity;
 
           const row = document.createElement('div');
-          row.className = 'p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs sm:text-sm';
+          row.className = 'p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3 text-xs sm:text-sm';
           row.innerHTML = `
             <div class="flex items-center gap-2">
               <span class="text-xl">${prod.icon}</span>
@@ -1278,7 +1422,7 @@
                 </span>
               </div>
             </div>
-            <div class="text-right">
+            <div class="text-right shrink-0">
               <span class="font-bold text-slate-500 line-through text-xs mr-1">$${(thisStorePrice * cartItem.quantity).toFixed(2)}</span>
               <span class="font-extrabold text-brand-600 text-sm">$${(lowestPrice * cartItem.quantity).toFixed(2)}</span>
               <span class="block text-[10px] text-red-600 font-bold">+$${diff.toFixed(2)} more here</span>
