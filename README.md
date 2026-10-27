@@ -6,7 +6,7 @@ Grocery shopping is an essential but time-consuming task, and shoppers who want 
 
 ## ERD
 
-<img width="1282" height="555" alt="Shop Wyse ERD" src="https://github.com/user-attachments/assets/3e643844-3c99-497e-9de2-95931eee1718" />
+Please see the ERD PDF for full ERD
 
 ## Tech Stack
 
