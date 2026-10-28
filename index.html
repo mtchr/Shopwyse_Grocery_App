@@ -605,6 +605,11 @@
       </div>
 
       <form onsubmit="handleLogin(event)" class="space-y-4">
+        <div id="login-error"
+          class="hidden bg-red-50 border-2 border-red-300 text-red-800
+            p-3 rounded-xl text-sm font-semibold"
+          role="alert">
+        </div>
         <div>
           <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Email</label>
           <input type="email" id="login-email" placeholder="you@example.com" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-medium" />
@@ -1199,7 +1204,7 @@ function addToCart(productId) {
 
     if (!state.isLoggedIn) {
         showToast('Please log in to add items.');
-        guardNav('login');
+        navigateTo('login');
         return;
     }
 
@@ -1639,37 +1644,75 @@ async function saveShoppingTime(minutes) {
     }
 
     // --- Authentication Actions (Sticky 2) ---
-    async function handleLogin(e) {
-      e.preventDefault();
-      const email = document.getElementById('login-email').value.trim().toLowerCase();
-      const password = document.getElementById('login-password').value;
+async function handleLogin(e) {
+    e.preventDefault();
 
-      const { data, error } = await db
-        .from(USERS_TABLE)
-        .select('*')
-        .eq('email', email)
-        .eq('password', password)
-        .maybeSingle();
+    const email = document.getElementById('login-email')
+        .value.trim().toLowerCase();
 
-      if (error) {
-        console.error(error);
-        showToast('Login failed: ' + error.message);
-        return;
-      }
-      if (!data) {
-        showToast('Incorrect email or password');
-        return;
-      }
+    const password = document.getElementById('login-password').value;
 
-      state.isLoggedIn = true;
-      state.userEmail = email;
-      state.userFirstName = data.firstName || '';
-      state.weeklyShoppingMinutes = data.weekly_shopping_minutes;
-      document.getElementById('account-email-display').textContent = email;
-      updateAuthUI();
-      showToast('Successfully logged in!');
-      navigateTo('list');
+    const errorBox = document.getElementById('login-error');
+
+    // Hide any previous error
+    errorBox.classList.add('hidden');
+    errorBox.textContent = '';
+
+    try {
+        const { data, error } = await db
+            .from(USERS_TABLE)
+            .select('*')
+            .eq('email', email)
+            .eq('password', password)
+            .maybeSingle();
+
+        // Database error
+        if (error) {
+            console.error('Login error:', error);
+
+            errorBox.textContent =
+                'Unable to verify your login right now. Please try again later.';
+
+            errorBox.classList.remove('hidden');
+            return;
+        }
+
+        // Incorrect email or password
+        if (!data) {
+            errorBox.textContent =
+                'Incorrect email or password. Please try again.';
+
+            errorBox.classList.remove('hidden');
+            return;
+        }
+
+        // Successful login
+        state.isLoggedIn = true;
+        state.userEmail = email;
+        state.userFirstName = data.firstName || '';
+
+        // Shopping-time survey status from Supabase
+        state.weeklyShoppingMinutes =
+            data.weekly_shopping_minutes ?? null;
+
+        document.getElementById('account-email-display')
+            .textContent = email;
+
+        updateAuthUI();
+
+        showToast('Successfully logged in!');
+
+        navigateTo('list');
+
+    } catch (err) {
+        console.error('Unexpected login error:', err);
+
+        errorBox.textContent =
+            'Something went wrong. Please check your connection and try again.';
+
+        errorBox.classList.remove('hidden');
     }
+}
 
     async function handleRegister(e) {
       e.preventDefault();
