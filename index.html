@@ -61,10 +61,65 @@
       border: 2px solid white;
       box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     }
-    /* Touch target sizes for older audience accessibility */
-    .touch-btn {
-      min-height: 48px;
-    }
+      /* Touch target sizes for older audience accessibility */
+      .touch-btn {
+        min-height: 48px;
+      }
+      
+  /* GROCERY LIST: HIGH CONTRAST */
+  
+  /* Individual grocery list items */
+  #full-cart-items > div {
+      background-color: #F1F5F9;
+      border: 2px solid #CBD5E1;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 12px;
+      color: #0F172A;
+  }
+  
+  /* Grocery item names */
+  #full-cart-items h4 {
+      color: #0F172A;
+      font-size: 18px;
+      font-weight: 800;
+  }
+  
+  /* Price per item and secondary text */
+  #full-cart-items .text-slate-500 {
+      color: #334155;
+      font-weight: 600;
+  }
+  
+  /* Cheapest store label */
+  #full-cart-items .bg-emerald-100 {
+      background-color: #BBF7D0;
+      color: #14532D;
+      border: 1px solid #15803D;
+      font-weight: 700;
+  }
+  
+  /* Quantity controls */
+  #full-cart-items button {
+      color: #1E293B;
+  }
+  
+  /* Remove item button */
+  #full-cart-items button:last-child {
+      color: #B91C1C;
+  }
+  
+  /* Store comparison rows */
+  #store-totals-list > div {
+      background-color: #E2E8F0;
+      border: 1px solid #94A3B8;
+      padding: 12px;
+  }
+  
+  /* Store comparison secondary text */
+  #store-totals-list .text-slate-500 {
+      color: #334155;
+  }
   </style>
 </head>
 
