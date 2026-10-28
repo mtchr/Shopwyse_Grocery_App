@@ -756,6 +756,60 @@
     </div>
   </div>
 
+  <!-- WEEKLY SHOPPING TIME SURVEY -->
+<div id="shopping-time-modal"
+     class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+
+  <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+
+    <h2 class="text-2xl font-black text-slate-900 mb-3 text-center">
+      🛒 Your Shopping Habits
+    </h2>
+
+    <p class="text-slate-700 mb-5 text-center">
+      How much time do you typically spend grocery shopping
+      each week, excluding travel time?
+    </p>
+
+    <div class="space-y-3">
+
+      <button onclick="saveShoppingTime(15)"
+        class="w-full p-3 bg-slate-100 hover:bg-emerald-100 border border-slate-300 rounded-xl font-bold text-slate-900">
+        Under 30 minutes
+      </button>
+
+      <button onclick="saveShoppingTime(45)"
+        class="w-full p-3 bg-slate-100 hover:bg-emerald-100 border border-slate-300 rounded-xl font-bold text-slate-900">
+        30–60 minutes
+      </button>
+
+      <button onclick="saveShoppingTime(90)"
+        class="w-full p-3 bg-slate-100 hover:bg-emerald-100 border border-slate-300 rounded-xl font-bold text-slate-900">
+        1–2 hours
+      </button>
+
+      <button onclick="saveShoppingTime(150)"
+        class="w-full p-3 bg-slate-100 hover:bg-emerald-100 border border-slate-300 rounded-xl font-bold text-slate-900">
+        2–3 hours
+      </button>
+
+      <button onclick="saveShoppingTime(210)"
+        class="w-full p-3 bg-slate-100 hover:bg-emerald-100 border border-slate-300 rounded-xl font-bold text-slate-900">
+        More than 3 hours
+      </button>
+
+    </div>
+
+    <p id="shopping-time-error"
+       class="hidden text-red-700 text-sm font-semibold mt-4"
+       role="alert"></p>
+
+    <p class="text-xs text-slate-600 text-center mt-5">
+      Your answer will be saved to your account.
+    </p>
+
+  </div>
+</div>
   <!-- ========================================================= -->
   <!-- JAVASCRIPT STATE ENGINE & MOCK DATA                       -->
   <!-- ========================================================= -->
@@ -774,6 +828,7 @@
       zipCode: '84064',
       radius: 5,
       currentScreen: 'search',
+      weeklyShoppingMinutes: null,
       cart: [
         { id: 'item_milk', name: 'Gallon Whole Milk', quantity: 2 },
         { id: 'item_eggs', name: 'Large Grade A Eggs (18pk)', quantity: 2 },
@@ -1137,16 +1192,97 @@
     }
 
     // --- Cart Actions ---
-    function addToCart(productId) {
-      const existing = state.cart.find(item => item.id === productId);
-      if (existing) {
-        existing.quantity += 1;
-      } else {
-        state.cart.push({ id: productId, quantity: 1 });
-      }
-      renderCartDrawer();
-      showToast('Item added to grocery list!');
+// Remember which item the user wanted to add
+let pendingCartProduct = null;
+
+function addToCart(productId) {
+
+    if (!state.isLoggedIn) {
+        showToast('Please log in to add items.');
+        guardNav('login');
+        return;
     }
+
+    // Check whether the user answered the survey
+    if (state.weeklyShoppingMinutes === null ||
+        state.weeklyShoppingMinutes === undefined) {
+
+        pendingCartProduct = productId;
+
+        document.getElementById('shopping-time-modal')
+            .classList.remove('hidden');
+
+        return;
+    }
+
+    // Normal cart functionality
+    const existing = state.cart.find(item => item.id === productId);
+
+    if (existing) {
+        existing.quantity += 1;
+    } else {
+        state.cart.push({
+            id: productId,
+            quantity: 1
+        });
+    }
+
+    renderCartDrawer();
+
+    showToast('Item added to grocery list!');
+}
+
+async function saveShoppingTime(minutes) {
+
+    const errorMessage = document.getElementById('shopping-time-error');
+
+    errorMessage.classList.add('hidden');
+
+    if (!state.isLoggedIn || !state.userEmail) {
+        errorMessage.textContent = 'Please log in first.';
+        errorMessage.classList.remove('hidden');
+        return;
+    }
+
+    // Save the selection in Supabase
+    const { data, error } = await db
+        .from(USERS_TABLE)
+        .update({
+            weekly_shopping_minutes: minutes
+        })
+        .eq('email', state.userEmail)
+        .select('weekly_shopping_minutes')
+        .single();
+
+    if (error) {
+        console.error('Error saving shopping time:', error);
+
+        errorMessage.textContent =
+            'Could not save your answer. Please try again.';
+
+        errorMessage.classList.remove('hidden');
+        return;
+    }
+
+    // Update the current user's state
+    state.weeklyShoppingMinutes = data.weekly_shopping_minutes;
+
+    // Close the survey
+    document.getElementById('shopping-time-modal')
+        .classList.add('hidden');
+
+    showToast('Shopping preference saved successfully!');
+
+    // Automatically add the item they originally clicked
+    if (pendingCartProduct !== null) {
+
+        const productId = pendingCartProduct;
+
+        pendingCartProduct = null;
+
+        addToCart(productId);
+    }
+}
 
     function updateCartQuantity(productId, delta) {
       const item = state.cart.find(i => i.id === productId);
@@ -1528,6 +1664,7 @@
       state.isLoggedIn = true;
       state.userEmail = email;
       state.userFirstName = data.firstName || '';
+      state.weeklyShoppingMinutes = data.weekly_shopping_minutes;
       document.getElementById('account-email-display').textContent = email;
       updateAuthUI();
       showToast('Successfully logged in!');
@@ -1571,6 +1708,7 @@
       state.isLoggedIn = true;
       state.userEmail = email;
       state.userFirstName = firstName;
+      state.weeklyShoppingMinutes = null;
       document.getElementById('account-email-display').textContent = email;
       updateAuthUI();
       showToast('Account created successfully! Preferences saved.');
@@ -1581,6 +1719,7 @@
       state.isLoggedIn = false;
       state.userEmail = '';
       state.userFirstName = '';
+      state.weeklyShoppingMinutes = null;
       document.getElementById('account-email-display').textContent = '';
       updateAuthUI();
       showToast('Logged out of ShopWyse');
