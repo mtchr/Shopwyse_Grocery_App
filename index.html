@@ -131,7 +131,7 @@
   <header class="sticky top-0 z-40 bg-white border-b border-brand-200 shadow-sm">
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
       <!-- App Brand -->
-      <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('search')">
+      <div class="flex items-center gap-3">
         <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-brand-500 text-white flex items-center justify-center text-lg sm:text-xl font-bold shadow-sm">
           <i class="fa-solid fa-basket-shopping"></i>
         </div>
@@ -154,6 +154,16 @@
 
       <!-- Anchored Navigation Buttons (tablet and desktop) -->
       <nav class="hidden sm:flex items-center gap-1 sm:gap-2">
+
+        <button
+          onclick="navigateTo('search')"
+          id="nav-home"
+          aria-label="Search"
+          class="px-3 py-2 min-h-[44px] rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition focus:outline-none focus:ring-2 focus:ring-accent-blue">
+          <i class="fa-solid fa-house text-brand-500" aria-hidden="true"></i>
+          <span>Search</span>
+        </button>
+
         <button onclick="guardNav('deals')" id="nav-deals" class="px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
           <i class="fa-solid fa-fire text-amber-500"></i>
           <span class="hidden md:inline">Hot</span> Deals
@@ -179,6 +189,12 @@
 
     <!-- Mobile Dropdown Menu (opened by the hamburger button) -->
     <div id="mobile-menu" class="hidden sm:hidden border-t border-brand-200 bg-white px-4 py-2">
+      <button
+        onclick="closeMobileMenu(); navigateTo('search')"
+        class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 border-b border-slate-100 touch-btn focus:outline-none focus:ring-2 focus:ring-accent-blue">
+        <i class="fa-solid fa-house text-brand-500 w-5" aria-hidden="true"></i>
+        Search
+      </button>
       <button onclick="closeMobileMenu(); guardNav('deals')" class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 border-b border-slate-100 touch-btn">
         <i class="fa-solid fa-fire text-amber-500 w-5"></i> Hot Deals
       </button>
