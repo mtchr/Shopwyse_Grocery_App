@@ -120,6 +120,52 @@
   #store-totals-list .text-slate-500 {
       color: #334155;
   }
+
+.totals-summary {
+  width: 100%;
+}
+
+.totals-summary__line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.totals-summary__label {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.totals-summary__amount {
+  display: block;
+  margin-top: 0.25rem;
+  color: #2563eb;
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.totals-summary__tax-note {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .totals-summary__line {
+    align-items: flex-start;
+  }
+
+  .totals-summary__tax-note {
+    white-space: normal;
+  }
+}
   </style>
 </head>
 
@@ -153,37 +199,35 @@
       </button>
     </div>
 
-
     <!-- Desktop Navigation -->
-    <nav class="hidden sm:flex items-center gap-2">
-      <button onclick="navigateTo('search')" id="nav-search" aria-label="Search" class="px-3 py-2 rounded-lg border border-slate-300 bg-white font-medium text-slate-700 hover:text-brand-600 hover:bg-brand-50 hover:border-brand-500 flex items-center gap-1.5 transition shadow-sm">
+    <nav class="hidden sm:flex items-center gap-1 sm:gap-2">
+      <button onclick="navigateTo('search')" id="nav-search" aria-label="Search" class="px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
         <i class="fa-solid fa-magnifying-glass text-accent-blue"></i>
         <span>Search</span>
       </button>
 
-      <button onclick="guardNav('deals')" id="nav-deals" class="px-3 py-2 rounded-lg border border-slate-300 bg-white font-medium text-slate-700 hover:text-brand-600 hover:bg-brand-50 hover:border-brand-500 flex items-center gap-1.5 transition shadow-sm">
+      <button onclick="guardNav('deals')" id="nav-deals" class="px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
         <i class="fa-solid fa-fire text-amber-500"></i>
         <span class="hidden md:inline">Hot</span> Deals
       </button>
 
-      <button onclick="guardNav('map')" id="nav-map" class="px-3 py-2 rounded-lg border border-slate-300 bg-white font-medium text-slate-700 hover:text-brand-600 hover:bg-brand-50 hover:border-brand-500 flex items-center gap-1.5 transition shadow-sm">
+      <button onclick="guardNav('map')" id="nav-map" class="px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
         <i class="fa-solid fa-map-location-dot text-brand-500"></i>
         <span>Map</span>
       </button>
 
-      <button onclick="guardNav('list')" id="nav-list" class="relative px-3 py-2 rounded-lg border border-slate-300 bg-white font-medium text-slate-700 hover:text-brand-600 hover:bg-brand-50 hover:border-brand-500 flex items-center gap-1.5 transition shadow-sm">
+      <button onclick="guardNav('list')" id="nav-list" class="relative px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
         <i class="fa-solid fa-cart-shopping text-accent-blue"></i>
         <span class="hidden md:inline">Grocery</span> List
         <span id="cart-counter-badge" class="bg-accent-blue text-white text-xs font-bold px-2 py-0.5 rounded-full ml-1">0</span>
       </button>
 
-      <button onclick="guardNav('account')" id="nav-account" class="px-3 py-2 rounded-lg border border-slate-300 bg-white font-medium text-slate-700 hover:text-brand-600 hover:bg-brand-50 hover:border-brand-500 flex items-center gap-1.5 transition shadow-sm">
+      <button onclick="guardNav('account')" id="nav-account" class="px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
         <i class="fa-regular fa-circle-user text-slate-500 text-lg"></i>
         <span id="account-nav-label" class="hidden md:inline">Account</span>
       </button>
     </nav>
   </div>
-
 
   <!-- Mobile Dropdown Menu -->
   <div id="mobile-menu" class="hidden sm:hidden border-t border-brand-200 bg-white px-4 py-2">
@@ -207,7 +251,7 @@
 
 
   <!-- Notification Dropdown / Flash Toast -->
-  <div id="toast-banner" class="hidden bg-emerald-600 border border-emerald-800 text-white px-4 py-2.5 text-center text-sm font-semibold shadow-md transition-all">
+  <div id="toast-banner" class="hidden bg-emerald-600 text-white px-4 py-2.5 text-center text-sm font-semibold shadow-md transition-all">
     <span id="toast-msg">Alert notification message</span>
   </div>
 
@@ -260,7 +304,7 @@
         <!-- Big Obvious Search Button -->
         <div class="mt-4 flex flex-col sm:flex-row gap-3 items-center justify-between">
           <span id="search-error-msg" class="text-red-500 font-semibold text-sm hidden"></span>
-          <button onclick="executeSearch()" class="w-full sm:w-auto px-8 py-3.5 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold text-lg rounded-xl shadow-md transition flex items-center justify-center gap-2 touch-btn">
+          <button onclick="executeSearch()" class="w-full sm:w-auto px-8 py-3.5 bg-accent-blue hover:bg-accent-blueHover text-white font-bold text-lg rounded-xl shadow-md transition flex items-center justify-center gap-2 touch-btn">
             <i class="fa-solid fa-magnifying-glass"></i>
             SEARCH!
           </button>
@@ -293,12 +337,12 @@
       </div>
 
       <!-- Sticky 1 Bottom CTA Box -->
-      <div id="unregistered-banner" class="bg-gradient-to-r from-brand-500 to-brand-600 border border-brand-700 rounded-2xl p-5 sm:p-6 text-white shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
+      <div id="unregistered-banner" class="bg-gradient-to-r from-brand-500 to-brand-600 rounded-2xl p-5 sm:p-6 text-white shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="text-center md:text-left">
           <h2 class="text-xl font-bold">Unlock preferences and suggested items?</h2>
           <p class="text-brand-100 text-sm mt-0.5">Create your free account to save family cart items, set trip radiuses, and get low price alerts.</p>
         </div>
-        <button onclick="navigateTo('register')" class="w-full md:w-auto whitespace-nowrap px-6 py-3 bg-white border border-slate-300 text-brand-600 hover:bg-brand-50 font-bold rounded-xl shadow transition touch-btn">
+        <button onclick="navigateTo('register')" class="w-full md:w-auto whitespace-nowrap px-6 py-3 bg-white text-brand-600 hover:bg-brand-50 font-bold rounded-xl shadow transition touch-btn">
           CREATE ACCOUNT
         </button>
       </div>
@@ -349,7 +393,7 @@
             <p class="py-4 text-center text-slate-400">Your grocery list is empty.<br>Click "Add to List" on any store option!</p>
           </div>
 
-          <button onclick="guardNav('list')" class="w-full py-3 bg-brand-500 hover:bg-brand-600 border border-brand-600 text-white rounded-xl font-bold text-sm shadow transition flex items-center justify-center gap-2 touch-btn">
+          <button onclick="guardNav('list')" class="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-bold text-sm shadow transition flex items-center justify-center gap-2 touch-btn">
             View Full List & Store Totals
             <i class="fa-solid fa-arrow-right"></i>
           </button>
@@ -358,7 +402,7 @@
 
       <!-- Mobile Bottom Bar: stays at the bottom of the screen on phones -->
       <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-brand-200 shadow-lg px-4 py-3">
-        <button onclick="openMobileCartSheet()" class="w-full py-3 bg-brand-500 hover:bg-brand-600 border border-brand-600 text-white rounded-xl font-bold flex items-center justify-between px-4 touch-btn">
+        <button onclick="openMobileCartSheet()" class="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-bold flex items-center justify-between px-4 touch-btn">
           <span class="flex items-center gap-2">
             <i class="fa-solid fa-basket-shopping"></i>
             <span id="mobile-bar-count">0</span> items
@@ -379,12 +423,12 @@
               <i class="fa-solid fa-basket-shopping text-accent-blue"></i>
               Preview of Grocery List
             </h3>
-            <button onclick="closeMobileCartSheet()" class="w-11 h-11 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-600 flex items-center justify-center font-bold">✕</button>
+            <button onclick="closeMobileCartSheet()" class="w-11 h-11 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold">✕</button>
           </div>
 
           <div id="mobile-sheet-items" class="divide-y divide-slate-100 my-3 text-sm"></div>
 
-          <button onclick="closeMobileCartSheet(); guardNav('list')" class="w-full py-3 bg-brand-500 hover:bg-brand-600 border border-brand-600 text-white rounded-xl font-bold text-sm shadow transition flex items-center justify-center gap-2 touch-btn">
+          <button onclick="closeMobileCartSheet(); guardNav('list')" class="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-bold text-sm shadow transition flex items-center justify-center gap-2 touch-btn">
             View Full List & Store Totals
             <i class="fa-solid fa-arrow-right"></i>
           </button>
@@ -406,7 +450,7 @@
         <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
           <label for="deals-zip-input" class="text-xs font-bold uppercase text-slate-500">ZIP:</label>
           <input type="text" id="deals-zip-input" value="84064" maxlength="5" inputmode="numeric" class="min-w-0 flex-1 sm:flex-none sm:w-24 px-3 py-3 sm:py-2 bg-slate-50 border border-slate-300 rounded-lg text-base font-bold text-center" />
-          <button onclick="refreshDeals()" class="shrink-0 px-5 py-3 sm:py-2 min-h-[44px] bg-brand-500 hover:bg-brand-600 border border-brand-600 text-white font-bold rounded-lg text-sm transition">Update</button>
+          <button onclick="refreshDeals()" class="shrink-0 px-5 py-3 sm:py-2 min-h-[44px] bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-lg text-sm transition">Update</button>
         </div>
       </div>
 
@@ -433,7 +477,7 @@
             Clear List
           </button>
           <!-- Desktop only; phones use the bottom bar instead -->
-          <button onclick="guardNav('map')" class="hidden lg:flex px-5 py-2 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold rounded-xl text-sm shadow transition flex items-center gap-2">
+          <button onclick="guardNav('map')" class="hidden lg:flex px-5 py-2 bg-accent-blue hover:bg-accent-blueHover text-white font-bold rounded-xl text-sm shadow transition flex items-center gap-2">
             <i class="fa-solid fa-map-location-dot"></i> View Optimized Map
           </button>
         </div>
@@ -444,7 +488,6 @@
         <div class="lg:col-span-8 bg-white rounded-2xl p-4 sm:p-6 border border-brand-200 shadow-sm space-y-4">
           <div class="flex items-center justify-between pb-3 border-b border-slate-100">
             <h3 class="font-bold text-slate-700">Selected Items (<span id="cart-item-count">0</span>)</h3>
-            <span class="hidden sm:inline text-xs text-slate-500">Sorted by best pricing across Provo stores</span>
           </div>
 
           <div id="full-cart-items" class="divide-y divide-slate-100">
@@ -462,16 +505,48 @@
               <!-- Dynamically populated -->
             </div>
 
-            <div class="pt-4 border-t border-slate-200 flex justify-between items-center">
-              <div>
-                <span class="block text-xs uppercase font-bold text-slate-500">Best Split Total</span>
-                <span class="text-2xl font-black text-brand-600" id="cart-grand-total">$0.00</span>
+            <div class="pt-4 border-t border-slate-200">
+              <div class="totals-summary">
+                <div class="totals-summary__line">
+                  <span class="totals-summary__label">
+                    Estimated subtotal
+                  </span>
+
+                  <span class="totals-summary__tax-note">
+                    (Taxes not included)
+                  </span>
+                </div>
+
+                <span id="cart-grand-total" class="totals-summary__amount">
+                  $0.00
+                </span>
               </div>
-              <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-full">Before taxes</span>
             </div>
 
+            <div class="pt-4 border-t border-slate-200 flex justify-between items-center">
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span class="block text-xs uppercase font-bold text-slate-500">
+                    Estimated Shopping Time
+                  </span>
+
+                  <button type="button"
+                    onclick="openShoppingTimeBreakdown(event)"
+                    title="View shopping-time breakdown"
+                    aria-label="View shopping-time breakdown"
+                    class="w-5 h-5 rounded-full border border-slate-300 text-slate-500 hover:border-brand-500 hover:text-brand-600 flex items-center justify-center text-[11px] font-black transition">
+                    <i class="fa-solid fa-info"></i>
+                  </button>
+                </div>
+                <span class="text-2xl font-black text-brand-600" id="grocery-time-estimate">
+                  00:00
+                </span>
+              </div>
+            </div>
+            
+
             <!-- Desktop only; phones use the bottom bar instead -->
-            <button onclick="guardNav('map')" class="hidden lg:flex w-full py-3.5 bg-brand-500 hover:bg-brand-600 border border-brand-600 text-white font-bold rounded-xl shadow transition items-center justify-center gap-2 touch-btn">
+            <button onclick="guardNav('map')" class="hidden lg:flex w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow transition items-center justify-center gap-2 touch-btn">
               <i class="fa-solid fa-route"></i>
               Optimize Stores on Map
             </button>
@@ -485,7 +560,7 @@
           <span class="block text-[11px] uppercase font-bold text-slate-500">Best Split Total</span>
           <span id="mobile-list-total" class="text-xl font-black text-brand-600">$0.00</span>
         </div>
-        <button onclick="guardNav('map')" class="px-5 py-3 bg-brand-500 hover:bg-brand-600 border border-brand-600 text-white font-bold rounded-xl shadow transition flex items-center gap-2 touch-btn">
+        <button onclick="guardNav('map')" class="px-5 py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow transition flex items-center gap-2 touch-btn">
           <i class="fa-solid fa-route"></i>
           Optimize on Map
         </button>
@@ -503,7 +578,7 @@
           <div class="flex items-center gap-2 w-full sm:w-auto">
             <label class="text-xs font-bold uppercase text-slate-600 whitespace-nowrap">ZIP Code:</label>
             <input type="text" id="map-zip-input" value="84064" maxlength="5" inputmode="numeric" class="flex-1 min-w-0 sm:flex-none sm:w-24 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-base sm:text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-accent-blue" />
-            <button onclick="updateMapLocation()" class="px-5 py-2 min-h-[44px] bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold text-sm rounded-lg shadow transition">
+            <button onclick="updateMapLocation()" class="px-5 py-2 min-h-[44px] bg-accent-blue hover:bg-accent-blueHover text-white font-bold text-sm rounded-lg shadow transition">
               GO
             </button>
           </div>
@@ -560,7 +635,7 @@
             </div>
             <p id="store-modal-addr" class="text-xs text-slate-500">Provo / Orem, UT</p>
           </div>
-          <button onclick="closeStoreModal()" class="w-11 h-11 shrink-0 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-600 flex items-center justify-center font-bold">✕</button>
+          <button onclick="closeStoreModal()" class="w-11 h-11 shrink-0 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold">✕</button>
         </div>
 
         <!-- Store Estimated Total -->
@@ -594,10 +669,10 @@
 
         <!-- Action buttons to direct back to map or list -->
         <div class="flex flex-col sm:flex-row gap-3 pt-3 border-t border-slate-100">
-          <button onclick="closeStoreModal()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-bold rounded-xl transition text-center touch-btn">
+          <button onclick="closeStoreModal()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition text-center touch-btn">
             Back to Map
           </button>
-          <button onclick="closeStoreModal(); navigateTo('list')" class="flex-1 py-3 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold rounded-xl transition text-center touch-btn">
+          <button onclick="closeStoreModal(); navigateTo('list')" class="flex-1 py-3 bg-accent-blue hover:bg-accent-blueHover text-white font-bold rounded-xl transition text-center touch-btn">
             Go to Full Grocery List
           </button>
         </div>
@@ -640,7 +715,7 @@
           <a href="#" onclick="navigateTo('register'); return false;" class="text-accent-blue hover:underline">Create an Account</a>
         </div>
 
-        <button type="submit" class="w-full py-3.5 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold rounded-xl shadow transition touch-btn text-base">
+        <button type="submit" class="w-full py-3.5 bg-accent-blue hover:bg-accent-blueHover text-white font-bold rounded-xl shadow transition touch-btn text-base">
           Log In
         </button>
       </form>
@@ -691,7 +766,7 @@
           </label>
         </div>
 
-        <button type="submit" class="w-full py-3.5 bg-brand-500 hover:bg-brand-600 border border-brand-600 text-white font-bold rounded-xl shadow transition touch-btn text-base">
+        <button type="submit" class="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow transition touch-btn text-base">
           Complete Registration
         </button>
 
@@ -710,36 +785,21 @@
           <h2 class="text-xl sm:text-2xl font-black text-slate-900">Account Profile</h2>
           <p class="text-xs text-slate-500">Manage credentials and notification alerts</p>
         </div>
-        <button onclick="handleLogout()" class="w-full sm:w-auto min-h-[44px] px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-sm rounded-xl transition">
+        <button onclick="handleLogout()" class="w-full sm:w-auto min-h-[44px] px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition">
           Log Out
         </button>
       </div>
 
-      <!-- Account Email Card -->
-      <div class="p-4 sm:p-5 bg-brand-50 border border-brand-200 rounded-xl shadow-sm space-y-2"
-          role="group" aria-labelledby="account-email-label">
-        <p id="account-email-label" class="text-sm font-bold text-brand-600">
-          Email Address
-        </p>
-        <div id="account-email-display"
-            class="text-base font-semibold text-slate-900 break-all"
-            aria-labelledby="account-email-label"></div>
-      </div>
-
-      <!-- Account Password Card -->
-      <div class="p-4 sm:p-5 bg-brand-50 border border-brand-200 rounded-xl shadow-sm space-y-2"
-          role="group" aria-labelledby="account-password-label">
-        <p id="account-password-label" class="text-sm font-bold text-brand-600">
-          Password
-        </p>
-        <div class="text-base font-mono tracking-wider text-slate-900"
-            aria-label="Password is hidden for privacy">
-          ••••••••••••••
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-500">Email Address</label>
+          <div id="account-email-display" class="font-bold text-slate-800 text-sm sm:text-base break-all"></div>
         </div>
-        <p class="text-xs text-slate-600">
-          Your password is kept private.
-        </p>
-      </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-500">Password</label>
+          <div class="text-slate-800 font-mono">••••••••••••••</div>
+        </div>
 
         <div class="pt-4 border-t border-slate-100">
           <h3 class="font-bold text-slate-900 text-sm mb-3">Notification Preferences</h3>
@@ -758,7 +818,7 @@
         </div>
 
         <div class="pt-4 border-t border-slate-100">
-          <button onclick="confirmDeleteAccount()" class="w-full py-3 bg-red-50 hover:bg-red-100 border border-red-300 text-red-600 font-bold rounded-xl text-sm transition touch-btn">
+          <button onclick="confirmDeleteAccount()" class="w-full py-3 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl text-sm transition touch-btn">
             Delete Account
           </button>
         </div>
@@ -781,7 +841,7 @@
       </div>
 
       <div class="space-y-2 pt-2">
-        <button onclick="closeAuthModal(); navigateTo('login')" class="w-full py-3 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold rounded-xl text-sm shadow transition">
+        <button onclick="closeAuthModal(); navigateTo('login')" class="w-full py-3 bg-accent-blue hover:bg-accent-blueHover text-white font-bold rounded-xl text-sm shadow transition">
           Log In Now
         </button>
         <button onclick="closeAuthModal()" class="w-full py-2 text-slate-400 hover:text-slate-600 font-semibold text-xs">
@@ -845,6 +905,44 @@
 
   </div>
 </div>
+
+<div id="shopping-time-breakdown-modal"
+     class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+     onclick="if (event.target === this) closeShoppingTimeBreakdown()">
+
+  <div class="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-brand-200">
+
+    <div class="flex items-start justify-between border-b border-slate-100 pb-3">
+      <div>
+        <h3 class="text-lg font-black text-slate-900">
+          Shopping-Time Breakdown
+        </h3>
+
+        <p id="shopping-time-breakdown-summary"
+           class="text-xs text-slate-500 mt-1">
+        </p>
+      </div>
+
+      <button type="button"
+        onclick="closeShoppingTimeBreakdown()"
+        aria-label="Close shopping-time breakdown"
+        class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold">
+        ✕
+      </button>
+    </div>
+
+    <div id="shopping-time-breakdown-list" class="space-y-2 py-4">
+      <!-- Rendered by JavaScript -->
+    </div>
+
+    <button type="button"
+      onclick="closeShoppingTimeBreakdown()"
+      class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition">
+      Close
+    </button>
+
+  </div>
+</div>
   <!-- ========================================================= -->
   <!-- JAVASCRIPT STATE ENGINE & MOCK DATA                       -->
   <!-- ========================================================= -->
@@ -857,6 +955,7 @@
 
     // --- Global Application State ---
     const state = {
+      userid: null, // !tentatively add this. check with teammates!
       isLoggedIn: false,
       userEmail: '',
       userFirstName: '',
@@ -864,6 +963,8 @@
       radius: 5,
       currentScreen: 'search',
       weeklyShoppingMinutes: null,
+      shoppingTimeSummary: null, // added these two but i don't knwo how that data would be stored
+      shoppingTimeBreakdown: [], // have to check with group
       cart: [
         { id: 'item_milk', name: 'Gallon Whole Milk', quantity: 2 },
         { id: 'item_eggs', name: 'Large Grade A Eggs (18pk)', quantity: 2 },
@@ -1097,7 +1198,7 @@
               <!-- Right side: price and button (stacked on phones, side by side on bigger screens) -->
               <div class="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 shrink-0">
                 <span class="font-extrabold text-base ${isCheapest ? 'text-emerald-700' : 'text-slate-700'}">$${price.toFixed(2)}</span>
-                <button onclick="addToCart('${product.id}', '${store.id}')" class="px-3 py-2 min-h-[40px] bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white text-xs font-bold rounded-lg shadow-sm transition">
+                <button onclick="addToCart('${product.id}', '${store.id}')" class="px-3 py-2 min-h-[40px] bg-accent-blue hover:bg-accent-blueHover text-white text-xs font-bold rounded-lg shadow-sm transition">
                   + Add<span class="hidden sm:inline"> to List</span>
                 </button>
               </div>
@@ -1114,7 +1215,7 @@
                 <span class="text-xs text-slate-500 font-medium">Category: ${product.category}</span>
               </div>
             </div>
-            <button onclick="addToCart('${product.id}')" class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 border border-brand-600 text-white font-bold rounded-xl text-xs shadow transition">
+            <button onclick="addToCart('${product.id}')" class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs shadow transition">
               <i class="fa-solid fa-plus"></i> Add Best Deal to List
             </button>
           </div>
@@ -1122,7 +1223,7 @@
             ${storeOptionsHtml}
           </div>
           <!-- Phones only: the "best deal" button goes full width at the bottom of the card -->
-          <button onclick="addToCart('${product.id}')" class="sm:hidden w-full py-3 bg-brand-500 hover:bg-brand-600 border border-brand-600 text-white font-bold rounded-xl text-sm shadow transition flex items-center justify-center gap-2 touch-btn">
+          <button onclick="addToCart('${product.id}')" class="sm:hidden w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-sm shadow transition flex items-center justify-center gap-2 touch-btn">
             <i class="fa-solid fa-plus"></i> Add Best Deal to List
           </button>
         `;
@@ -1214,7 +1315,7 @@
             </div>
             <div class="flex items-center gap-2">
               <span class="font-black text-xs text-brand-600">$${itemTotal.toFixed(2)}</span>
-              <button onclick="removeFromCart('${cartItem.id}')" class="w-10 h-10 flex items-center justify-center border border-slate-300 rounded-lg text-slate-300 hover:text-red-500 text-sm">✕</button>
+              <button onclick="removeFromCart('${cartItem.id}')" class="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-red-500 text-sm">✕</button>
             </div>
           </div>
         `;
@@ -1317,8 +1418,144 @@ async function saveShoppingTime(minutes) {
 
         addToCart(productId);
     }
-}
+} 
+  function openShoppingTimeBreakdown(event) {
+    if (event) {
+      event.stopPropagation();
+    }
 
+    const list = document.getElementById(
+      'shopping-time-breakdown-list'
+    );
+
+    const breakdown = state.shoppingTimeBreakdown || [];
+
+    if (breakdown.length === 0) {
+      list.innerHTML =
+        '<p class="text-sm text-slate-500">No store time breakdown is available yet.</p>';
+    } else {
+      list.innerHTML = breakdown.map(store => `
+        <div class="flex items-center justify-between gap-4 rounded-xl bg-slate-50 border border-slate-200 p-3">
+          <div>
+            <span class="block font-bold text-slate-800">
+              ${store.storeName}
+            </span>
+
+            <span class="text-xs text-slate-500">
+              ${store.units}
+              ${store.units === 1 ? 'item' : 'items'}
+              cheapest here
+            </span>
+          </div>
+
+          <span class="font-black text-brand-600 whitespace-nowrap">
+            ${store.minutes} min
+          </span>
+        </div>
+      `).join('');
+    }
+
+    document
+      .getElementById('shopping-time-breakdown-modal')
+      .classList.remove('hidden');
+  }
+  function closeShoppingTimeBreakdown() {
+  document
+    .getElementById('shopping-time-breakdown-modal')
+    .classList.add('hidden');
+  }
+
+    async function loadAverageShoppingTime(itemCount, storeBaskets) {
+      const timeLabels = [
+        document.getElementById('grocery-time-estimate'),
+        document.getElementById('header-estimated-time')
+      ].filter(Boolean);
+
+      const setTimeText = (text) => {
+        timeLabels.forEach(label => {
+          label.textContent = text;
+        });
+      };
+
+      const summaryLabel =
+        document.getElementById('shopping-time-breakdown-summary');
+
+      if (summaryLabel) {
+        summaryLabel.textContent = '';
+      }
+
+      state.shoppingTimeSummary = null;
+      state.shoppingTimeBreakdown = [];
+
+      if (itemCount === 0) {
+        setTimeText('Estimated time: —');
+        return;
+      }
+
+      if (!state.userid) {
+        setTimeText('Sign in to see your average');
+        return;
+      }
+
+      setTimeText('Loading average...');
+
+      const { data, error } = await db.rpc('avg_shopping_time', {
+        p_userid: state.userid
+      });
+
+      if (error) {
+        console.error('Error loading average shopping time:', error);
+        setTimeText('Average unavailable');
+        return;
+      }
+
+      const summary = Array.isArray(data) ? data[0] : data;
+      const trips = Number(summary?.trips ?? 0);
+
+      if (!summary || trips === 0) {
+        setTimeText('No shopping trips logged yet');
+        return;
+      }
+
+      const averageMinutesPerItem =
+        Math.round(Number(summary.avg_minutes));
+
+      if (!Number.isFinite(averageMinutesPerItem)) {
+        setTimeText('Average unavailable');
+        return;
+      }
+
+      const breakdown = Object.values(storeBaskets)
+        .filter(sb => sb.unitsCheapestCount > 0)
+        .map(sb => ({
+          storeName: sb.store.name,
+          units: sb.unitsCheapestCount,
+          minutes: averageMinutesPerItem * sb.unitsCheapestCount
+        }));
+
+      const totalEstimatedMinutes = breakdown.reduce(
+        (total, store) => total + store.minutes,
+        0
+      );
+
+      state.shoppingTimeSummary = {
+        averageMinutesPerItem,
+        trips,
+        itemCount,
+        totalEstimatedMinutes
+      };
+
+      state.shoppingTimeBreakdown = breakdown;
+
+      const tripLabel = trips === 1 ? 'trip' : 'trips';
+
+      setTimeText(`${totalEstimatedMinutes} min`);
+
+      if (summaryLabel) {
+        summaryLabel.textContent =
+          `${averageMinutesPerItem} min per item · based on ${trips} ${tripLabel}`;
+      }
+    }
     function updateCartQuantity(productId, delta) {
       const item = state.cart.find(i => i.id === productId);
       if (item) {
@@ -1361,14 +1598,25 @@ async function saveShoppingTime(minutes) {
         storeTotalsContainer.innerHTML = '<p class="text-xs text-slate-400">No active store estimates.</p>';
         grandTotalLabel.textContent = '$0.00';
         mobileTotalLabel.textContent = '$0.00';
+
+        loadAverageShoppingTime(0, {}); // added this to store average shopping time
+
         return;
       }
 
       let bestSplitTotal = 0;
       let storeBaskets = {};
-      STORES.forEach(s => storeBaskets[s.id] = { store: s, total: 0, itemsCheapestCount: 0 });
 
+      STORES.forEach(s => {
+        storeBaskets[s.id] = {
+          store: s,
+          total: 0,
+          itemsCheapestCount: 0,
+          unitsCheapestCount: 0 // added this line to count quanitities of items instead of rows like the items cheapest count
+        };
+      });
       let itemsHtml = '';
+      const itemGroups = {};
 
       state.cart.forEach(cartItem => {
         const prod = PRODUCTS.find(p => p.id === cartItem.id);
@@ -1387,41 +1635,108 @@ async function saveShoppingTime(minutes) {
           storeBaskets[s.id].total += p * cartItem.quantity;
         });
 
-        storeBaskets[cheapestStoreId].itemsCheapestCount += 1;
-        const itemLineTotal = lowestPrice * cartItem.quantity;
+        const bestStore = STORES.find(
+          s => s.id === cheapestStoreId
+        );
+
+        if (!bestStore) return;
+
+        const itemLineTotal =
+          lowestPrice * cartItem.quantity;
+
         bestSplitTotal += itemLineTotal;
 
-        const bestStore = STORES.find(s => s.id === cheapestStoreId);
+        storeBaskets[cheapestStoreId].itemsCheapestCount += 1;
+        storeBaskets[cheapestStoreId].unitsCheapestCount += cartItem.quantity;
 
-        itemsHtml += `
-          <div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
-              <span class="text-3xl">${prod.icon}</span>
-              <div>
-                <h4 class="font-black text-slate-900 text-base">${prod.name}</h4>
-                <div class="flex flex-wrap items-center gap-2 mt-0.5">
-                  <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Cheapest at: ${bestStore.name}</span>
-                  <span class="text-xs text-slate-500 font-medium">($${lowestPrice.toFixed(2)} each)</span>
-                </div>
-              </div>
-            </div>
+        if (!itemGroups[cheapestStoreId]) {
+          itemGroups[cheapestStoreId] = {
+            store: bestStore,
+            items: []
+          };
+        }
 
-            <!-- Qty & Remove Controls -->
-            <div class="flex items-center justify-between sm:justify-end gap-4">
-              <div class="flex items-center border border-slate-200 rounded-xl bg-slate-50">
-                <button onclick="updateCartQuantity('${cartItem.id}', -1)" class="w-11 h-11 flex items-center justify-center text-slate-600 text-lg font-bold hover:bg-slate-200 rounded-l-xl">-</button>
-                <span class="w-8 text-center text-sm font-black text-slate-800">${cartItem.quantity}</span>
-                <button onclick="updateCartQuantity('${cartItem.id}', 1)" class="w-11 h-11 flex items-center justify-center text-slate-600 text-lg font-bold hover:bg-slate-200 rounded-r-xl">+</button>
-              </div>
-              <span class="font-black text-base text-slate-900 w-16 text-right">$${itemLineTotal.toFixed(2)}</span>
-              <button onclick="removeFromCart('${cartItem.id}')" class="w-11 h-11 flex items-center justify-center border border-slate-300 rounded-lg text-slate-400 hover:text-red-500">
-                <i class="fa-solid fa-trash-can text-sm"></i>
-              </button>
-            </div>
-          </div>
-        `;
+        itemGroups[cheapestStoreId].items.push({
+          cartItem,
+          prod,
+          lowestPrice,
+          itemLineTotal
+        });
+        
       });
 
+      Object.values(itemGroups).forEach(group => {
+      const groupQuantity = group.items.reduce(
+        (total, item) => total + item.cartItem.quantity,
+        0
+      );
+
+      itemsHtml += `
+        <section class="py-3 first:pt-0">
+          <div class="flex items-center gap-2 pb-2 mb-1 border-b border-slate-200">
+            <i class="fa-solid fa-store text-slate-400 text-xs"></i>
+
+            <h4 class="text-xs font-black uppercase tracking-wide text-slate-500">
+              ${group.store.name}
+            </h4>
+
+            <span class="text-[11px] text-slate-400">
+              ${groupQuantity}
+              ${groupQuantity === 1 ? 'item' : 'items'}
+            </span>
+          </div>
+
+          ${group.items.map(({ cartItem, prod, lowestPrice, itemLineTotal }) => `
+            <div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div class="flex items-center gap-3">
+                <span class="text-3xl">${prod.icon}</span>
+
+                <div>
+                  <h4 class="font-black text-slate-900 text-base">
+                    ${prod.name}
+                  </h4>
+
+                  <span class="text-xs text-slate-500 font-medium">
+                    ($${lowestPrice.toFixed(2)} each)
+                  </span>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between sm:justify-end gap-4">
+                <div class="flex items-center border border-slate-200 rounded-xl bg-slate-50">
+                  <button
+                    onclick="updateCartQuantity('${cartItem.id}', -1)"
+                    class="w-11 h-11 flex items-center justify-center text-slate-600 text-lg font-bold hover:bg-slate-200 rounded-l-xl">
+                    -
+                  </button>
+
+                  <span class="w-8 text-center text-sm font-black text-slate-800">
+                    ${cartItem.quantity}
+                  </span>
+
+                  <button
+                    onclick="updateCartQuantity('${cartItem.id}', 1)"
+                    class="w-11 h-11 flex items-center justify-center text-slate-600 text-lg font-bold hover:bg-slate-200 rounded-r-xl">
+                    +
+                  </button>
+                </div>
+
+                <span class="font-black text-base text-slate-900 w-16 text-right">
+                  $${itemLineTotal.toFixed(2)}
+                </span>
+
+                <button
+                  onclick="removeFromCart('${cartItem.id}')"
+                  class="w-11 h-11 flex items-center justify-center text-slate-400 hover:text-red-500">
+                  <i class="fa-solid fa-trash-can text-sm"></i>
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </section>
+        `;
+    });
+      
       container.innerHTML = itemsHtml;
       grandTotalLabel.textContent = `$${bestSplitTotal.toFixed(2)}`;
       mobileTotalLabel.textContent = `$${bestSplitTotal.toFixed(2)}`;
@@ -1440,7 +1755,10 @@ async function saveShoppingTime(minutes) {
         `;
       });
       storeTotalsContainer.innerHTML = storeListHtml;
+      loadAverageShoppingTime(totalItemsCount, storeBaskets);
+
     }
+
 
     // --- Render Hot Deals (Sticky 3) ---
     function renderDeals() {
@@ -1466,7 +1784,7 @@ async function saveShoppingTime(minutes) {
               <span class="text-sm text-slate-400 line-through">$${deal.oldPrice.toFixed(2)}</span>
             </div>
           </div>
-          <button onclick="addDealToCart('${deal.name}')" class="mt-4 w-full py-2.5 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold text-xs rounded-xl shadow-sm transition touch-btn flex items-center justify-center gap-1.5">
+          <button onclick="addDealToCart('${deal.name}')" class="mt-4 w-full py-2.5 bg-accent-blue hover:bg-accent-blueHover text-white font-bold text-xs rounded-xl shadow-sm transition touch-btn flex items-center justify-center gap-1.5">
             <i class="fa-solid fa-cart-plus"></i> Add Deal to Cart
           </button>
         `;
@@ -1720,6 +2038,7 @@ async function handleLogin(e) {
 
         // Successful login
         state.isLoggedIn = true;
+        state.userid = data.userid; // !once again have to check with team!
         state.userEmail = email;
         state.userFirstName = data.firstName || '';
 
@@ -1770,10 +2089,19 @@ async function handleLogin(e) {
         return;
       }
 
-      const { error } = await db
+      const { data, error } = await db
         .from(USERS_TABLE)
-        .insert({ firstName, lastName, email, password, notifications, recentZip: state.zipCode });
-
+        .insert({
+          firstName,
+          lastName,
+          email,
+          password,
+          notifications,
+          recentZip: state.zipCode
+        })
+        .select()
+        .single();
+        // added this because ai found it was broken
       if (error) {
         console.error(error);
         showToast('Sign up failed: ' + error.message);
@@ -1781,6 +2109,7 @@ async function handleLogin(e) {
       }
 
       state.isLoggedIn = true;
+      state.userid = data.userid; // added this as well
       state.userEmail = email;
       state.userFirstName = firstName;
       state.weeklyShoppingMinutes = null;
@@ -1792,6 +2121,7 @@ async function handleLogin(e) {
 
     function handleLogout() {
       state.isLoggedIn = false;
+      state.userid = null; // added this as well
       state.userEmail = '';
       state.userFirstName = '';
       state.weeklyShoppingMinutes = null;
