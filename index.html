@@ -1849,14 +1849,8 @@ function openShoppingTimeBreakdown(event) {
         .single();
 
       if (error) {
-        console.error('Error saving grocery list:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
-
-        showToast(`Save failed: ${error.message}`);
+        console.error('Error saving grocery list:', error);
+        showToast('Could not save your list. Please try again.');
         return;
       }
 
