@@ -562,7 +562,7 @@
                   </button>
                 </div>
                 <span class="text-2xl font-black text-brand-600" id="grocery-time-estimate">
-                  00:00
+                  0 minutes 0 seconds
                 </span>
               </div>
             </div>
@@ -813,36 +813,45 @@
         </button>
       </div>
 
-        <!-- Email Address Card -->
-        <div class="p-4 sm:p-5 bg-brand-50 rounded-xl border border-brand-700 space-y-2">
-          <label class="block text-xs font-bold uppercase tracking-wide text-slate-500">Email Address</label>
+      <!-- Credentials Container -->
+      <div class="p-4 sm:p-5 bg-brand-50 rounded-xl border border-brand-700 space-y-3">
+
+        <!-- Username Card -->
+        <div class="p-4 sm:p-5 bg-white rounded-xl border border-brand-700 space-y-2">
+          <label class="block text-xs font-bold uppercase tracking-wide text-slate-500">
+            Username
+          </label>
           <div id="account-email-display" class="font-bold text-slate-800 text-sm sm:text-base break-all"></div>
         </div>
 
         <!-- Password Card -->
-        <div class="p-4 sm:p-5 bg-brand-50 rounded-xl border border-brand-700 space-y-2">
-          <!-- Average Weekly Grocery Shopping Time -->
-          <div class="p-4 sm:p-5 bg-brand-50 rounded-xl border border-brand-700 space-y-3">
-            <div>
-              <label class="block text-xs font-bold uppercase tracking-wide text-slate-500">
-                Avg Time to Grocery Shop Each Week
-              </label>
-              <div id="avg-shopping-time" class="text-2xl font-black text-brand-600 mt-1">
-                —
-              </div>
-            </div>
-
-            <div class="border-t border-brand-200 pt-3">
-              <h3 class="text-sm font-bold text-slate-800 mb-2">Previous Grocery Lists</h3>
-              <div id="saved-list-history" class="space-y-2">
-                <p class="text-sm text-slate-500">Your saved lists will appear here.</p>
-              </div>
-            </div>
-          </div>
-
-          <label class="block text-xs font-bold uppercase tracking-wide text-slate-500">Password</label>
+        <div class="p-4 sm:p-5 bg-white rounded-xl border border-brand-700 space-y-2">
+          <label class="block text-xs font-bold uppercase tracking-wide text-slate-500">
+            Password
+          </label>
           <div class="text-slate-800 font-mono text-sm">••••••••••••••</div>
         </div>
+
+      </div>
+
+      <!-- Shopping Time History -->
+      <div class="p-4 sm:p-5 bg-brand-50 rounded-xl border border-brand-700 space-y-3">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wide text-slate-500">
+            Avg Time to Grocery Shop Each Week
+          </label>
+          <div id="avg-shopping-time" class="text-2xl font-black text-brand-600 mt-1">
+            —
+          </div>
+        </div>
+
+        <div class="border-t border-brand-200 pt-3">
+          <h3 class="text-sm font-bold text-slate-800 mb-2">Previous Grocery Lists</h3>
+          <div id="saved-list-history" class="space-y-2">
+            <p class="text-sm text-slate-500">Your saved lists will appear here.</p>
+          </div>
+        </div>
+      </div>
 
         <div class="pt-4 border-t border-slate-100">
           <h3 class="font-bold text-slate-900 text-sm mb-3">Notification Preferences</h3>
@@ -1528,7 +1537,7 @@ function openShoppingTimeBreakdown(event) {
       const minutes = Math.floor(roundedSeconds / 60);
       const seconds = roundedSeconds % 60;
 
-      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ${seconds} ${seconds === 1 ? 'second' : 'seconds'}`;
     }
 
     function loadAverageShoppingTime(itemCount) {
@@ -1540,9 +1549,7 @@ function openShoppingTimeBreakdown(event) {
       const totalSeconds = itemCount * 18.02;
 
       timeLabels.forEach(label => {
-        label.textContent = itemCount === 0
-          ? '00:00'
-          : formatEstimatedTime(totalSeconds);
+        label.textContent = formatEstimatedTime(totalSeconds);
       });
 
       state.shoppingTimeSummary = {
@@ -1842,8 +1849,14 @@ function openShoppingTimeBreakdown(event) {
         .single();
 
       if (error) {
-        console.error('Error saving grocery list:', error);
-        showToast('Could not save your list. Please try again.');
+        console.error('Error saving grocery list:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+
+        showToast(`Save failed: ${error.message}`);
         return;
       }
 
