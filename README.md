@@ -103,7 +103,7 @@ Our vertical slice is account creation and login: the **Complete Registration** 
 
 1. Open `shopwyseapp.html` and click **CREATE ACCOUNT** in the green banner on the home screen.
 2. Enter a first name, last name, email, and password, then click **Complete Registration**. You should see "Account created successfully!" and your first name in the header.
-3. **Refresh the page.** The app returns to its logged-out state, but your account is stored in the database.
+3. **Refresh the page.** You stay signed in, because the app remembers your session. Click **Account**, then **Log Out**.
 4. Click **Account** in the header, then **Log In Now** in the pop-up. Enter the same email and password and click **Log In**. You should see "Successfully logged in!", your first name in the header, and "{First name}'s Grocery List" on the list screen. This proves the account survived the refresh.
 5. To confirm it fails correctly, refresh the page again and try logging in with an email that has no account, or with the wrong password. You should see "Incorrect email or password" and stay on the login screen.
 6. Optional: in the Supabase dashboard, open **Table Editor → users** to see the new row with the name, email, password, and notification preference you entered.

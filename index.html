@@ -2192,6 +2192,60 @@ function openShoppingTimeBreakdown(event) {
       document.getElementById('modal-store-detail').classList.add('hidden');
     }
 
+    // --- Session Persistence (keeps the user signed in across reloads) ---
+    const SESSION_COOKIE = 'shopwyse_uid';
+    const SESSION_DAYS = 30;
+
+    // Chrome ignores cookies on file:// pages, so fall back to localStorage there
+    function saveSession(userid) {
+      document.cookie = `${SESSION_COOKIE}=${encodeURIComponent(userid)}; max-age=${SESSION_DAYS * 86400}; path=/; SameSite=Lax`;
+      try { localStorage.setItem(SESSION_COOKIE, userid); } catch (e) {}
+    }
+
+    function readSession() {
+      const match = document.cookie.match(new RegExp(`(?:^|; )${SESSION_COOKIE}=([^;]*)`));
+      if (match) return decodeURIComponent(match[1]);
+      try { return localStorage.getItem(SESSION_COOKIE); } catch (e) { return null; }
+    }
+
+    function clearSession() {
+      document.cookie = `${SESSION_COOKIE}=; max-age=0; path=/; SameSite=Lax`;
+      try { localStorage.removeItem(SESSION_COOKIE); } catch (e) {}
+    }
+
+    function applyUser(user) {
+      state.isLoggedIn = true;
+      state.userid = user.userid;
+      state.userEmail = user.email;
+      state.userFirstName = user.firstName || '';
+      state.weeklyShoppingMinutes = user.weekly_shopping_minutes ?? null;
+      document.getElementById('account-email-display').textContent = user.email;
+      saveSession(user.userid);
+      updateAuthUI();
+    }
+
+    async function restoreSession() {
+      const userid = readSession();
+      if (!userid) return;
+
+      const { data, error } = await db
+        .from(USERS_TABLE)
+        .select('*')
+        .eq('userid', userid)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Session restore error:', error);
+        return;
+      }
+      if (!data) {
+        // Account no longer exists
+        clearSession();
+        return;
+      }
+      applyUser(data);
+    }
+
     // --- Authentication Actions (Sticky 2) ---
 async function handleLogin(e) {
     e.preventDefault();
@@ -2238,19 +2292,7 @@ async function handleLogin(e) {
         }
 
         // Successful login
-        state.isLoggedIn = true;
-        state.userid = data.userid; // !once again have to check with team!
-        state.userEmail = email;
-        state.userFirstName = data.firstName || '';
-
-        // Shopping-time survey status from Supabase
-        state.weeklyShoppingMinutes =
-            data.weekly_shopping_minutes ?? null;
-
-        document.getElementById('account-email-display')
-            .textContent = email;
-
-        updateAuthUI();
+        applyUser(data);
 
         showToast('Successfully logged in!');
 
@@ -2309,13 +2351,7 @@ async function handleLogin(e) {
         return;
       }
 
-      state.isLoggedIn = true;
-      state.userid = data.userid; // added this as well
-      state.userEmail = email;
-      state.userFirstName = firstName;
-      state.weeklyShoppingMinutes = null;
-      document.getElementById('account-email-display').textContent = email;
-      updateAuthUI();
+      applyUser(data);
       showToast('Account created successfully! Preferences saved.');
       navigateTo('search');
     }
@@ -2327,6 +2363,7 @@ async function handleLogin(e) {
       state.userFirstName = '';
       state.weeklyShoppingMinutes = null;
       document.getElementById('account-email-display').textContent = '';
+      clearSession();
       updateAuthUI();
       showToast('Logged out of ShopWyse');
       navigateTo('search');
@@ -2351,6 +2388,7 @@ async function handleLogin(e) {
     window.addEventListener('DOMContentLoaded', () => {
       renderCartDrawer();
       updateAuthUI();
+      restoreSession();
     });
   </script>
 </body>
