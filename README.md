@@ -2,7 +2,7 @@
 
 ## App Summary
 
-Grocery shopping is an essential but time-consuming task, and shoppers who want the best prices often have to check several stores to find them. Our primary persona, Stephanie Baldwin, is a 45-year-old shopping for a family of seven who is always looking to keep grocery costs down. She often discovers mid-trip that her groceries cost more than planned, and that another store nearby had the same items for less. ShopWyse solves this by letting shoppers search for their groceries ahead of time and compare prices across nearby stores (Walmart, Trader Joe's, Smith's, Costco, and Target in the Provo/Salt Lake area). Users enter a ZIP code and a driving radius, add items to a grocery list, and see which store gives them the lowest total. The app also includes a Hot Deals tab for recent low prices, a map of nearby stores, and notification preferences. It is designed to be simple and frictionless for a busy, older audience, with big buttons and a minimal login.
+Grocery shopping is an essential but time-consuming task, and shoppers who want the best prices often have to check several stores to find them. Our primary persona, Stephanie Baldwin, is a 45-year-old shopping for a family of seven who is always looking to keep grocery costs down. She often discovers mid-trip that her groceries cost more than planned, and that another store nearby had the same items for less. ShopWyse solves this by letting shoppers search for their groceries ahead of time and compare prices across nearby stores (Walmart, Trader Joe's, Smith's, Costco, and Target in the Provo/Salt Lake area). Users enter a ZIP code and a driving radius, add items to a grocery list, and see which store gives them the lowest total. The app also includes a Hot Deals tab for recent low prices, a map of nearby stores, and notification preferences. It is designed to be simple and frictionless for a busy, older audience, with big buttons and a minimal login. Users can save their grocery lists, view previously saved lists, start new lists, and track their estimated grocery shopping time.
 
 ## ERD
 
@@ -20,6 +20,19 @@ Please see the ERD PDF for full ERD
 | `loggedat` | `timestamptz` | When the trip was logged |
 
 Column names are all lowercase, so unlike the camelCase columns in `users` (`"firstName"`, `"recentZip"`), they don't need double quotes in SQL.
+
+### saved_grocery_lists table
+
+`saved_grocery_lists` stores each user's saved grocery lists, including the items, quantities, save date, and estimated shopping time.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `listid` | `int8` | Primary key |
+| `userid` | `int8` | Foreign key to `users.userid` |
+| `saved_at` | `timestamptz` | When the list was saved |
+| `item_count` | `integer` | Number of items in the list |
+| `estimated_seconds` | `numeric` | Estimated shopping time in seconds |
+| `items` | `jsonb` | Saved grocery list items and quantities |
 
 ## Tech Stack
 
@@ -68,6 +81,19 @@ This approach fits our team because we are a product design team building a prot
    );
    alter table public.userstimes disable row level security;
    ```
+   Then create the `saved_grocery_lists` table, which stores each user's saved grocery lists, including the items, quantities, save date, and estimated shopping time:
+   ```sql
+   create table public.saved_grocery_lists (
+    listid bigint generated always as identity primary key,
+    userid bigint not null references public.users(userid) on delete cascade,
+    saved_at timestamptz not null default now(),
+    item_count integer not null,
+    estimated_seconds numeric not null,
+    items jsonb not null
+   );
+   alter table public.saved_grocery_lists disable row level security;
+   ```
+
 3. Go to **Project Settings → API Keys** and copy the **Project URL** and **publishable key**. Never use the secret key in this app, because anyone who opens the page can read it.
 4. In `shopwyseapp.html`, replace the values of `SUPABASE_URL` and `SUPABASE_ANON_KEY` near the top of the main `<script>` block, then open the file in a browser.
 
@@ -82,69 +108,24 @@ Our vertical slice is account creation and login: the **Complete Registration** 
 5. To confirm it fails correctly, refresh the page again and try logging in with an email that has no account, or with the wrong password. You should see "Incorrect email or password" and stay on the login screen.
 6. Optional: in the Supabase dashboard, open **Table Editor → users** to see the new row with the name, email, password, and notification preference you entered.
 
-## Next Step: Average Shopping Time per User
+## Saved Grocery Lists and Shopping Time
 
-Goal: given a `userid`, return that user's average `minutesspent` across all of their rows in `userstimes`.
-Average time spent getting each item is 18.02 seconds.
+### Estimate Shopping Time
+- Estimated grocery shopping time is calculated using 18.02 seconds per item.
+- The estimate automatically updates when items or quantities change.
+- Estimated time is displayed in minutes and seconds.
+- Driving time is not included in the estimate.
 
-### 1. The query
+### Save a Grocery List
+- Users can click the **Save Grocery List** button to save their current list.
+- Each saved list stores its items, quantities, save date, item count, and estimated shopping time.
+- After saving, users can start a new grocery list without losing previously saved lists.
 
-```sql
-select
-  userid,
-  round(avg(minutesspent), 1) as avg_minutes,
-  count(*)                    as trips
-from public.userstimes
-where userid = 42          -- the user you want
-group by userid;
-```
+### View or Start a Grocery List
+- Users can select **See Most Recent Grocery List** to view their latest saved list.
+- Users can select **Start New List** to begin a new grocery list.
+- Previously saved grocery lists remain available.
 
-- `avg()` on an `int8` column returns a `numeric`, so `round(..., 1)` gives one decimal place (for example `37.5`).
-- `count(*)` is included so the UI can say "based on N trips" and so we can tell the difference between "no data" and a real average.
-- If the user has no rows, this returns **zero rows** (not a row with `0`). Handle that as "no trips logged yet" in the UI.
-- To limit it to a time window, add a filter on `loggedat`, for example `and loggedat >= now() - interval '30 days'`.
-
-Test it first in the Supabase **SQL Editor** with a real `userid` from the `users` table.
-
-### 2. Expose it to the app as a function
-
-`supabase-js` can't run raw SQL, and its table queries don't do `avg()` by default. The cleanest option is to wrap the query in a Postgres function and call it with `.rpc()`. Run this in the SQL Editor:
-
-```sql
-create or replace function public.avg_shopping_time(p_userid bigint)
-returns table (avg_minutes numeric, trips bigint)
-language sql
-stable
-as $$
-  select round(avg(minutesspent), 1), count(*)
-  from public.userstimes
-  where userid = p_userid;
-$$;
-```
-
-Without a `group by`, this always returns exactly one row: `avg_minutes` is `null` and `trips` is `0` when the user has no entries.
-
-### 3. Call it from `index.html`
-
-**Prerequisite:** the app doesn't keep the logged-in user's id yet. In `handleLogin`, next to `state.userFirstName = ...`, add `state.userId = data.userid;`. Do the same in `handleRegister`, adding `.select().single()` to the insert so the new row (and its `userid`) comes back.
-
-```js
-const { data, error } = await db.rpc('avg_shopping_time', { p_userid: state.userId });
-if (error) {
-  console.error(error);
-} else if (data[0].trips === 0) {
-  // show "No shopping trips logged yet"
-} else {
-  // show `${data[0].avg_minutes} min average over ${data[0].trips} trips`
-}
-```
-
-`.rpc()` returns the rows as an array, which is why the result is read from `data[0]`.
-
-### 4. Logging a trip (so there's data to average)
-
-```js
-await db.from('userstimes').insert({ userid: state.userId, minutesspent: 35 });
-```
-
-`timeid` is generated by the database and `loggedat` defaults to the current time, so neither needs to be sent.
+### View Shopping Time History
+- The Account Profile displays the average estimated shopping time across saved grocery lists.
+- Users can view their previous grocery lists, including their save dates and estimated shopping times.
