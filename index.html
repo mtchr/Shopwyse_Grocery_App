@@ -493,6 +493,29 @@
           <div id="full-cart-items" class="divide-y divide-slate-100">
             <!-- Rendered by JS -->
           </div>
+          <div class="pt-4 border-t border-slate-200 space-y-3">
+            <button
+              id="save-grocery-list-button"
+              onclick="saveGroceryList()"
+              class="w-full py-3 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold rounded-xl transition touch-btn">
+              <i class="fa-solid fa-floppy-disk mr-2"></i>
+              Save Grocery List
+            </button>
+
+            <div id="saved-list-actions" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onclick="viewMostRecentGroceryList()"
+                class="py-3 bg-brand-100 hover:bg-brand-200 border border-brand-500 text-brand-600 font-bold rounded-xl transition touch-btn">
+                See Most Recent Grocery List
+              </button>
+
+              <button
+                onclick="startNewGroceryList()"
+                class="py-3 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold rounded-xl transition touch-btn">
+                Start New List
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Store Breakdown & Estimated Totals -->
@@ -798,6 +821,25 @@
 
         <!-- Password Card -->
         <div class="p-4 sm:p-5 bg-brand-50 rounded-xl border border-brand-700 space-y-2">
+          <!-- Average Weekly Grocery Shopping Time -->
+          <div class="p-4 sm:p-5 bg-brand-50 rounded-xl border border-brand-700 space-y-3">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wide text-slate-500">
+                Avg Time to Grocery Shop Each Week
+              </label>
+              <div id="avg-shopping-time" class="text-2xl font-black text-brand-600 mt-1">
+                —
+              </div>
+            </div>
+
+            <div class="border-t border-brand-200 pt-3">
+              <h3 class="text-sm font-bold text-slate-800 mb-2">Previous Grocery Lists</h3>
+              <div id="saved-list-history" class="space-y-2">
+                <p class="text-sm text-slate-500">Your saved lists will appear here.</p>
+              </div>
+            </div>
+          </div>
+
           <label class="block text-xs font-bold uppercase tracking-wide text-slate-500">Password</label>
           <div class="text-slate-800 font-mono text-sm">••••••••••••••</div>
         </div>
@@ -966,6 +1008,9 @@
       weeklyShoppingMinutes: null,
       shoppingTimeSummary: null, // added these two but i don't knwo how that data would be stored
       shoppingTimeBreakdown: [], // have to check with group
+      savedLists: [],
+      activeSavedList: null,
+      viewingSavedList: false,
       cart: [
         { id: 'item_milk', name: 'Gallon Whole Milk', quantity: 2 },
         { id: 'item_eggs', name: 'Large Grade A Eggs (18pk)', quantity: 2 },
@@ -1105,7 +1150,16 @@
 
       // Trigger screen-specific rendering
       if (screenId === 'deals') renderDeals();
-      if (screenId === 'list') renderGroceryList();
+
+      if (screenId === 'list') {
+        renderGroceryList();
+        if (state.isLoggedIn) loadSavedGroceryLists();
+      }
+
+      if (screenId === 'account' && state.isLoggedIn) {
+        loadSavedGroceryLists();
+      }
+
       if (screenId === 'map') initOrUpdateMap();
     }
 
@@ -1352,6 +1406,9 @@ function addToCart(productId) {
         return;
     }
 
+    state.viewingSavedList = false;
+    state.activeSavedList = null;
+
     // Normal cart functionality
     const existing = state.cart.find(item => item.id === productId);
 
@@ -1420,143 +1477,92 @@ async function saveShoppingTime(minutes) {
         addToCart(productId);
     }
 } 
-  function openShoppingTimeBreakdown(event) {
-    if (event) {
-      event.stopPropagation();
-    }
-
-    const list = document.getElementById(
-      'shopping-time-breakdown-list'
-    );
-
-    const breakdown = state.shoppingTimeBreakdown || [];
-
-    if (breakdown.length === 0) {
-      list.innerHTML =
-        '<p class="text-sm text-slate-500">No store time breakdown is available yet.</p>';
-    } else {
-      list.innerHTML = breakdown.map(store => `
-        <div class="flex items-center justify-between gap-4 rounded-xl bg-slate-50 border border-slate-200 p-3">
-          <div>
-            <span class="block font-bold text-slate-800">
-              ${store.storeName}
-            </span>
-
-            <span class="text-xs text-slate-500">
-              ${store.units}
-              ${store.units === 1 ? 'item' : 'items'}
-              cheapest here
-            </span>
-          </div>
-
-          <span class="font-black text-brand-600 whitespace-nowrap">
-            ${store.minutes} min
-          </span>
-        </div>
-      `).join('');
-    }
-
-    document
-      .getElementById('shopping-time-breakdown-modal')
-      .classList.remove('hidden');
+function openShoppingTimeBreakdown(event) {
+  if (event) {
+    event.stopPropagation();
   }
+
+  const list = document.getElementById(
+    'shopping-time-breakdown-list'
+  );
+
+  const summary = state.shoppingTimeSummary;
+
+  if (!summary || summary.itemCount === 0) {
+    list.innerHTML =
+      '<p class="text-sm text-slate-500">Add items to see your estimated shopping time.</p>';
+  } else {
+    list.innerHTML = `
+      <div class="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-2">
+        <div class="flex justify-between text-sm">
+          <span class="text-slate-600">Items on your list</span>
+          <strong class="text-slate-800">${summary.itemCount}</strong>
+        </div>
+
+        <div class="flex justify-between text-sm">
+          <span class="text-slate-600">Estimated time per item</span>
+          <strong class="text-slate-800">18.02 seconds</strong>
+        </div>
+
+        <div class="flex justify-between border-t border-slate-200 pt-2">
+          <strong class="text-slate-800">Total estimated time</strong>
+          <strong class="text-brand-600">
+            ${formatEstimatedTime(summary.totalSeconds)}
+          </strong>
+        </div>
+      </div>
+    `;
+  }
+
+  document.getElementById('shopping-time-breakdown-modal')
+    .classList.remove('hidden');
+}
   function closeShoppingTimeBreakdown() {
   document
     .getElementById('shopping-time-breakdown-modal')
     .classList.add('hidden');
   }
 
-    async function loadAverageShoppingTime(itemCount, storeBaskets) {
+    function formatEstimatedTime(totalSeconds) {
+      const roundedSeconds = Math.round(totalSeconds);
+      const minutes = Math.floor(roundedSeconds / 60);
+      const seconds = roundedSeconds % 60;
+
+      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function loadAverageShoppingTime(itemCount) {
       const timeLabels = [
         document.getElementById('grocery-time-estimate'),
         document.getElementById('header-estimated-time')
       ].filter(Boolean);
 
-      const setTimeText = (text) => {
-        timeLabels.forEach(label => {
-          label.textContent = text;
-        });
-      };
+      const totalSeconds = itemCount * 18.02;
 
-      const summaryLabel =
-        document.getElementById('shopping-time-breakdown-summary');
-
-      if (summaryLabel) {
-        summaryLabel.textContent = '';
-      }
-
-      state.shoppingTimeSummary = null;
-      state.shoppingTimeBreakdown = [];
-
-      if (itemCount === 0) {
-        setTimeText('Estimated time: —');
-        return;
-      }
-
-      if (!state.userid) {
-        setTimeText('Sign in to see your average');
-        return;
-      }
-
-      setTimeText('Loading average...');
-
-      const { data, error } = await db.rpc('avg_shopping_time', {
-        p_userid: state.userid
+      timeLabels.forEach(label => {
+        label.textContent = itemCount === 0
+          ? '00:00'
+          : formatEstimatedTime(totalSeconds);
       });
 
-      if (error) {
-        console.error('Error loading average shopping time:', error);
-        setTimeText('Average unavailable');
-        return;
-      }
-
-      const summary = Array.isArray(data) ? data[0] : data;
-      const trips = Number(summary?.trips ?? 0);
-
-      if (!summary || trips === 0) {
-        setTimeText('No shopping trips logged yet');
-        return;
-      }
-
-      const averageMinutesPerItem =
-        Math.round(Number(summary.avg_minutes));
-
-      if (!Number.isFinite(averageMinutesPerItem)) {
-        setTimeText('Average unavailable');
-        return;
-      }
-
-      const breakdown = Object.values(storeBaskets)
-        .filter(sb => sb.unitsCheapestCount > 0)
-        .map(sb => ({
-          storeName: sb.store.name,
-          units: sb.unitsCheapestCount,
-          minutes: averageMinutesPerItem * sb.unitsCheapestCount
-        }));
-
-      const totalEstimatedMinutes = breakdown.reduce(
-        (total, store) => total + store.minutes,
-        0
-      );
-
       state.shoppingTimeSummary = {
-        averageMinutesPerItem,
-        trips,
         itemCount,
-        totalEstimatedMinutes
+        secondsPerItem: 18.02,
+        totalSeconds
       };
 
-      state.shoppingTimeBreakdown = breakdown;
-
-      const tripLabel = trips === 1 ? 'trip' : 'trips';
-
-      setTimeText(`${totalEstimatedMinutes} min`);
+      const summaryLabel = document.getElementById(
+        'shopping-time-breakdown-summary'
+      );
 
       if (summaryLabel) {
         summaryLabel.textContent =
-          `${averageMinutesPerItem} min per item · based on ${trips} ${tripLabel}`;
+          `${itemCount} items × 18.02 seconds per item`;
       }
+
+      state.shoppingTimeBreakdown = [];
     }
+
     function updateCartQuantity(productId, delta) {
       const item = state.cart.find(i => i.id === productId);
       if (item) {
@@ -1576,6 +1582,11 @@ async function saveShoppingTime(minutes) {
     }
 
     function clearCart() {
+      if (state.viewingSavedList) {
+        showToast('Start a new list to make changes.');
+        return;
+      }
+
       if (confirm('Clear all items from your grocery list?')) {
         state.cart = [];
         renderGroceryList();
@@ -1591,10 +1602,32 @@ async function saveShoppingTime(minutes) {
       const grandTotalLabel = document.getElementById('cart-grand-total');
       const mobileTotalLabel = document.getElementById('mobile-list-total');
 
-      const totalItemsCount = state.cart.reduce((acc, curr) => acc + curr.quantity, 0);
+      const listItems = state.viewingSavedList && state.activeSavedList
+        ? state.activeSavedList.items
+        : state.cart;
+
+      const totalItemsCount = listItems.reduce(
+        (acc, curr) => acc + curr.quantity,
+        0
+      );
+
+      const saveButton = document.getElementById('save-grocery-list-button');
+      const savedActions = document.getElementById('saved-list-actions');
+
+      if (saveButton) {
+        saveButton.disabled = state.viewingSavedList || totalItemsCount === 0;
+        saveButton.classList.toggle(
+          'opacity-50',
+          state.viewingSavedList || totalItemsCount === 0
+        );
+      }
+
+      if (savedActions) {
+        savedActions.classList.toggle('hidden', state.savedLists.length === 0);
+      }
       countLabel.textContent = totalItemsCount;
 
-      if (state.cart.length === 0) {
+      if (listItems.length === 0) {
         container.innerHTML = '<p class="py-8 text-center text-slate-400">No items in your grocery list. Search items or browse hot deals to add them!</p>';
         storeTotalsContainer.innerHTML = '<p class="text-xs text-slate-400">No active store estimates.</p>';
         grandTotalLabel.textContent = '$0.00';
@@ -1619,7 +1652,7 @@ async function saveShoppingTime(minutes) {
       let itemsHtml = '';
       const itemGroups = {};
 
-      state.cart.forEach(cartItem => {
+      listItems.forEach(cartItem => {
         const prod = PRODUCTS.find(p => p.id === cartItem.id);
         if (!prod) return;
 
@@ -1704,33 +1737,40 @@ async function saveShoppingTime(minutes) {
               </div>
 
               <div class="flex items-center justify-between sm:justify-end gap-4">
-                <div class="flex items-center border border-slate-200 rounded-xl bg-slate-50">
-                  <button
-                    onclick="updateCartQuantity('${cartItem.id}', -1)"
-                    class="w-11 h-11 flex items-center justify-center text-slate-600 text-lg font-bold hover:bg-slate-200 rounded-l-xl">
-                    -
-                  </button>
+                ${state.viewingSavedList
+                  ? `<span class="text-sm font-bold text-slate-600">
+                      Quantity: ${cartItem.quantity}
+                    </span>`
+                  : `
+                    <div class="flex items-center border border-slate-200 rounded-xl bg-slate-50">
+                      <button
+                        onclick="updateCartQuantity('${cartItem.id}', -1)"
+                        class="w-11 h-11 flex items-center justify-center text-slate-600 text-lg font-bold hover:bg-slate-200 rounded-l-xl">
+                        -
+                      </button>
 
-                  <span class="w-8 text-center text-sm font-black text-slate-800">
-                    ${cartItem.quantity}
-                  </span>
+                      <span class="w-8 text-center text-sm font-black text-slate-800">
+                        ${cartItem.quantity}
+                      </span>
 
-                  <button
-                    onclick="updateCartQuantity('${cartItem.id}', 1)"
-                    class="w-11 h-11 flex items-center justify-center text-slate-600 text-lg font-bold hover:bg-slate-200 rounded-r-xl">
-                    +
-                  </button>
-                </div>
+                      <button
+                        onclick="updateCartQuantity('${cartItem.id}', 1)"
+                        class="w-11 h-11 flex items-center justify-center text-slate-600 text-lg font-bold hover:bg-slate-200 rounded-r-xl">
+                        +
+                      </button>
+                    </div>
+
+                    <button
+                      onclick="removeFromCart('${cartItem.id}')"
+                      class="w-11 h-11 flex items-center justify-center border border-red-300 rounded-lg text-red-500 hover:text-red-700 hover:border-red-600">
+                      <i class="fa-solid fa-trash-can text-sm"></i>
+                    </button>
+                  `
+                }
 
                 <span class="font-black text-base text-slate-900 w-16 text-right">
                   $${itemLineTotal.toFixed(2)}
                 </span>
-
-                <button
-                  onclick="removeFromCart('${cartItem.id}')"
-                  class="w-11 h-11 flex items-center justify-center border border-red-300 rounded-lg text-red-500 hover:text-red-700 hover:border-red-600">
-                  <i class="fa-solid fa-trash-can text-sm"></i>
-                </button>
               </div>
             </div>
           `).join('')}
@@ -1760,6 +1800,159 @@ async function saveShoppingTime(minutes) {
 
     }
 
+    // --- Saved Grocery Lists ---
+
+    async function saveGroceryList() {
+      if (!state.isLoggedIn || !state.userid) {
+        showToast('Please log in before saving a grocery list.');
+        return;
+      }
+
+      if (state.cart.length === 0) {
+        showToast('Add items before saving your grocery list.');
+        return;
+      }
+
+      const items = state.cart.map(item => {
+        const product = PRODUCTS.find(p => p.id === item.id);
+
+        return {
+          id: item.id,
+          name: product ? product.name : item.name || item.id,
+          quantity: item.quantity
+        };
+      });
+
+      const itemCount = items.reduce(
+        (total, item) => total + item.quantity,
+        0
+      );
+
+      const estimatedSeconds = itemCount * 18.02;
+
+      const { data, error } = await db
+        .from('saved_grocery_lists')
+        .insert({
+          userid: state.userid,
+          item_count: itemCount,
+          estimated_seconds: estimatedSeconds,
+          items: items
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error saving grocery list:', error);
+        showToast('Could not save your list. Please try again.');
+        return;
+      }
+
+      state.savedLists.unshift(data);
+      state.activeSavedList = data;
+      state.cart = [];
+      state.viewingSavedList = true;
+
+      renderGroceryList();
+      renderCartDrawer();
+
+      showToast('Grocery list saved successfully!');
+    }
+
+    async function loadSavedGroceryLists() {
+      if (!state.userid) return;
+
+      const { data, error } = await db
+        .from('saved_grocery_lists')
+        .select('*')
+        .eq('userid', state.userid)
+        .order('saved_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading saved grocery lists:', error);
+        showToast('Could not load your saved grocery lists.');
+        return;
+      }
+
+      state.savedLists = data || [];
+      renderSavedListHistory();
+
+      if (state.currentScreen === 'list') {
+        renderGroceryList();
+      }
+    }
+
+    function renderSavedListHistory() {
+      const historyContainer = document.getElementById('saved-list-history');
+      const averageLabel = document.getElementById('avg-shopping-time');
+
+      if (!historyContainer || !averageLabel) return;
+
+      if (state.savedLists.length === 0) {
+        averageLabel.textContent = '—';
+        historyContainer.innerHTML =
+          '<p class="text-sm text-slate-500">No saved grocery lists yet.</p>';
+        return;
+      }
+
+      const averageSeconds =
+        state.savedLists.reduce(
+          (total, list) => total + Number(list.estimated_seconds),
+          0
+        ) / state.savedLists.length;
+
+      averageLabel.textContent = formatEstimatedTime(averageSeconds);
+
+      historyContainer.innerHTML = state.savedLists.map(list => {
+        const savedDate = new Date(list.saved_at).toLocaleDateString(
+          undefined,
+          { month: 'short', day: 'numeric', year: 'numeric' }
+        );
+
+        return `
+          <div class="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-brand-200">
+            <div>
+              <span class="block text-sm font-bold text-slate-800">
+                ${savedDate}
+              </span>
+              <span class="text-xs text-slate-500">
+                ${list.item_count} items
+              </span>
+            </div>
+
+            <span class="font-black text-brand-600 whitespace-nowrap">
+              ${formatEstimatedTime(Number(list.estimated_seconds))}
+            </span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function viewMostRecentGroceryList() {
+      if (state.savedLists.length === 0) {
+        await loadSavedGroceryLists();
+      }
+
+      if (state.savedLists.length === 0) {
+        showToast('You do not have any saved lists yet.');
+        return;
+      }
+
+      state.activeSavedList = state.savedLists[0];
+      state.viewingSavedList = true;
+
+      navigateTo('list');
+    }
+
+    function startNewGroceryList() {
+      state.cart = [];
+      state.activeSavedList = null;
+      state.viewingSavedList = false;
+
+      renderGroceryList();
+      renderCartDrawer();
+
+      showToast('Started a new grocery list!');
+    }
 
     // --- Render Hot Deals (Sticky 3) ---
     function renderDeals() {
