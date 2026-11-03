@@ -1014,6 +1014,7 @@
       zipCode: '84064',
       radius: 5,
       searchTerm: null, // null until the user runs a search
+      claimedDeals: [], // Hot Deal ids already added to the cart
       currentScreen: 'search',
       weeklyShoppingMinutes: null,
       shoppingTimeSummary: null, // added these two but i don't knwo how that data would be stored
@@ -1116,17 +1117,48 @@
           costco_orem: 5.99,
           target_provo: 5.29
         }
+      },
+      {
+        id: 'item_cereal',
+        name: 'Cereal Family Size',
+        category: 'Pantry',
+        icon: '🥣',
+        prices: {
+          walmart_provo: 3.48,
+          smiths_provo: 2.99, // Cheapest
+          traderjoes_orem: 3.79,
+          costco_orem: 3.25,
+          target_provo: 3.59
+        }
+      },
+      {
+        id: 'item_oj',
+        name: 'Orange Juice 52oz',
+        category: 'Beverages',
+        icon: '🍊',
+        prices: {
+          walmart_provo: 2.98,
+          smiths_provo: 3.29,
+          traderjoes_orem: 3.49,
+          costco_orem: 3.15,
+          target_provo: 2.49 // Cheapest
+        }
       }
     ];
 
     // --- Hot Deals Mock Data (Sticky 3) ---
+    // productId links each deal to PRODUCTS so it can be added to the cart.
+    // The first DEALS_SHOWN unclaimed deals are shown; the rest replace them as they're added.
+    const DEALS_SHOWN = 6;
     const HOT_DEALS = [
-      { id: 'deal_1', name: 'Gallon Whole Milk', storeId: 'costco_orem', oldPrice: 3.99, dealPrice: 2.95, discount: '26% off', icon: '🥛' },
-      { id: 'deal_2', name: 'Fresh Bananas (Bunch)', storeId: 'traderjoes_orem', oldPrice: 1.69, dealPrice: 0.99, discount: '41% off', icon: '🍌' },
-      { id: 'deal_3', name: 'Large Grade A Eggs (18pk)', storeId: 'walmart_provo', oldPrice: 4.49, dealPrice: 2.88, discount: '36% off', icon: '🥚' },
-      { id: 'deal_4', name: 'Ground Beef 80/20 (3 lb)', storeId: 'costco_orem', oldPrice: 16.99, dealPrice: 11.99, discount: '30% off', icon: '🥩' },
-      { id: 'deal_5', name: 'Cereal Family Size', storeId: 'smiths_provo', oldPrice: 5.99, dealPrice: 2.99, discount: '50% off', icon: '🥣' },
-      { id: 'deal_6', name: 'Orange Juice 52oz', storeId: 'target_provo', oldPrice: 4.29, dealPrice: 2.49, discount: '42% off', icon: '🍊' }
+      { id: 'deal_1', productId: 'item_milk', name: 'Gallon Whole Milk', storeId: 'costco_orem', oldPrice: 3.99, dealPrice: 2.95, discount: '26% off', icon: '🥛' },
+      { id: 'deal_2', productId: 'item_bananas', name: 'Fresh Bananas (Bunch)', storeId: 'traderjoes_orem', oldPrice: 1.69, dealPrice: 0.99, discount: '41% off', icon: '🍌' },
+      { id: 'deal_3', productId: 'item_eggs', name: 'Large Grade A Eggs (18pk)', storeId: 'walmart_provo', oldPrice: 4.49, dealPrice: 2.88, discount: '36% off', icon: '🥚' },
+      { id: 'deal_4', productId: 'item_beef', name: 'Ground Beef 80/20 (3 lb)', storeId: 'costco_orem', oldPrice: 16.99, dealPrice: 11.99, discount: '30% off', icon: '🥩' },
+      { id: 'deal_5', productId: 'item_cereal', name: 'Cereal Family Size', storeId: 'smiths_provo', oldPrice: 5.99, dealPrice: 2.99, discount: '50% off', icon: '🥣' },
+      { id: 'deal_6', productId: 'item_oj', name: 'Orange Juice 52oz', storeId: 'target_provo', oldPrice: 4.29, dealPrice: 2.49, discount: '42% off', icon: '🍊' },
+      { id: 'deal_7', productId: 'item_bread', name: 'Honey Wheat Bread', storeId: 'walmart_provo', oldPrice: 2.49, dealPrice: 1.84, discount: '26% off', icon: '🍞' },
+      { id: 'deal_8', productId: 'item_apples', name: 'Honeycrisp Apples (3 lb bag)', storeId: 'traderjoes_orem', oldPrice: 5.99, dealPrice: 4.49, discount: '25% off', icon: '🍎' }
     ];
 
     // Leaflet map instance
@@ -1414,24 +1446,26 @@
 // Remember which item the user wanted to add
 let pendingCartProduct = null;
 
-function addToCart(productId) {
+// Returns true if the item was added now. onAdded runs once it's added,
+// including later if the shopping-time question has to be answered first.
+function addToCart(productId, quantity = 1, onAdded = null) {
 
     if (!state.isLoggedIn) {
         showToast('Please log in to add items.');
         navigateTo('login');
-        return;
+        return false;
     }
 
     // Check whether the user answered the survey
     if (state.weeklyShoppingMinutes === null ||
         state.weeklyShoppingMinutes === undefined) {
 
-        pendingCartProduct = productId;
+        pendingCartProduct = { productId, quantity, onAdded };
 
         document.getElementById('shopping-time-modal')
             .classList.remove('hidden');
 
-        return;
+        return false;
     }
 
     state.viewingSavedList = false;
@@ -1441,17 +1475,19 @@ function addToCart(productId) {
     const existing = state.cart.find(item => item.id === productId);
 
     if (existing) {
-        existing.quantity += 1;
+        existing.quantity += quantity;
     } else {
         state.cart.push({
             id: productId,
-            quantity: 1
+            quantity
         });
     }
 
+    if (onAdded) onAdded();
     renderCartDrawer();
 
-    showToast('Item added to grocery list!');
+    showToast(quantity > 1 ? `${quantity} items added to grocery list!` : 'Item added to grocery list!');
+    return true;
 }
 
 async function saveShoppingTime(minutes) {
@@ -1498,11 +1534,11 @@ async function saveShoppingTime(minutes) {
     // Automatically add the item they originally clicked
     if (pendingCartProduct !== null) {
 
-        const productId = pendingCartProduct;
+        const { productId, quantity, onAdded } = pendingCartProduct;
 
         pendingCartProduct = null;
 
-        addToCart(productId);
+        addToCart(productId, quantity, onAdded);
     }
 } 
 function openShoppingTimeBreakdown(event) {
@@ -1985,7 +2021,13 @@ function openShoppingTimeBreakdown(event) {
       const container = document.getElementById('deals-container');
       container.innerHTML = '';
 
-      HOT_DEALS.forEach(deal => {
+      const available = HOT_DEALS.filter(d => !state.claimedDeals.includes(d.id)).slice(0, DEALS_SHOWN);
+      if (available.length === 0) {
+        container.innerHTML = '<p class="col-span-full py-8 text-center text-slate-600">You\'ve added every Hot Deal to your list. Check back soon for new ones.</p>';
+        return;
+      }
+
+      available.forEach(deal => {
         const store = STORES.find(s => s.id === deal.storeId);
         const card = document.createElement('div');
         card.className = 'min-w-0 w-full bg-white rounded-2xl p-4 sm:p-5 border border-brand-200 shadow-sm flex flex-col justify-between gap-3';
@@ -2004,7 +2046,15 @@ function openShoppingTimeBreakdown(event) {
               <span class="text-sm text-slate-500 line-through">$${deal.oldPrice.toFixed(2)}</span>
             </div>
           </div>
-          <button onclick="addDealToCart('${deal.name}')" class="mt-4 w-full py-2.5 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold text-xs rounded-xl shadow-sm transition touch-btn flex items-center justify-center gap-1.5">
+          <div class="mt-4 flex items-center justify-between gap-3">
+            <span class="text-sm font-bold text-slate-700">Quantity</span>
+            <div class="flex items-center gap-1">
+              <button onclick="changeDealQty('${deal.id}', -1)" aria-label="Decrease quantity of ${deal.name}" class="w-11 h-11 rounded-lg border border-slate-300 text-slate-700 font-black hover:bg-slate-100">−</button>
+              <span id="deal-qty-${deal.id}" aria-live="polite" class="w-8 text-center font-black text-slate-900">1</span>
+              <button onclick="changeDealQty('${deal.id}', 1)" aria-label="Increase quantity of ${deal.name}" class="w-11 h-11 rounded-lg border border-slate-300 text-slate-700 font-black hover:bg-slate-100">+</button>
+            </div>
+          </div>
+          <button onclick="addDealToCart('${deal.id}')" class="mt-2 w-full py-2.5 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold text-xs rounded-xl shadow-sm transition touch-btn flex items-center justify-center gap-1.5">
             <i class="fa-solid fa-cart-plus"></i> Add Deal to Cart
           </button>
         `;
@@ -2012,13 +2062,21 @@ function openShoppingTimeBreakdown(event) {
       });
     }
 
-    function addDealToCart(productName) {
-      const matched = PRODUCTS.find(p => p.name.includes(productName) || productName.includes(p.name));
-      if (matched) {
-        addToCart(matched.id);
-      } else {
-        showToast('Deal added to cart!');
-      }
+    function changeDealQty(dealId, delta) {
+      const el = document.getElementById(`deal-qty-${dealId}`);
+      el.textContent = Math.min(99, Math.max(1, parseInt(el.textContent, 10) + delta));
+    }
+
+    function addDealToCart(dealId) {
+      const deal = HOT_DEALS.find(d => d.id === dealId);
+      if (!deal || state.claimedDeals.includes(dealId)) return; // ignore repeat clicks
+      const quantity = parseInt(document.getElementById(`deal-qty-${dealId}`).textContent, 10) || 1;
+
+      // Remove the card and show the next deal only once the item is really in the cart
+      addToCart(deal.productId, quantity, () => {
+        state.claimedDeals.push(dealId);
+        renderDeals();
+      });
     }
 
     function refreshDeals() {
@@ -2275,6 +2333,7 @@ function openShoppingTimeBreakdown(event) {
         cart: state.cart,
         viewingSavedList: state.viewingSavedList,
         activeSavedList: state.activeSavedList,
+        claimedDeals: state.claimedDeals,
         search: state.searchTerm === null ? null
           : { term: state.searchTerm, zip: state.zipCode, radius: state.radius }
       };
@@ -2287,6 +2346,7 @@ function openShoppingTimeBreakdown(event) {
       if (!saved) return; // first visit: keep the sample list
 
       if (Array.isArray(saved.cart)) state.cart = saved.cart;
+      if (Array.isArray(saved.claimedDeals)) state.claimedDeals = saved.claimedDeals;
       state.viewingSavedList = !!saved.viewingSavedList && !!saved.activeSavedList;
       state.activeSavedList = state.viewingSavedList ? saved.activeSavedList : null;
 
@@ -2453,6 +2513,7 @@ async function handleLogin(e) {
       state.viewingSavedList = false;
       state.savedLists = [];
       state.searchTerm = null;
+      state.claimedDeals = [];
       document.getElementById('input-search-term').value = '';
       renderCartDrawer();
       updateAuthUI();
