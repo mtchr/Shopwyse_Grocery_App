@@ -1995,13 +1995,13 @@ function openShoppingTimeBreakdown(event) {
               <span class="text-3xl">${deal.icon}</span>
               <span class="text-xs bg-red-100 text-red-700 font-black px-2.5 py-1 rounded-full">${deal.discount}</span>
             </div>
-            <h4 class="font-black text-slate-900 text-base sm:text-lg break-words">${deal.name}</h4>
+            <h3 class="font-black text-slate-900 text-base sm:text-lg break-words">${deal.name}</h3>
             <p class="text-sm text-slate-600 font-medium flex items-start gap-2 mt-2 break-words">
               <i class="fa-solid fa-location-dot text-brand-500"></i> ${store.name} (${store.distance} mi)
             </p>
             <div class="mt-3 flex flex-wrap items-baseline gap-2">
               <span class="text-2xl font-black text-brand-600">$${deal.dealPrice.toFixed(2)}</span>
-              <span class="text-sm text-slate-400 line-through">$${deal.oldPrice.toFixed(2)}</span>
+              <span class="text-sm text-slate-500 line-through">$${deal.oldPrice.toFixed(2)}</span>
             </div>
           </div>
           <button onclick="addDealToCart('${deal.name}')" class="mt-4 w-full py-2.5 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold text-xs rounded-xl shadow-sm transition touch-btn flex items-center justify-center gap-1.5">
