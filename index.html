@@ -1013,6 +1013,7 @@
       userFirstName: '',
       zipCode: '84064',
       radius: 5,
+      searchTerm: null, // null until the user runs a search
       currentScreen: 'search',
       weeklyShoppingMinutes: null,
       shoppingTimeSummary: null, // added these two but i don't knwo how that data would be stored
@@ -1145,8 +1146,12 @@
       document.getElementById('modal-auth-interceptor').classList.add('hidden');
     }
 
-    function navigateTo(screenId) {
-      const screens = ['search', 'results', 'deals', 'list', 'map', 'login', 'register', 'account'];
+    const SCREENS = ['search', 'results', 'deals', 'list', 'map', 'login', 'register', 'account'];
+    const PROTECTED_SCREENS = ['deals', 'map', 'list', 'account'];
+
+    // replace: true updates the URL without adding a Back-button entry
+    function navigateTo(screenId, { replace = false } = {}) {
+      const screens = SCREENS;
       screens.forEach(s => {
         const el = document.getElementById(`screen-${s}`);
         if (el) el.classList.add('hidden');
@@ -1156,6 +1161,13 @@
       if (target) target.classList.remove('hidden');
       state.currentScreen = screenId;
       window.scrollTo(0, 0);
+
+      // Keep the screen in the URL (#list, #map, ...) so a refresh returns here
+      if (location.hash !== `#${screenId}`) {
+        if (replace) location.replace(`#${screenId}`);
+        else location.hash = screenId;
+      }
+      persistAppState();
 
       // Trigger screen-specific rendering
       if (screenId === 'deals') renderDeals();
@@ -1200,6 +1212,13 @@
       }
       errorMsg.classList.add('hidden');
 
+      applySearch(term, zip, radius);
+      navigateTo('results');
+    }
+
+    // Shared by executeSearch and page-load restore
+    function applySearch(term, zip, radius) {
+      state.searchTerm = term;
       state.zipCode = zip;
       state.radius = radius;
 
@@ -1209,7 +1228,6 @@
       document.getElementById('results-radius-label').textContent = `${radius} miles`;
 
       renderSearchResults(term);
-      navigateTo('results');
     }
 
     function quickSearch(stapleTerm) {
@@ -1333,6 +1351,7 @@
     }
 
     function renderCartDrawer() {
+      persistAppState(); // every cart change ends here
       const container = document.getElementById('drawer-items-list');
       const counter = document.getElementById('drawer-counter');
       const badgeTotal = document.getElementById('drawer-total-badge');
@@ -2246,6 +2265,69 @@ function openShoppingTimeBreakdown(event) {
       applyUser(data);
     }
 
+    // --- App State Persistence (grocery list + last search survive a refresh) ---
+    const APP_STATE_KEY = 'shopwyse_state';
+    let appBooted = false; // don't overwrite saved state before it's been loaded
+
+    function persistAppState() {
+      if (!appBooted) return;
+      const snapshot = {
+        cart: state.cart,
+        viewingSavedList: state.viewingSavedList,
+        activeSavedList: state.activeSavedList,
+        search: state.searchTerm === null ? null
+          : { term: state.searchTerm, zip: state.zipCode, radius: state.radius }
+      };
+      try { localStorage.setItem(APP_STATE_KEY, JSON.stringify(snapshot)); } catch (e) {}
+    }
+
+    function loadAppState() {
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem(APP_STATE_KEY)); } catch (e) {}
+      if (!saved) return; // first visit: keep the sample list
+
+      if (Array.isArray(saved.cart)) state.cart = saved.cart;
+      state.viewingSavedList = !!saved.viewingSavedList && !!saved.activeSavedList;
+      state.activeSavedList = state.viewingSavedList ? saved.activeSavedList : null;
+
+      if (saved.search) {
+        const { term, zip, radius } = saved.search;
+        document.getElementById('input-search-term').value = term;
+        document.getElementById('input-zip-code').value = zip;
+        document.getElementById('select-radius').value = String(radius);
+        applySearch(term, zip, radius);
+      }
+    }
+
+    function clearAppState() {
+      try { localStorage.removeItem(APP_STATE_KEY); } catch (e) {}
+    }
+
+    // --- Screen Routing (#hash in the URL) ---
+    // Decide which screen a #hash may show, given login state and saved search
+    function resolveScreen(hash) {
+      const screen = hash.replace(/^#/, '');
+      if (!SCREENS.includes(screen)) return 'search';
+      if (screen === 'results' && state.searchTerm === null) return 'search';
+      if ((screen === 'login' || screen === 'register') && state.isLoggedIn) return 'account';
+      if (PROTECTED_SCREENS.includes(screen) && !state.isLoggedIn) return 'login';
+      return screen;
+    }
+
+    // Back / Forward buttons
+    window.addEventListener('hashchange', () => {
+      if (!appBooted) return;
+      const requested = location.hash.replace(/^#/, '');
+      if (requested === state.currentScreen) return;
+
+      if (PROTECTED_SCREENS.includes(requested) && !state.isLoggedIn) {
+        location.replace(`#${state.currentScreen}`);
+        guardNav(requested); // shows the log-in prompt
+        return;
+      }
+      navigateTo(resolveScreen(location.hash), { replace: true });
+    });
+
     // --- Authentication Actions (Sticky 2) ---
 async function handleLogin(e) {
     e.preventDefault();
@@ -2364,6 +2446,15 @@ async function handleLogin(e) {
       state.weeklyShoppingMinutes = null;
       document.getElementById('account-email-display').textContent = '';
       clearSession();
+      // Don't leave this user's list behind for the next person on this browser
+      clearAppState();
+      state.cart = [];
+      state.activeSavedList = null;
+      state.viewingSavedList = false;
+      state.savedLists = [];
+      state.searchTerm = null;
+      document.getElementById('input-search-term').value = '';
+      renderCartDrawer();
       updateAuthUI();
       showToast('Logged out of ShopWyse');
       navigateTo('search');
@@ -2385,10 +2476,14 @@ async function handleLogin(e) {
     }
 
     // --- App Boot ---
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', async () => {
+      loadAppState();
       renderCartDrawer();
       updateAuthUI();
-      restoreSession();
+      // Wait for the user to load, or log-in-only screens would bounce to Log In
+      try { await restoreSession(); } catch (e) { console.error('Session restore failed:', e); }
+      appBooted = true;
+      navigateTo(resolveScreen(location.hash), { replace: true });
     });
   </script>
 </body>
