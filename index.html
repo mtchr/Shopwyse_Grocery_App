@@ -1151,7 +1151,7 @@
     const DEALS_SHOWN = 6;
     const HOT_DEALS = [
       { id: 'deal_1', productId: 'item_milk', name: 'Gallon Whole Milk', storeId: 'costco_orem', oldPrice: 3.99, dealPrice: 2.95, discount: '26% off', icon: '🥛' },
-      { id: 'deal_2', productId: 'item_bananas', name: 'Fresh Bananas (Bunch)', storeId: 'traderjoes_orem', oldPrice: 1.69, dealPrice: 0.99, discount: '41% off', icon: '🍌' },
+      { id: 'deal_2', productId: 'item_bananas', name: 'Bananas (Fresh Bunch)', storeId: 'traderjoes_orem', oldPrice: 1.69, dealPrice: 0.99, discount: '41% off', icon: '🍌' },
       { id: 'deal_3', productId: 'item_eggs', name: 'Large Grade A Eggs (18pk)', storeId: 'walmart_provo', oldPrice: 4.49, dealPrice: 2.88, discount: '36% off', icon: '🥚' },
       { id: 'deal_4', productId: 'item_beef', name: 'Ground Beef 80/20 (3 lb)', storeId: 'costco_orem', oldPrice: 16.99, dealPrice: 11.99, discount: '30% off', icon: '🥩' },
       { id: 'deal_5', productId: 'item_cereal', name: 'Cereal Family Size', storeId: 'smiths_provo', oldPrice: 5.99, dealPrice: 2.99, discount: '50% off', icon: '🥣' },
@@ -1383,6 +1383,7 @@
     }
 
     function renderCartDrawer() {
+      if (state.currentScreen === 'deals') renderDeals(); // removed items bring their deal back
       persistAppState(); // every cart change ends here
       const container = document.getElementById('drawer-items-list');
       const counter = document.getElementById('drawer-counter');
@@ -2052,8 +2053,22 @@ function openShoppingTimeBreakdown(event) {
     }
 
     // --- Render Hot Deals (Sticky 3) ---
+    // A deal stays hidden only while its item is still in the list, so removing
+    // the item (or clearing, starting a new, or saving the list) brings the deal back.
+    function pruneClaimedDeals() {
+      state.claimedDeals = state.claimedDeals.filter(id => {
+        const deal = HOT_DEALS.find(d => d.id === id);
+        return deal && state.cart.some(item => item.id === deal.productId);
+      });
+    }
+
     function renderDeals() {
       const container = document.getElementById('deals-container');
+      pruneClaimedDeals();
+
+      // Keep quantities the user already picked on cards that stay on screen
+      const pickedQty = {};
+      container.querySelectorAll('[id^="qty-"]').forEach(el => { pickedQty[el.id] = el.textContent; });
       container.innerHTML = '';
 
       const available = HOT_DEALS.filter(d => !state.claimedDeals.includes(d.id)).slice(0, DEALS_SHOWN);
@@ -2088,10 +2103,16 @@ function openShoppingTimeBreakdown(event) {
         `;
         container.appendChild(card);
       });
+
+      Object.entries(pickedQty).forEach(([id, qty]) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = qty;
+      });
     }
 
     function addDealToCart(dealId) {
       const deal = HOT_DEALS.find(d => d.id === dealId);
+      pruneClaimedDeals();
       if (!deal || state.claimedDeals.includes(dealId)) return; // ignore repeat clicks
       const quantity = readQty(dealId);
 
@@ -2352,6 +2373,7 @@ function openShoppingTimeBreakdown(event) {
 
     function persistAppState() {
       if (!appBooted) return;
+      pruneClaimedDeals();
       const snapshot = {
         cart: state.cart,
         viewingSavedList: state.viewingSavedList,
