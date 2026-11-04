@@ -247,13 +247,12 @@
       <i class="fa-regular fa-circle-user text-slate-500 w-5"></i> Account
     </button>
   </div>
-</header>
 
-
-  <!-- Notification Dropdown / Flash Toast -->
-  <div id="toast-banner" class="hidden bg-emerald-600 border-b-2 border-emerald-800 text-white px-4 py-2.5 text-center text-sm font-semibold shadow-md transition-all">
+  <!-- Notification Dropdown / Flash Toast (inside the sticky header so it stays visible while scrolled) -->
+  <div id="toast-banner" role="status" class="hidden bg-emerald-600 border-b-2 border-emerald-800 text-white px-4 py-2.5 text-center text-sm font-semibold shadow-md transition-all">
     <span id="toast-msg">Alert notification message</span>
   </div>
+</header>
 
   <!-- MAIN CONTAINER -->
   <main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 relative">
@@ -1312,7 +1311,7 @@
               <!-- Right side: price and button (stacked on phones, side by side on bigger screens) -->
               <div class="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 shrink-0">
                 <span class="font-extrabold text-base ${isCheapest ? 'text-emerald-700' : 'text-slate-700'}">$${price.toFixed(2)}</span>
-                <button onclick="addToCart('${product.id}', '${store.id}')" class="px-3 py-2 min-h-[40px] bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white text-xs font-bold rounded-lg shadow-sm transition">
+                <button onclick="addProductToCart('${product.id}')" class="px-3 py-2 min-h-[40px] bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white text-xs font-bold rounded-lg shadow-sm transition">
                   + Add<span class="hidden sm:inline"> to List</span>
                 </button>
               </div>
@@ -1329,15 +1328,16 @@
                 <span class="text-xs text-slate-500 font-medium">Category: ${product.category}</span>
               </div>
             </div>
-            <button onclick="addToCart('${product.id}')" class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold rounded-xl text-xs shadow transition">
+            <button onclick="addProductToCart('${product.id}')" class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold rounded-xl text-xs shadow transition">
               <i class="fa-solid fa-plus"></i> Add Best Deal to List
             </button>
           </div>
+          ${qtyPickerHtml(product.id, product.name)}
           <div class="space-y-2">
             ${storeOptionsHtml}
           </div>
           <!-- Phones only: the "best deal" button goes full width at the bottom of the card -->
-          <button onclick="addToCart('${product.id}')" class="sm:hidden w-full py-3 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold rounded-xl text-sm shadow transition flex items-center justify-center gap-2 touch-btn">
+          <button onclick="addProductToCart('${product.id}')" class="sm:hidden w-full py-3 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold rounded-xl text-sm shadow transition flex items-center justify-center gap-2 touch-btn">
             <i class="fa-solid fa-plus"></i> Add Best Deal to List
           </button>
         `;
@@ -1446,6 +1446,40 @@
 // Remember which item the user wanted to add
 let pendingCartProduct = null;
 
+// --- Quantity Picker (shared by Search Results and Hot Deals) ---
+// key must be unique on the page (a product id or deal id)
+function qtyPickerHtml(key, itemName) {
+    return `
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-sm font-bold text-slate-700">Quantity</span>
+        <div class="flex items-center gap-1">
+          <button onclick="changeQty('${key}', -1)" aria-label="Decrease quantity of ${itemName}" class="w-11 h-11 rounded-lg border border-slate-300 text-slate-700 font-black hover:bg-slate-100">−</button>
+          <span id="qty-${key}" aria-live="polite" class="w-8 text-center font-black text-slate-900">1</span>
+          <button onclick="changeQty('${key}', 1)" aria-label="Increase quantity of ${itemName}" class="w-11 h-11 rounded-lg border border-slate-300 text-slate-700 font-black hover:bg-slate-100">+</button>
+        </div>
+      </div>`;
+}
+
+function changeQty(key, delta) {
+    const el = document.getElementById(`qty-${key}`);
+    el.textContent = Math.min(99, Math.max(1, parseInt(el.textContent, 10) + delta));
+}
+
+function readQty(key) {
+    const el = document.getElementById(`qty-${key}`);
+    return el ? parseInt(el.textContent, 10) || 1 : 1;
+}
+
+function resetQty(key) {
+    const el = document.getElementById(`qty-${key}`);
+    if (el) el.textContent = '1';
+}
+
+// Search Results buttons: add the chosen quantity, then reset the picker to 1
+function addProductToCart(productId) {
+    addToCart(productId, readQty(productId), () => resetQty(productId));
+}
+
 // Returns true if the item was added now. onAdded runs once it's added,
 // including later if the shopping-time question has to be answered first.
 function addToCart(productId, quantity = 1, onAdded = null) {
@@ -1486,7 +1520,8 @@ function addToCart(productId, quantity = 1, onAdded = null) {
     if (onAdded) onAdded();
     renderCartDrawer();
 
-    showToast(quantity > 1 ? `${quantity} items added to grocery list!` : 'Item added to grocery list!');
+    const product = PRODUCTS.find(p => p.id === productId);
+    showToast(`Added ${quantity} × ${product ? product.name : 'item'} to your grocery list!`);
     return true;
 }
 
@@ -2046,14 +2081,7 @@ function openShoppingTimeBreakdown(event) {
               <span class="text-sm text-slate-500 line-through">$${deal.oldPrice.toFixed(2)}</span>
             </div>
           </div>
-          <div class="mt-4 flex items-center justify-between gap-3">
-            <span class="text-sm font-bold text-slate-700">Quantity</span>
-            <div class="flex items-center gap-1">
-              <button onclick="changeDealQty('${deal.id}', -1)" aria-label="Decrease quantity of ${deal.name}" class="w-11 h-11 rounded-lg border border-slate-300 text-slate-700 font-black hover:bg-slate-100">−</button>
-              <span id="deal-qty-${deal.id}" aria-live="polite" class="w-8 text-center font-black text-slate-900">1</span>
-              <button onclick="changeDealQty('${deal.id}', 1)" aria-label="Increase quantity of ${deal.name}" class="w-11 h-11 rounded-lg border border-slate-300 text-slate-700 font-black hover:bg-slate-100">+</button>
-            </div>
-          </div>
+          <div class="mt-4">${qtyPickerHtml(deal.id, deal.name)}</div>
           <button onclick="addDealToCart('${deal.id}')" class="mt-2 w-full py-2.5 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold text-xs rounded-xl shadow-sm transition touch-btn flex items-center justify-center gap-1.5">
             <i class="fa-solid fa-cart-plus"></i> Add Deal to Cart
           </button>
@@ -2062,15 +2090,10 @@ function openShoppingTimeBreakdown(event) {
       });
     }
 
-    function changeDealQty(dealId, delta) {
-      const el = document.getElementById(`deal-qty-${dealId}`);
-      el.textContent = Math.min(99, Math.max(1, parseInt(el.textContent, 10) + delta));
-    }
-
     function addDealToCart(dealId) {
       const deal = HOT_DEALS.find(d => d.id === dealId);
       if (!deal || state.claimedDeals.includes(dealId)) return; // ignore repeat clicks
-      const quantity = parseInt(document.getElementById(`deal-qty-${dealId}`).textContent, 10) || 1;
+      const quantity = readQty(dealId);
 
       // Remove the card and show the next deal only once the item is really in the cart
       addToCart(deal.productId, quantity, () => {
@@ -2533,7 +2556,9 @@ async function handleLogin(e) {
       const text = document.getElementById('toast-msg');
       text.textContent = msg;
       banner.classList.remove('hidden');
-      setTimeout(() => banner.classList.add('hidden'), 3500);
+      // Restart the timer so a quick second banner isn't hidden early by the first one's timer
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => banner.classList.add('hidden'), 3500);
     }
 
     // --- App Boot ---
