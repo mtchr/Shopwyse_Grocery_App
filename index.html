@@ -166,6 +166,59 @@
     white-space: normal;
   }
 }
+
+/* Wyse AI assistant */
+body.wyse-modal-open {
+  overflow: hidden;
+}
+
+.wyse-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.wyse-avatar svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.wyse-dropzone {
+  background: #f2f9f5;
+  border: 2px dashed #94a3b8;
+  transition: border-color 160ms ease, background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.wyse-dropzone:hover,
+.wyse-dropzone:focus-within,
+.wyse-dropzone.is-dragging {
+  background: #e1f3ea;
+  border-color: #2563eb;
+}
+
+.wyse-dropzone.is-dragging {
+  transform: scale(1.01);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wyse-modal-card {
+    animation: wyse-modal-in 180ms ease-out;
+  }
+
+  @keyframes wyse-modal-in {
+    from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+}
   </style>
 </head>
 
@@ -190,6 +243,18 @@
 
     <!-- Mobile Header Buttons -->
     <div class="flex sm:hidden items-center gap-1">
+      <button onclick="openWyseAssistant()" aria-label="Open Wyse AI Assistant" class="w-11 h-11 rounded-lg hover:bg-brand-50 flex items-center justify-center">
+        <span class="wyse-avatar w-8 h-8" aria-hidden="true">
+          <svg viewBox="0 0 48 48" role="img">
+            <circle cx="24" cy="24" r="22" fill="#2563EB"/>
+            <path d="M15 19h18l-1.7 17H16.7L15 19Z" fill="white"/>
+            <path d="M19 19v-2.2a5 5 0 0 1 10 0V19" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="21" cy="26" r="1.4" fill="#2563EB"/>
+            <circle cx="27" cy="26" r="1.4" fill="#2563EB"/>
+            <path d="M20.5 30c1.8 2 5.2 2 7 0" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </span>
+      </button>
       <button onclick="closeMobileMenu(); guardNav('list')" class="relative w-11 h-11 rounded-lg text-slate-600 hover:bg-brand-50 flex items-center justify-center">
         <i class="fa-solid fa-cart-shopping text-accent-blue text-lg"></i>
         <span id="mobile-cart-badge" class="absolute top-0 right-0 bg-accent-blue text-white text-[10px] font-bold px-1.5 rounded-full">0</span>
@@ -226,6 +291,21 @@
         <i class="fa-regular fa-circle-user text-slate-500 text-lg"></i>
         <span id="account-nav-label" class="hidden md:inline">Account</span>
       </button>
+
+      <button onclick="openWyseAssistant()" id="nav-wyse" class="px-2.5 py-1.5 rounded-xl font-bold text-slate-700 hover:text-accent-blue hover:bg-blue-50 flex items-center gap-2 transition" aria-label="Open Wyse AI Assistant">
+        <span class="wyse-avatar w-8 h-8" aria-hidden="true">
+          <svg viewBox="0 0 48 48" role="img">
+            <circle cx="24" cy="24" r="22" fill="#2563EB"/>
+            <path d="M15 19h18l-1.7 17H16.7L15 19Z" fill="white"/>
+            <path d="M19 19v-2.2a5 5 0 0 1 10 0V19" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="21" cy="26" r="1.4" fill="#2563EB"/>
+            <circle cx="27" cy="26" r="1.4" fill="#2563EB"/>
+            <path d="M20.5 30c1.8 2 5.2 2 7 0" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="hidden lg:inline whitespace-nowrap">Wyse AI Assistant</span>
+        <span class="lg:hidden whitespace-nowrap">Wyse AI</span>
+      </button>
     </nav>
   </div>
 
@@ -245,6 +325,19 @@
     </button>
     <button onclick="closeMobileMenu(); guardNav('account')" class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 touch-btn">
       <i class="fa-regular fa-circle-user text-slate-500 w-5"></i> Account
+    </button>
+    <button onclick="closeMobileMenu(); openWyseAssistant()" class="w-full py-3 flex items-center gap-3 text-left font-bold text-slate-700 border-t border-slate-100 touch-btn">
+      <span class="wyse-avatar w-7 h-7" aria-hidden="true">
+        <svg viewBox="0 0 48 48" role="img">
+          <circle cx="24" cy="24" r="22" fill="#2563EB"/>
+          <path d="M15 19h18l-1.7 17H16.7L15 19Z" fill="white"/>
+          <path d="M19 19v-2.2a5 5 0 0 1 10 0V19" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="21" cy="26" r="1.4" fill="#2563EB"/>
+          <circle cx="27" cy="26" r="1.4" fill="#2563EB"/>
+          <path d="M20.5 30c1.8 2 5.2 2 7 0" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </span>
+      Wyse AI Assistant
     </button>
   </div>
 
@@ -877,6 +970,166 @@
     </section>
 
   </main>
+
+  <!-- ========================================================= -->
+  <!-- WYSE AI ASSISTANT MODAL                                  -->
+  <!-- ========================================================= -->
+  <div id="wyse-assistant-modal"
+    class="hidden fixed inset-0 z-[70] bg-slate-950/55 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="wyse-assistant-title"
+    onclick="if (event.target === this) closeWyseAssistant()">
+
+    <div class="wyse-modal-card bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-brand-200">
+      <div class="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-slate-100 px-5 sm:px-6 py-4 rounded-t-3xl flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="wyse-avatar w-11 h-11 sm:w-12 sm:h-12" aria-hidden="true">
+            <svg viewBox="0 0 48 48" role="img">
+              <circle cx="24" cy="24" r="22" fill="#2563EB"/>
+              <path d="M15 19h18l-1.7 17H16.7L15 19Z" fill="white"/>
+              <path d="M19 19v-2.2a5 5 0 0 1 10 0V19" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="21" cy="26" r="1.4" fill="#2563EB"/>
+              <circle cx="27" cy="26" r="1.4" fill="#2563EB"/>
+              <path d="M20.5 30c1.8 2 5.2 2 7 0" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <div class="min-w-0">
+            <h2 id="wyse-assistant-title" class="text-lg sm:text-xl font-black text-slate-900 leading-tight">Wyse AI Assistant</h2>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button id="wyse-header-start-over" type="button" class="min-h-[44px] px-3 rounded-xl text-sm font-bold text-accent-blue hover:bg-blue-50 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i>
+            <span class="hidden sm:inline">Start over</span>
+          </button>
+          <button id="wyse-close-button" type="button" onclick="closeWyseAssistant()" aria-label="Close Wyse AI Assistant"
+            class="w-11 h-11 shrink-0 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-600 flex items-center justify-center transition">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="p-5 sm:p-6 space-y-5">
+        <div id="wyse-welcome" class="hidden">
+          <div class="flex items-start gap-3">
+            <span class="wyse-avatar w-9 h-9 sm:w-10 sm:h-10" aria-hidden="true">
+              <svg viewBox="0 0 48 48" role="img">
+                <circle cx="24" cy="24" r="22" fill="#2563EB"/>
+                <path d="M15 19h18l-1.7 17H16.7L15 19Z" fill="white"/>
+                <path d="M19 19v-2.2a5 5 0 0 1 10 0V19" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="21" cy="26" r="1.4" fill="#2563EB"/>
+                <circle cx="27" cy="26" r="1.4" fill="#2563EB"/>
+                <path d="M20.5 30c1.8 2 5.2 2 7 0" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <div class="min-w-0 flex-1 bg-brand-50 border border-brand-200 rounded-2xl rounded-bl-md px-4 py-3 sm:px-5 sm:py-4">
+              <p class="text-sm sm:text-base text-slate-700 font-semibold leading-relaxed">
+                Hello, I’m Wyse, your recipe and shopping assistant! Show me one of your recipe cards or type in some ingredients, and I’ll add them to your grocery list.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div id="wyse-dropzone" class="wyse-dropzone rounded-2xl p-6 sm:p-8 text-center outline-none" tabindex="0" role="button" aria-label="Choose a recipe photo or drop it here">
+          <input id="recipe-image" type="file" accept="image/png,image/jpeg,image/webp,image/heic" class="hidden">
+          <input id="recipe-camera" type="file" accept="image/*" capture="environment" class="hidden">
+
+          <div id="wyse-upload-prompt" class="space-y-4">
+            <div class="w-16 h-16 rounded-2xl bg-white border border-brand-200 shadow-sm text-accent-blue flex items-center justify-center mx-auto">
+              <i class="fa-solid fa-arrow-up-from-bracket text-2xl"></i>
+            </div>
+            <div>
+              <h3 class="text-lg font-black text-slate-900">Add a recipe photo</h3>
+            </div>
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2">
+              <button id="choose-recipe-photo" type="button" class="min-h-[48px] px-5 py-3 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2">
+                <i class="fa-regular fa-image"></i>
+                Choose photo
+              </button>
+              <button id="take-recipe-photo" type="button" class="min-h-[48px] px-5 py-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold rounded-xl transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-camera"></i>
+                Take photo
+              </button>
+            </div>
+          </div>
+
+          <div id="wyse-photo-preview" class="hidden">
+            <img id="wyse-preview-image" alt="Selected recipe preview" class="max-h-56 w-auto mx-auto rounded-xl border border-slate-200 shadow-sm object-contain">
+            <div class="mt-3 flex items-center justify-center gap-3">
+              <p id="wyse-photo-name" class="text-sm font-bold text-slate-700 truncate max-w-[70%]"></p>
+              <button id="remove-recipe-photo" type="button" class="text-sm font-bold text-red-600 hover:text-red-700">Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3" aria-hidden="true">
+          <span class="h-px bg-slate-200 flex-1"></span>
+          <span class="text-xs font-black uppercase tracking-widest text-slate-400">or type ingredients</span>
+          <span class="h-px bg-slate-200 flex-1"></span>
+        </div>
+
+        <div>
+          <label for="recipe-text" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Ingredients</label>
+          <textarea id="recipe-text" rows="5" placeholder="Example:&#10;2 cups flour&#10;1 teaspoon salt&#10;3 eggs"
+            class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:border-accent-blue focus:outline-none font-medium text-slate-900 resize-y"></textarea>
+        </div>
+
+        <button id="extract-recipe" type="button" class="w-full min-h-[52px] px-6 py-3.5 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-black text-base rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          Find my ingredients
+        </button>
+
+        <div id="wyse-progress" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-3.5 flex items-center gap-3">
+          <span class="w-5 h-5 border-2 border-blue-200 border-t-accent-blue rounded-full animate-spin shrink-0" aria-hidden="true"></span>
+          <p id="ai-status" class="text-sm font-bold text-blue-900" aria-live="polite">Getting ready…</p>
+        </div>
+
+        <div id="wyse-results-panel" class="hidden border-t border-slate-200 pt-5 space-y-4">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <h3 class="text-lg font-black text-slate-900">Ingredients found</h3>
+              <p id="wyse-results-summary" class="hidden"></p>
+            </div>
+            <button id="wyse-start-over" type="button" class="text-sm font-bold text-accent-blue hover:underline whitespace-nowrap">Start over</button>
+          </div>
+
+          <ul id="ingredient-results" class="space-y-2"></ul>
+
+          <div id="wyse-read-warning" class="hidden rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
+            <div class="flex items-start gap-3">
+              <i class="fa-solid fa-triangle-exclamation mt-0.5 text-amber-600" aria-hidden="true"></i>
+              <div class="min-w-0">
+                <p class="font-black">I couldn’t confidently identify ingredient lines.</p>
+                <p class="mt-1 text-sm">Here’s what I was able to read:</p>
+                <p id="wyse-readback-text" class="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white/70 p-3 text-xs font-medium text-slate-700"></p>
+              </div>
+            </div>
+          </div>
+
+          <div id="wyse-total-card" class="border-t border-slate-200 pt-4">
+            <div class="flex items-center justify-between gap-4">
+              <p class="text-base font-black text-slate-900">Estimated total</p>
+              <p id="wyse-selected-count" class="sr-only">0 items selected</p>
+              <p id="wyse-estimated-total" class="text-2xl font-black text-accent-blue">$0.00</p>
+            </div>
+          </div>
+
+          <button id="add-wyse-to-list" type="button" class="w-full min-h-[50px] px-5 py-3 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-black rounded-xl shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+            <i class="fa-solid fa-cart-plus"></i>
+            <span id="add-wyse-to-list-label">Select items to add</span>
+          </button>
+          <p id="wyse-catalog-note" class="hidden"></p>
+
+          <div class="hidden" aria-hidden="true">
+            <pre id="recognized-text"></pre>
+            <pre id="recipe-json"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ========================================================= -->
   <!-- MODAL: LOGIN REQUIRED POPUP                               -->
@@ -2594,5 +2847,560 @@ async function handleLogin(e) {
       navigateTo(resolveScreen(location.hash), { replace: true });
     });
   </script>
+  <!-- Browser-based recipe recognition for Wyse AI -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/tesseract.min.js"></script>
+
+  <script>
+    const WYSE_WELCOME_KEY = 'shopwyse_wyse_welcome_seen';
+    const WYSE_MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+    const wyseModal = document.querySelector('#wyse-assistant-modal');
+    const wyseWelcome = document.querySelector('#wyse-welcome');
+    const imageInput = document.querySelector('#recipe-image');
+    const cameraInput = document.querySelector('#recipe-camera');
+    const textInput = document.querySelector('#recipe-text');
+    const dropzone = document.querySelector('#wyse-dropzone');
+    const uploadPrompt = document.querySelector('#wyse-upload-prompt');
+    const photoPreview = document.querySelector('#wyse-photo-preview');
+    const previewImage = document.querySelector('#wyse-preview-image');
+    const photoName = document.querySelector('#wyse-photo-name');
+    const extractButton = document.querySelector('#extract-recipe');
+    const progressPanel = document.querySelector('#wyse-progress');
+    const statusElement = document.querySelector('#ai-status');
+    const resultsPanel = document.querySelector('#wyse-results-panel');
+    const resultsSummary = document.querySelector('#wyse-results-summary');
+    const ingredientResults = document.querySelector('#ingredient-results');
+    const jsonOutput = document.querySelector('#recipe-json');
+    const recognizedTextOutput = document.querySelector('#recognized-text');
+    const addToListButton = document.querySelector('#add-wyse-to-list');
+    const addToListLabel = document.querySelector('#add-wyse-to-list-label');
+    const catalogNote = document.querySelector('#wyse-catalog-note');
+    const readWarning = document.querySelector('#wyse-read-warning');
+    const readbackText = document.querySelector('#wyse-readback-text');
+    const selectedCount = document.querySelector('#wyse-selected-count');
+    const estimatedTotal = document.querySelector('#wyse-estimated-total');
+
+    let workerPromise;
+    let selectedRecipeImage = null;
+    let selectedImageUrl = null;
+    let lastFocusedElement = null;
+    let lastWyseRecipe = null;
+
+    const quantityPattern =
+      /^((?:\d+\s+)?(?:\d+\/\d+|\d+(?:\.\d+)?|[¼½¾⅓⅔⅛⅜⅝⅞])(?:\s*(?:-|–|to)\s*(?:\d+\/\d+|\d+(?:\.\d+)?|[¼½¾⅓⅔⅛⅜⅝⅞]))?)/i;
+
+    const unitPattern =
+      /^(cups?|c\.?|tablespoons?|tbsp\.?|teaspoons?|tsp\.?|ounces?|oz\.?|pounds?|lbs?\.?|grams?|g\.?|kilograms?|kg\.?|milliliters?|ml\.?|liters?|l\.?|cans?|packages?|pkg\.?|cloves?|slices?|pieces?|pinches?|sprigs?|bunches?)\b/i;
+
+    const productAliases = [
+      { pattern: /\borange juice\b|\bo\.?j\.?\b/i, productId: 'item_oj' },
+      { pattern: /\bground beef\b|\bbeef\b/i, productId: 'item_beef' },
+      { pattern: /\bmilk\b/i, productId: 'item_milk' },
+      { pattern: /\beggs?\b/i, productId: 'item_eggs' },
+      { pattern: /\bbread\b/i, productId: 'item_bread' },
+      { pattern: /\bbananas?\b/i, productId: 'item_bananas' },
+      { pattern: /\bapples?\b/i, productId: 'item_apples' },
+      { pattern: /\bcereal\b/i, productId: 'item_cereal' }
+    ];
+
+    function openWyseAssistant() {
+      lastFocusedElement = document.activeElement;
+      wyseModal.classList.remove('hidden');
+      document.body.classList.add('wyse-modal-open');
+
+      let hasSeenWelcome = false;
+      try {
+        hasSeenWelcome = localStorage.getItem(WYSE_WELCOME_KEY) === 'true';
+      } catch (error) {}
+
+      wyseWelcome.classList.toggle('hidden', hasSeenWelcome);
+
+      if (!hasSeenWelcome) {
+        try { localStorage.setItem(WYSE_WELCOME_KEY, 'true'); } catch (error) {}
+      }
+
+      requestAnimationFrame(() => {
+        document.querySelector('#wyse-close-button').focus();
+      });
+    }
+
+    function closeWyseAssistant() {
+      wyseModal.classList.add('hidden');
+      document.body.classList.remove('wyse-modal-open');
+      if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+        lastFocusedElement.focus();
+      }
+    }
+
+    window.openWyseAssistant = openWyseAssistant;
+    window.closeWyseAssistant = closeWyseAssistant;
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !wyseModal.classList.contains('hidden')) {
+        closeWyseAssistant();
+      }
+    });
+
+    function updateProgress(message) {
+      statusElement.textContent = message;
+      progressPanel.classList.remove('hidden');
+    }
+
+    function hideProgress() {
+      progressPanel.classList.add('hidden');
+    }
+
+    function getOcrWorker() {
+      if (!workerPromise) {
+        workerPromise = Tesseract.createWorker('eng', 1, {
+          logger(event) {
+            if (typeof event.progress === 'number') {
+              const percent = Math.round(event.progress * 100);
+              updateProgress(`${event.status}: ${percent}%`);
+            } else if (event.status) {
+              updateProgress(event.status);
+            }
+          }
+        });
+      }
+      return workerPromise;
+    }
+
+    async function recognizeImage(file) {
+      const worker = await getOcrWorker();
+      const result = await worker.recognize(file);
+      return result.data.text;
+    }
+
+    function selectRecipeImage(file) {
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        updateProgress('Please choose an image file.');
+        return;
+      }
+
+      if (file.size > WYSE_MAX_IMAGE_BYTES) {
+        updateProgress('That photo is larger than 10 MB. Please choose a smaller image.');
+        return;
+      }
+
+      selectedRecipeImage = file;
+      if (selectedImageUrl) URL.revokeObjectURL(selectedImageUrl);
+      selectedImageUrl = URL.createObjectURL(file);
+      previewImage.src = selectedImageUrl;
+      photoName.textContent = file.name || 'New recipe photo';
+      uploadPrompt.classList.add('hidden');
+      photoPreview.classList.remove('hidden');
+      hideProgress();
+      resultsPanel.classList.add('hidden');
+    }
+
+    function clearRecipeImage() {
+      selectedRecipeImage = null;
+      imageInput.value = '';
+      cameraInput.value = '';
+      if (selectedImageUrl) URL.revokeObjectURL(selectedImageUrl);
+      selectedImageUrl = null;
+      previewImage.removeAttribute('src');
+      photoPreview.classList.add('hidden');
+      uploadPrompt.classList.remove('hidden');
+    }
+
+    document.querySelector('#choose-recipe-photo').addEventListener('click', event => {
+      event.stopPropagation();
+      imageInput.click();
+    });
+
+    document.querySelector('#take-recipe-photo').addEventListener('click', event => {
+      event.stopPropagation();
+      cameraInput.click();
+    });
+
+    document.querySelector('#remove-recipe-photo').addEventListener('click', event => {
+      event.stopPropagation();
+      clearRecipeImage();
+    });
+
+    imageInput.addEventListener('change', () => selectRecipeImage(imageInput.files[0]));
+    cameraInput.addEventListener('change', () => selectRecipeImage(cameraInput.files[0]));
+
+    dropzone.addEventListener('click', event => {
+      if (event.target === dropzone || event.target.closest('#wyse-upload-prompt > div:first-child, #wyse-upload-prompt h3, #wyse-upload-prompt p')) {
+        imageInput.click();
+      }
+    });
+
+    dropzone.addEventListener('keydown', event => {
+      if ((event.key === 'Enter' || event.key === ' ') && event.target === dropzone) {
+        event.preventDefault();
+        imageInput.click();
+      }
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropzone.addEventListener(eventName, event => {
+        event.preventDefault();
+        dropzone.classList.add('is-dragging');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropzone.addEventListener(eventName, event => {
+        event.preventDefault();
+        dropzone.classList.remove('is-dragging');
+      });
+    });
+
+    dropzone.addEventListener('drop', event => {
+      selectRecipeImage(event.dataTransfer.files[0]);
+    });
+
+    function cleanLine(line) {
+      return line
+        .replace(/^[•●▪◦*-]\s*/, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function beginsWithQuantity(line) {
+      return quantityPattern.test(cleanLine(line));
+    }
+
+    function findIngredientLines(text) {
+      let lines = text
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean);
+
+      const ingredientHeading = lines.findIndex(line =>
+        /^ingredients?\s*:?\s*$/i.test(line)
+      );
+
+      if (ingredientHeading >= 0) {
+        const followingLines = lines.slice(ingredientHeading + 1);
+        const directionsHeading = followingLines.findIndex(line =>
+          /^(directions?|instructions?|method|preparation)\s*:?\s*$/i.test(line)
+        );
+        return directionsHeading >= 0
+          ? followingLines.slice(0, directionsHeading)
+          : followingLines;
+      }
+
+      if (lines.length === 1 && /[,;]/.test(lines[0]) && !beginsWithQuantity(lines[0])) {
+        lines = lines[0].split(/[,;]/).map(line => line.trim()).filter(Boolean);
+      }
+
+      const likelyIngredients = lines.filter(line =>
+        beginsWithQuantity(line) ||
+        /^[•●▪◦*-]\s+/.test(line) ||
+        /\bto taste\b/i.test(line)
+      );
+
+      if (likelyIngredients.length) return likelyIngredients;
+
+      return lines.filter(line => line.length <= 100 && !/[.!?]$/.test(line));
+    }
+
+    function parseIngredientLine(sourceLine) {
+      const rawText = cleanLine(sourceLine);
+      let remaining = rawText;
+      let quantity = null;
+      let unit = null;
+      let preparation = null;
+
+      const quantityMatch = remaining.match(quantityPattern);
+      if (quantityMatch) {
+        quantity = quantityMatch[1];
+        remaining = remaining.slice(quantityMatch[0].length).trim();
+      }
+
+      const unitMatch = remaining.match(unitPattern);
+      if (unitMatch) {
+        unit = unitMatch[1];
+        remaining = remaining.slice(unitMatch[0].length).trim();
+      }
+
+      const commaPosition = remaining.indexOf(',');
+      if (commaPosition >= 0) {
+        preparation = remaining.slice(commaPosition + 1).trim() || null;
+        remaining = remaining.slice(0, commaPosition).trim();
+      }
+
+      return {
+        raw_text: rawText,
+        quantity,
+        unit,
+        item: remaining,
+        preparation,
+        notes: null,
+        needs_review: remaining.length === 0
+      };
+    }
+
+    function parseRecipeText(text) {
+      const ingredients = findIngredientLines(text)
+        .map(parseIngredientLine)
+        .filter(ingredient => ingredient.item);
+
+      return {
+        title: null,
+        servings: null,
+        ingredients,
+        warnings: ingredients.length
+          ? []
+          : ['No ingredient lines were confidently identified.']
+      };
+    }
+
+    async function extractRecipe({ imageFile, recipeText = '' }) {
+      let sourceText = recipeText.trim();
+      if (!sourceText && !imageFile) {
+        throw new Error('Choose a recipe photo or type some ingredients first.');
+      }
+      if (!sourceText && imageFile) sourceText = await recognizeImage(imageFile);
+      const recipe = parseRecipeText(sourceText);
+      recipe.ingredients = recipe.ingredients.map(enrichIngredientWithCatalog);
+      return { sourceText, recipe };
+    }
+
+    window.extractRecipe = extractRecipe;
+
+    function productMatchForIngredient(itemName) {
+      const alias = productAliases.find(entry => entry.pattern.test(itemName));
+      return alias ? PRODUCTS.find(product => product.id === alias.productId) : null;
+    }
+
+    function cheapestOfferForProduct(product) {
+      if (!product || !product.prices) return null;
+
+      const validOffers = Object.entries(product.prices)
+        .filter(([, price]) => Number.isFinite(price))
+        .map(([storeId, price]) => ({
+          storeId,
+          store: STORES.find(store => store.id === storeId),
+          price
+        }))
+        .filter(offer => offer.store);
+
+      if (!validOffers.length) return null;
+      return validOffers.reduce((lowest, offer) =>
+        offer.price < lowest.price ? offer : lowest
+      );
+    }
+
+    function enrichIngredientWithCatalog(ingredient) {
+      const product = productMatchForIngredient(ingredient.item);
+      const offer = cheapestOfferForProduct(product);
+
+      return {
+        ...ingredient,
+        catalog_match: product && offer
+          ? {
+              product_id: product.id,
+              product_name: product.name,
+              cheapest_store_id: offer.store.id,
+              cheapest_store_name: offer.store.name,
+              lowest_price: offer.price
+            }
+          : null
+      };
+    }
+
+    function selectedWyseOffers() {
+      return [...ingredientResults.querySelectorAll('.wyse-item-checkbox:checked')]
+        .map(checkbox => ({
+          productId: checkbox.dataset.productId,
+          price: Number(checkbox.dataset.price)
+        }))
+        .filter(offer => offer.productId && Number.isFinite(offer.price));
+    }
+
+    function updateWyseSelectionSummary() {
+      const offers = selectedWyseOffers();
+      const total = offers.reduce((sum, offer) => sum + offer.price, 0);
+      const itemWord = offers.length === 1 ? 'item' : 'items';
+
+      selectedCount.textContent = `${offers.length} ${itemWord} selected`;
+      estimatedTotal.textContent = `$${total.toFixed(2)}`;
+      addToListLabel.textContent = offers.length
+        ? `Add ${offers.length} selected ${itemWord}`
+        : 'Select items to add';
+      addToListButton.disabled = offers.length === 0;
+    }
+
+    function renderWyseResults(result) {
+      ingredientResults.replaceChildren();
+      recognizedTextOutput.textContent = result.sourceText;
+      readWarning.classList.add('hidden');
+      readbackText.textContent = '';
+
+      let matchedCount = 0;
+
+      const enrichedIngredients = result.recipe.ingredients;
+      lastWyseRecipe = result.recipe;
+      jsonOutput.textContent = JSON.stringify(lastWyseRecipe, null, 2);
+
+      if (!enrichedIngredients.length) {
+        readWarning.classList.remove('hidden');
+        readbackText.textContent = result.sourceText.trim() || 'No readable text was detected in the image.';
+      }
+
+      const displayIngredients = [...enrichedIngredients].sort((first, second) =>
+        Number(Boolean(second.catalog_match)) - Number(Boolean(first.catalog_match))
+      );
+
+      displayIngredients.forEach(ingredient => {
+        const match = ingredient.catalog_match;
+        if (match) matchedCount += 1;
+
+        const listItem = document.createElement('li');
+        listItem.className = match
+          ? 'flex items-start gap-3 p-3.5 bg-blue-50 border-2 border-blue-400 rounded-xl transition hover:border-blue-500 cursor-pointer'
+          : 'flex items-start gap-2 px-1 py-2';
+
+        if (match) {
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = true;
+          checkbox.className = 'wyse-item-checkbox mt-2 w-5 h-5 shrink-0 rounded border-slate-300 text-accent-blue focus:ring-accent-blue cursor-pointer';
+          checkbox.dataset.productId = match.product_id;
+          checkbox.dataset.price = String(match.lowest_price);
+          checkbox.setAttribute('aria-label', `Add ${match.product_name} from ${match.cheapest_store_name} for $${match.lowest_price.toFixed(2)}`);
+          checkbox.addEventListener('change', () => {
+            listItem.classList.toggle('border-blue-400', checkbox.checked);
+            listItem.classList.toggle('bg-blue-50', checkbox.checked);
+            listItem.classList.toggle('border-slate-200', !checkbox.checked);
+            listItem.classList.toggle('bg-white', !checkbox.checked);
+            updateWyseSelectionSummary();
+          });
+          listItem.addEventListener('click', event => {
+            if (event.target === checkbox) return;
+            checkbox.checked = !checkbox.checked;
+            checkbox.dispatchEvent(new Event('change'));
+          });
+          listItem.appendChild(checkbox);
+        } else {
+          const warningIcon = document.createElement('span');
+          warningIcon.className = 'mt-0.5 text-amber-600 shrink-0';
+          warningIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>';
+          listItem.appendChild(warningIcon);
+        }
+
+        const icon = document.createElement('span');
+        icon.className = 'w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-lg shrink-0';
+        icon.textContent = match
+          ? PRODUCTS.find(product => product.id === match.product_id)?.icon || '🛒'
+          : '📝';
+
+        const content = document.createElement('div');
+        content.className = 'min-w-0 flex-1';
+
+        const amount = [ingredient.quantity, ingredient.unit].filter(Boolean).join(' ');
+        const title = document.createElement('p');
+        title.className = 'font-black text-slate-900';
+        title.textContent = amount ? `${amount} — ${ingredient.item}` : ingredient.item;
+
+        const note = document.createElement('p');
+        note.className = match
+          ? 'text-xs font-bold text-emerald-700 mt-0.5'
+          : 'text-xs font-bold text-amber-800 mt-0.5';
+        note.textContent = match
+          ? `Cheapest at ${match.cheapest_store_name}`
+          : 'Wyse recognized this text, but it was not found in the ShopWyse catalog.';
+
+        content.append(title, note);
+
+        if (match) {
+          const price = document.createElement('div');
+          price.className = 'shrink-0 text-right';
+
+          const amount = document.createElement('p');
+          amount.className = 'text-base font-black text-accent-blue';
+          amount.textContent = `$${match.lowest_price.toFixed(2)}`;
+
+          price.append(amount);
+          listItem.append(icon, content, price);
+        } else {
+          listItem.append(content);
+        }
+
+        ingredientResults.appendChild(listItem);
+      });
+
+      resultsSummary.textContent = enrichedIngredients.length
+        ? `${enrichedIngredients.length} ${enrichedIngredients.length === 1 ? 'ingredient' : 'ingredients'} recognized • choose what you need`
+        : 'Wyse needs a clearer image or ingredient list';
+      catalogNote.textContent = matchedCount
+        ? 'Prices reflect the current ShopWyse demo catalog and may change.'
+        : enrichedIngredients.length
+          ? 'None of the recognized ingredients are in the current ShopWyse demo catalog yet.'
+          : 'Try a brighter, straighter photo with the ingredient list filling most of the frame.';
+      updateWyseSelectionSummary();
+      resultsPanel.classList.remove('hidden');
+      resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    extractButton.addEventListener('click', async () => {
+      extractButton.disabled = true;
+      resultsPanel.classList.add('hidden');
+
+      try {
+        updateProgress(selectedRecipeImage && !textInput.value.trim()
+          ? 'Reading your recipe photo…'
+          : 'Organizing your ingredients…');
+
+        const result = await extractRecipe({
+          imageFile: selectedRecipeImage,
+          recipeText: textInput.value
+        });
+
+        hideProgress();
+        renderWyseResults(result);
+      } catch (error) {
+        updateProgress(error.message);
+      } finally {
+        extractButton.disabled = false;
+      }
+    });
+
+    function resetWyseAssistant() {
+      clearRecipeImage();
+      textInput.value = '';
+      lastWyseRecipe = null;
+      ingredientResults.replaceChildren();
+      recognizedTextOutput.textContent = '';
+      jsonOutput.textContent = '';
+      resultsPanel.classList.add('hidden');
+      hideProgress();
+      dropzone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    document.querySelector('#wyse-start-over').addEventListener('click', resetWyseAssistant);
+    document.querySelector('#wyse-header-start-over').addEventListener('click', resetWyseAssistant);
+
+    addToListButton.addEventListener('click', () => {
+      const productIds = [...new Set(selectedWyseOffers().map(offer => offer.productId))];
+
+      if (!productIds.length) return;
+
+      if (!state.isLoggedIn) {
+        closeWyseAssistant();
+        showToast('Log in to add Wyse ingredients to your grocery list.');
+        navigateTo('login');
+        return;
+      }
+
+      if (state.weeklyShoppingMinutes === null || state.weeklyShoppingMinutes === undefined) {
+        closeWyseAssistant();
+        addToCart(productIds[0], 1, () => {
+          productIds.slice(1).forEach(productId => addToCart(productId, 1));
+        });
+      } else {
+        productIds.forEach(productId => addToCart(productId, 1));
+        closeWyseAssistant();
+      }
+    });
+</script>
 </body>
 </html>
