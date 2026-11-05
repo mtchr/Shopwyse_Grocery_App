@@ -260,6 +260,45 @@
     <!-- ========================================================= -->
     <!-- SCREEN 1: SEARCH & LANDING (Sticky 1)                      -->
     <!-- ========================================================= -->
+     <section id="recipe-ai">
+        <h2>Recipe Ingredient Scanner</h2>
+
+        <label>
+          Upload a recipe image
+          <input
+            id="recipe-image"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+          >
+        </label>
+
+        <p>Or paste recipe text:</p>
+
+        <textarea
+          id="recipe-text"
+          rows="8"
+          placeholder="2 cups flour&#10;1 teaspoon salt&#10;3 eggs"
+        ></textarea>
+
+        <button id="extract-recipe" type="button">
+          Extract ingredients
+        </button>
+
+        <p id="ai-status" aria-live="polite">Ready</p>
+
+        <h3>Ingredients</h3>
+        <ul id="ingredient-results"></ul>
+
+        <details>
+          <summary>Structured JSON</summary>
+          <pre id="recipe-json"></pre>
+        </details>
+
+        <details>
+          <summary>Recognized text</summary>
+          <pre id="recognized-text"></pre>
+        </details>
+      </section>
     <section id="screen-search" class="space-y-6">
       <!-- Main Search Box Card -->
       <div class="bg-white rounded-2xl p-5 sm:p-8 shadow-sm border border-brand-200">
@@ -2594,5 +2633,228 @@ async function handleLogin(e) {
       navigateTo(resolveScreen(location.hash), { replace: true });
     });
   </script>
+  <!-- ai section below with library pulling in from tesseract -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/tesseract.min.js"></script>
+  
+  <script>
+  const imageInput = document.querySelector("#recipe-image");
+  const textInput = document.querySelector("#recipe-text");
+  const extractButton = document.querySelector("#extract-recipe");
+  const statusElement = document.querySelector("#ai-status");
+  const ingredientResults = document.querySelector("#ingredient-results");
+  const jsonOutput = document.querySelector("#recipe-json");
+  const recognizedTextOutput =
+    document.querySelector("#recognized-text");
+
+  let workerPromise;
+
+  const quantityPattern =
+    /^((?:\d+\s+)?(?:\d+\/\d+|\d+(?:\.\d+)?|[¼½¾⅓⅔⅛⅜⅝⅞])(?:\s*(?:-|–|to)\s*(?:\d+\/\d+|\d+(?:\.\d+)?|[¼½¾⅓⅔⅛⅜⅝⅞]))?)/i;
+
+  const unitPattern =
+    /^(cups?|c\.?|tablespoons?|tbsp\.?|teaspoons?|tsp\.?|ounces?|oz\.?|pounds?|lbs?\.?|grams?|g\.?|kilograms?|kg\.?|milliliters?|ml\.?|liters?|l\.?|cans?|packages?|pkg\.?|cloves?|slices?|pieces?|pinches?|sprigs?|bunches?)\b/i;
+
+  function updateProgress(message) {
+    statusElement.textContent = message;
+  }
+
+  function getOcrWorker() {
+    if (!workerPromise) {
+      workerPromise = Tesseract.createWorker("eng", 1, {
+        logger(event) {
+          if (typeof event.progress === "number") {
+            const percent = Math.round(event.progress * 100);
+            updateProgress(`${event.status}: ${percent}%`);
+          } else {
+            updateProgress(event.status);
+          }
+        }
+      });
+    }
+
+    return workerPromise;
+  }
+
+  async function recognizeImage(file) {
+    const worker = await getOcrWorker();
+    const result = await worker.recognize(file);
+    return result.data.text;
+  }
+
+  function cleanLine(line) {
+    return line
+      .replace(/^[•●▪◦*-]\s*/, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function beginsWithQuantity(line) {
+    return quantityPattern.test(cleanLine(line));
+  }
+
+  function findIngredientLines(text) {
+    const lines = text
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
+
+    const ingredientHeading = lines.findIndex(line =>
+      /^ingredients?\s*:?\s*$/i.test(line)
+    );
+
+    if (ingredientHeading >= 0) {
+      const followingLines = lines.slice(ingredientHeading + 1);
+
+      const directionsHeading = followingLines.findIndex(line =>
+        /^(directions?|instructions?|method|preparation)\s*:?\s*$/i
+          .test(line)
+      );
+
+      return directionsHeading >= 0
+        ? followingLines.slice(0, directionsHeading)
+        : followingLines;
+    }
+
+    return lines.filter(line =>
+      beginsWithQuantity(line) ||
+      /^[•●▪◦*-]\s+/.test(line) ||
+      /\bto taste\b/i.test(line)
+    );
+  }
+
+  function parseIngredientLine(sourceLine) {
+    const rawText = cleanLine(sourceLine);
+    let remaining = rawText;
+    let quantity = null;
+    let unit = null;
+    let preparation = null;
+
+    const quantityMatch = remaining.match(quantityPattern);
+
+    if (quantityMatch) {
+      quantity = quantityMatch[1];
+      remaining = remaining
+        .slice(quantityMatch[0].length)
+        .trim();
+    }
+
+    const unitMatch = remaining.match(unitPattern);
+
+    if (unitMatch) {
+      unit = unitMatch[1];
+      remaining = remaining
+        .slice(unitMatch[0].length)
+        .trim();
+    }
+
+    const commaPosition = remaining.indexOf(",");
+
+    if (commaPosition >= 0) {
+      preparation = remaining
+        .slice(commaPosition + 1)
+        .trim() || null;
+
+      remaining = remaining
+        .slice(0, commaPosition)
+        .trim();
+    }
+
+    return {
+      raw_text: rawText,
+      quantity,
+      unit,
+      item: remaining,
+      preparation,
+      notes: null,
+      needs_review: remaining.length === 0
+    };
+  }
+
+  function parseRecipeText(text) {
+    const ingredientLines = findIngredientLines(text);
+    const ingredients = ingredientLines
+      .map(parseIngredientLine)
+      .filter(ingredient => ingredient.item);
+
+    return {
+      title: null,
+      servings: null,
+      ingredients,
+      warnings: ingredients.length
+        ? []
+        : ["No ingredient lines were confidently identified."]
+    };
+  }
+
+  /*
+   * This is the app-facing JavaScript API.
+   *
+   * Example:
+   * const result = await extractRecipe({
+   *   imageFile: selectedFile,
+   *   recipeText: ""
+   * });
+   */
+  async function extractRecipe({ imageFile, recipeText = "" }) {
+    let sourceText = recipeText.trim();
+
+    if (!sourceText && imageFile) {
+      sourceText = await recognizeImage(imageFile);
+    }
+
+    if (!sourceText) {
+      throw new Error("Select an image or enter recipe text.");
+    }
+
+    return {
+      sourceText,
+      recipe: parseRecipeText(sourceText)
+    };
+  }
+
+  window.extractRecipe = extractRecipe;
+
+  extractButton.addEventListener("click", async () => {
+    extractButton.disabled = true;
+    ingredientResults.replaceChildren();
+    jsonOutput.textContent = "";
+
+    try {
+      updateProgress("Starting…");
+
+      const result = await extractRecipe({
+        imageFile: imageInput.files[0],
+        recipeText: textInput.value
+      });
+
+      recognizedTextOutput.textContent = result.sourceText;
+      jsonOutput.textContent =
+        JSON.stringify(result.recipe, null, 2);
+
+      for (const ingredient of result.recipe.ingredients) {
+        const listItem = document.createElement("li");
+
+        const amount = [
+          ingredient.quantity,
+          ingredient.unit
+        ].filter(Boolean).join(" ");
+
+        listItem.textContent = amount
+          ? `${amount} — ${ingredient.item}`
+          : ingredient.item;
+
+        ingredientResults.appendChild(listItem);
+      }
+
+      updateProgress(
+        `Found ${result.recipe.ingredients.length} ingredients.`
+      );
+    } catch (error) {
+      updateProgress(error.message);
+    } finally {
+      extractButton.disabled = false;
+    }
+  });
+</script>
 </body>
 </html>
