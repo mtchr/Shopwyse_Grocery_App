@@ -1062,6 +1062,11 @@ body.wyse-modal-open {
               <button id="remove-recipe-photo" type="button" class="text-sm font-bold text-red-600 hover:text-red-700">Remove</button>
             </div>
           </div>
+
+          <label class="mt-4 inline-flex items-center justify-center gap-2 text-sm font-bold text-slate-700 cursor-pointer">
+            <input id="recipe-handwriting-mode" type="checkbox" class="w-5 h-5 rounded border-slate-300 text-accent-blue focus:ring-accent-blue">
+            Handwritten or cursive recipe
+          </label>
         </div>
 
         <div class="flex items-center gap-3" aria-hidden="true">
@@ -2858,6 +2863,7 @@ async function handleLogin(e) {
     const wyseWelcome = document.querySelector('#wyse-welcome');
     const imageInput = document.querySelector('#recipe-image');
     const cameraInput = document.querySelector('#recipe-camera');
+    const handwritingMode = document.querySelector('#recipe-handwriting-mode');
     const textInput = document.querySelector('#recipe-text');
     const dropzone = document.querySelector('#wyse-dropzone');
     const uploadPrompt = document.querySelector('#wyse-upload-prompt');
@@ -2881,10 +2887,12 @@ async function handleLogin(e) {
     const estimatedTotal = document.querySelector('#wyse-estimated-total');
 
     let workerPromise;
+    let handwritingPipelinePromise;
     let selectedRecipeImage = null;
     let selectedImageUrl = null;
     let lastFocusedElement = null;
     let lastWyseRecipe = null;
+    let lastWyseSourceText = '';
 
     const quantityPattern =
       /^((?:\d+\s+)?(?:\d+\/\d+|\d+(?:\.\d+)?|[¼½¾⅓⅔⅛⅜⅝⅞])(?:\s*(?:-|–|to)\s*(?:\d+\/\d+|\d+(?:\.\d+)?|[¼½¾⅓⅔⅛⅜⅝⅞]))?)/i;
@@ -2966,10 +2974,253 @@ async function handleLogin(e) {
       return workerPromise;
     }
 
+    function getHandwritingPipeline() {
+      if (!handwritingPipelinePromise) {
+        handwritingPipelinePromise = (async () => {
+          updateProgress('Loading the handwriting reader for its first use…');
+          const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2');
+          return pipeline('image-to-text', 'Xenova/trocr-base-handwritten', {
+            progress_callback(progress) {
+              if (progress.status === 'progress' && Number.isFinite(progress.progress)) {
+                updateProgress(`Loading handwriting reader: ${Math.round(progress.progress)}%`);
+              }
+            }
+          });
+        })().catch(error => {
+          handwritingPipelinePromise = null;
+          throw error;
+        });
+      }
+      return handwritingPipelinePromise;
+    }
+
+    function loadBrowserImage(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const image = new Image();
+        image.onload = () => {
+          URL.revokeObjectURL(url);
+          resolve(image);
+        };
+        image.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error('Wyse could not open that image.'));
+        };
+        image.src = url;
+      });
+    }
+
+    function flattenTesseractLines(blocks = []) {
+      return blocks.flatMap(block => block.paragraphs || [])
+        .flatMap(paragraph => paragraph.lines || [])
+        .filter(line => line.bbox && line.bbox.x1 > line.bbox.x0 && line.bbox.y1 > line.bbox.y0)
+        .map(line => ({
+          text: (line.text || '').trim(),
+          bbox: line.bbox,
+          confidence: Number(line.confidence) || 0
+        }));
+    }
+
+    function mergeVerticalRanges(ranges, maximumGap) {
+      const sorted = ranges
+        .filter(range => range.bottom > range.top)
+        .sort((first, second) => first.top - second.top);
+      const merged = [];
+
+      sorted.forEach(range => {
+        const previous = merged[merged.length - 1];
+        if (previous && range.top <= previous.bottom + maximumGap) {
+          previous.bottom = Math.max(previous.bottom, range.bottom);
+        } else {
+          merged.push({ ...range });
+        }
+      });
+      return merged;
+    }
+
+    function ingredientRegionForImage(image, tesseractLines) {
+      const ingredientHeading = tesseractLines.find(line => /ingredients?/i.test(line.text));
+      const directionHeading = tesseractLines.find(line => /directions?|instructions?|method|preparation/i.test(line.text));
+      const landscape = image.naturalWidth > image.naturalHeight * 1.15;
+      const left = Math.max(0, Math.round(image.naturalWidth * 0.01));
+      const top = ingredientHeading
+        ? Math.min(image.naturalHeight - 1, ingredientHeading.bbox.y1 + 2)
+        : Math.round(image.naturalHeight * 0.1);
+      let right = landscape ? Math.round(image.naturalWidth * 0.36) : Math.round(image.naturalWidth * 0.98);
+
+      if (directionHeading && directionHeading.bbox.x0 > image.naturalWidth * 0.25) {
+        right = Math.min(right, Math.max(left + 50, directionHeading.bbox.x0 - 6));
+      }
+
+      return {
+        left,
+        top,
+        right,
+        bottom: Math.round(image.naturalHeight * 0.88)
+      };
+    }
+
+    function projectedLineRanges(image, region) {
+      const sourceWidth = Math.max(1, region.right - region.left);
+      const sourceHeight = Math.max(1, region.bottom - region.top);
+      const scale = Math.min(1, 900 / sourceWidth);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+      canvas.height = Math.max(1, Math.round(sourceHeight * scale));
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      context.drawImage(image, region.left, region.top, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      const densities = [];
+
+      for (let y = 0; y < canvas.height; y += 1) {
+        let darkPixels = 0;
+        for (let x = 0; x < canvas.width; x += 1) {
+          const offset = (y * canvas.width + x) * 4;
+          const luminance = 0.2126 * pixels[offset] + 0.7152 * pixels[offset + 1] + 0.0722 * pixels[offset + 2];
+          if (luminance < 150) darkPixels += 1;
+        }
+        densities.push(darkPixels / canvas.width);
+      }
+
+      const activeRows = densities.map(density => density > 0.005 && density < 0.48);
+      const ranges = [];
+      let start = null;
+      let quietRows = 0;
+
+      activeRows.forEach((active, y) => {
+        if (active) {
+          if (start === null) start = y;
+          quietRows = 0;
+        } else if (start !== null) {
+          quietRows += 1;
+          if (quietRows > 5) {
+            ranges.push({ top: start, bottom: y - quietRows + 1 });
+            start = null;
+            quietRows = 0;
+          }
+        }
+      });
+      if (start !== null) ranges.push({ top: start, bottom: canvas.height });
+
+      const inverseScale = 1 / scale;
+      return ranges
+        .filter(range => range.bottom - range.top >= 4)
+        .map(range => ({
+          top: region.top + Math.max(0, Math.round((range.top - 7) * inverseScale)),
+          bottom: region.top + Math.min(sourceHeight, Math.round((range.bottom + 7) * inverseScale))
+        }));
+    }
+
+    function ingredientLineRanges(image, tesseractLines, region) {
+      const fromLayout = tesseractLines
+        .filter(line => {
+          const centerX = (line.bbox.x0 + line.bbox.x1) / 2;
+          const centerY = (line.bbox.y0 + line.bbox.y1) / 2;
+          return centerX >= region.left && centerX <= region.right &&
+            centerY >= region.top && centerY <= region.bottom &&
+            !/ingredients?|directions?|instructions?|method|preparation/i.test(line.text);
+        })
+        .map(line => ({
+          top: Math.max(region.top, line.bbox.y0 - 8),
+          bottom: Math.min(region.bottom, line.bbox.y1 + 8)
+        }));
+
+      const projected = projectedLineRanges(image, region);
+      const ranges = fromLayout.length >= 2 ? fromLayout : projected;
+      const averageHeight = ranges.length
+        ? ranges.reduce((sum, range) => sum + range.bottom - range.top, 0) / ranges.length
+        : 20;
+      return mergeVerticalRanges(ranges, Math.max(2, Math.round(averageHeight * 0.08)))
+        .filter(range => range.bottom - range.top >= 8)
+        .slice(0, 18);
+    }
+
+    function cropIngredientLine(image, region, range) {
+      const width = Math.max(1, region.right - region.left);
+      const height = Math.max(1, range.bottom - range.top);
+      const scale = Math.max(1.5, Math.min(3, 1200 / width));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(width * scale);
+      canvas.height = Math.round(height * scale);
+      const context = canvas.getContext('2d');
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.imageSmoothingEnabled = true;
+      context.filter = 'grayscale(1) contrast(1.45)';
+      context.drawImage(image, region.left, range.top, width, height, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.9);
+    }
+
+    async function recognizeHandwrittenIngredients(file, tesseractLines) {
+      const image = await loadBrowserImage(file);
+      const region = ingredientRegionForImage(image, tesseractLines);
+      const ranges = ingredientLineRanges(image, tesseractLines, region);
+
+      if (!ranges.length) {
+        throw new Error('Wyse could not find separate handwriting lines in this photo.');
+      }
+
+      const reader = await getHandwritingPipeline();
+      const lineSamples = [];
+
+      for (let index = 0; index < ranges.length; index += 1) {
+        updateProgress(`Reading handwritten ingredient ${index + 1} of ${ranges.length}…`);
+        const imageDataUrl = cropIngredientLine(image, region, ranges[index]);
+        const output = await reader(imageDataUrl);
+        const text = cleanLine(output?.[0]?.generated_text || '');
+        if (text && text.length > 1 && !/^(ingredients?|directions?)\s*:?$/i.test(text)) {
+          lineSamples.push({ text, image_data_url: imageDataUrl });
+        }
+      }
+
+      if (!lineSamples.length) {
+        throw new Error('The handwriting reader could not produce any ingredient text.');
+      }
+      return lineSamples;
+    }
+
     async function recognizeImage(file) {
       const worker = await getOcrWorker();
-      const result = await worker.recognize(file);
-      return result.data.text;
+      updateProgress('Finding the ingredient section…');
+      const result = await worker.recognize(file, {}, { text: true, blocks: true });
+      const tesseractText = (result.data.text || '').trim();
+      const confidence = Number(result.data.confidence) || 0;
+      const tesseractLines = flattenTesseractLines(result.data.blocks || []);
+      const printedRecipe = parseRecipeText(tesseractText);
+      const shouldReadHandwriting = handwritingMode.checked || confidence < 70 || printedRecipe.ingredients.length < 2;
+
+      if (shouldReadHandwriting) {
+        try {
+          const lineSamples = await recognizeHandwrittenIngredients(file, tesseractLines);
+          return {
+            text: lineSamples.map(sample => sample.text).join('\n'),
+            engine: 'trocr-base-handwritten',
+            confidence,
+            original_text: tesseractText,
+            line_samples: lineSamples,
+            warning: null
+          };
+        } catch (error) {
+          console.warn('Handwriting recognition fallback failed:', error);
+          return {
+            text: tesseractText,
+            engine: 'tesseract',
+            confidence,
+            original_text: tesseractText,
+            line_samples: [],
+            warning: `The handwriting reader could not finish, so Wyse used its standard reader instead: ${error.message}`
+          };
+        }
+      }
+
+      return {
+        text: tesseractText,
+        engine: 'tesseract',
+        confidence,
+        original_text: tesseractText,
+        line_samples: [],
+        warning: null
+      };
     }
 
     function selectRecipeImage(file) {
@@ -3153,13 +3404,61 @@ async function handleLogin(e) {
       };
     }
 
+    function wyseSampleId() {
+      if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+      return `wyse-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    function ingredientWithCorrectionData(ingredient, source = {}) {
+      const originalText = source.original_ocr || ingredient.raw_text;
+      return {
+        ...ingredient,
+        sample_id: source.sample_id || wyseSampleId(),
+        original_ocr: originalText,
+        corrected_text: source.corrected_text || ingredient.raw_text,
+        user_corrected: Boolean(source.user_corrected),
+        line_image: source.line_image || null
+      };
+    }
+
     async function extractRecipe({ imageFile, recipeText = '' }) {
       let sourceText = recipeText.trim();
       if (!sourceText && !imageFile) {
         throw new Error('Choose a recipe photo or type some ingredients first.');
       }
-      if (!sourceText && imageFile) sourceText = await recognizeImage(imageFile);
-      const recipe = parseRecipeText(sourceText);
+      let recognition = null;
+      if (!sourceText && imageFile) {
+        recognition = await recognizeImage(imageFile);
+        sourceText = recognition.text;
+      }
+
+      let recipe;
+      if (recognition?.line_samples?.length) {
+        recipe = {
+          title: null,
+          servings: null,
+          ingredients: recognition.line_samples
+            .map(sample => ingredientWithCorrectionData(parseIngredientLine(sample.text), {
+              original_ocr: sample.text,
+              line_image: sample.image_data_url
+            }))
+            .filter(ingredient => ingredient.item),
+          warnings: []
+        };
+      } else {
+        recipe = parseRecipeText(sourceText);
+        recipe.ingredients = recipe.ingredients.map(ingredient => ingredientWithCorrectionData(ingredient));
+      }
+
+      if (recognition) {
+        recipe.recognition = {
+          engine: recognition.engine,
+          standard_reader_confidence: recognition.confidence,
+          standard_reader_text: recognition.original_text,
+          handwriting_mode_requested: handwritingMode.checked
+        };
+        if (recognition.warning) recipe.warnings.push(recognition.warning);
+      }
       recipe.ingredients = recipe.ingredients.map(enrichIngredientWithCatalog);
       return { sourceText, recipe };
     }
@@ -3229,7 +3528,24 @@ async function handleLogin(e) {
       addToListButton.disabled = offers.length === 0;
     }
 
-    function renderWyseResults(result) {
+    function applyIngredientCorrection(sampleId, correctedText) {
+      if (!lastWyseRecipe) return;
+      const ingredientIndex = lastWyseRecipe.ingredients.findIndex(ingredient => ingredient.sample_id === sampleId);
+      if (ingredientIndex < 0) return;
+
+      const previous = lastWyseRecipe.ingredients[ingredientIndex];
+      const parsed = parseIngredientLine(correctedText);
+      const corrected = enrichIngredientWithCatalog(ingredientWithCorrectionData(parsed, {
+        sample_id: previous.sample_id,
+        original_ocr: previous.original_ocr,
+        corrected_text: correctedText,
+        user_corrected: cleanLine(correctedText) !== cleanLine(previous.original_ocr || ''),
+        line_image: previous.line_image
+      }));
+      lastWyseRecipe.ingredients.splice(ingredientIndex, 1, corrected);
+    }
+
+    function renderWyseResults(result, selectedSampleIds = null) {
       ingredientResults.replaceChildren();
       recognizedTextOutput.textContent = result.sourceText;
       readWarning.classList.add('hidden');
@@ -3239,6 +3555,7 @@ async function handleLogin(e) {
 
       const enrichedIngredients = result.recipe.ingredients;
       lastWyseRecipe = result.recipe;
+      lastWyseSourceText = result.sourceText;
       jsonOutput.textContent = JSON.stringify(lastWyseRecipe, null, 2);
 
       if (!enrichedIngredients.length) {
@@ -3252,20 +3569,22 @@ async function handleLogin(e) {
 
       displayIngredients.forEach(ingredient => {
         const match = ingredient.catalog_match;
+        const isSelected = Boolean(match) && (selectedSampleIds ? selectedSampleIds.has(ingredient.sample_id) : true);
         if (match) matchedCount += 1;
 
         const listItem = document.createElement('li');
         listItem.className = match
-          ? 'flex items-start gap-3 p-3.5 bg-blue-50 border-2 border-blue-400 rounded-xl transition hover:border-blue-500 cursor-pointer'
+          ? `flex items-start gap-3 p-3.5 border-2 rounded-xl transition hover:border-blue-500 cursor-pointer ${isSelected ? 'bg-blue-50 border-blue-400' : 'bg-white border-slate-200'}`
           : 'flex items-start gap-2 px-1 py-2';
 
         if (match) {
           const checkbox = document.createElement('input');
           checkbox.type = 'checkbox';
-          checkbox.checked = true;
+          checkbox.checked = isSelected;
           checkbox.className = 'wyse-item-checkbox mt-2 w-5 h-5 shrink-0 rounded border-slate-300 text-accent-blue focus:ring-accent-blue cursor-pointer';
           checkbox.dataset.productId = match.product_id;
           checkbox.dataset.price = String(match.lowest_price);
+          checkbox.dataset.sampleId = ingredient.sample_id;
           checkbox.setAttribute('aria-label', `Add ${match.product_name} from ${match.cheapest_store_name} for $${match.lowest_price.toFixed(2)}`);
           checkbox.addEventListener('change', () => {
             listItem.classList.toggle('border-blue-400', checkbox.checked);
@@ -3275,7 +3594,7 @@ async function handleLogin(e) {
             updateWyseSelectionSummary();
           });
           listItem.addEventListener('click', event => {
-            if (event.target === checkbox) return;
+            if (event.target.closest('input, button, a')) return;
             checkbox.checked = !checkbox.checked;
             checkbox.dispatchEvent(new Event('change'));
           });
@@ -3296,10 +3615,34 @@ async function handleLogin(e) {
         const content = document.createElement('div');
         content.className = 'min-w-0 flex-1';
 
-        const amount = [ingredient.quantity, ingredient.unit].filter(Boolean).join(' ');
-        const title = document.createElement('p');
-        title.className = 'font-black text-slate-900';
-        title.textContent = amount ? `${amount} — ${ingredient.item}` : ingredient.item;
+        const title = document.createElement('input');
+        title.type = 'text';
+        title.value = ingredient.corrected_text || ingredient.raw_text;
+        title.className = 'w-full min-w-0 rounded-lg border border-transparent bg-white/70 px-2 py-1 font-black text-slate-900 outline-none transition hover:border-slate-300 focus:border-accent-blue focus:ring-2 focus:ring-blue-100';
+        title.setAttribute('aria-label', `Correct recognized ingredient: ${title.value}`);
+        title.title = 'Edit this line if Wyse read it incorrectly';
+        title.addEventListener('click', event => event.stopPropagation());
+        title.addEventListener('keydown', event => {
+          event.stopPropagation();
+          if (event.key === 'Enter') title.blur();
+        });
+        title.addEventListener('change', () => {
+          const correctedText = cleanLine(title.value);
+          if (!correctedText) {
+            title.value = ingredient.corrected_text || ingredient.raw_text;
+            return;
+          }
+
+          const checkedSamples = new Set(
+            [...ingredientResults.querySelectorAll('.wyse-item-checkbox:checked')]
+              .map(checkbox => checkbox.dataset.sampleId)
+          );
+          const wasMatched = Boolean(ingredient.catalog_match);
+          applyIngredientCorrection(ingredient.sample_id, correctedText);
+          const updatedIngredient = lastWyseRecipe.ingredients.find(entry => entry.sample_id === ingredient.sample_id);
+          if (!wasMatched && updatedIngredient?.catalog_match) checkedSamples.add(ingredient.sample_id);
+          renderWyseResults({ sourceText: lastWyseSourceText, recipe: lastWyseRecipe }, checkedSamples);
+        });
 
         const note = document.createElement('p');
         note.className = match
@@ -3367,7 +3710,9 @@ async function handleLogin(e) {
     function resetWyseAssistant() {
       clearRecipeImage();
       textInput.value = '';
+      handwritingMode.checked = false;
       lastWyseRecipe = null;
+      lastWyseSourceText = '';
       ingredientResults.replaceChildren();
       recognizedTextOutput.textContent = '';
       jsonOutput.textContent = '';
