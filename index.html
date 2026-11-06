@@ -1012,6 +1012,29 @@ body.wyse-modal-open {
       </div>
 
       <div class="p-5 sm:p-6 space-y-5">
+        <!-- Tabs: scan a new recipe, or use a saved one -->
+        <div class="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl" role="tablist" aria-label="Wyse sections">
+          <button id="wyse-tab-scan" type="button" role="tab" aria-selected="true" aria-controls="wyse-scan-view" onclick="showWyseTab('scan')"
+            class="min-h-[44px] rounded-lg text-sm font-black text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Scan a recipe
+          </button>
+          <button id="wyse-tab-recipes" type="button" role="tab" aria-selected="false" aria-controls="wyse-recipes-view" onclick="showWyseTab('recipes')"
+            class="min-h-[44px] rounded-lg text-sm font-black text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-book-open" aria-hidden="true"></i> My recipes
+          </button>
+        </div>
+
+        <!-- My recipes (filled in by the Saved Recipes script) -->
+        <div id="wyse-recipes-view" class="hidden space-y-4" role="tabpanel" aria-labelledby="wyse-tab-recipes">
+          <p id="wyse-recipes-status" class="text-sm font-bold text-slate-700" aria-live="polite"></p>
+          <div id="wyse-recipes-list-view" class="space-y-3">
+            <h3 class="text-lg font-black text-slate-900">My recipes</h3>
+            <ul id="wyse-recipes-list" class="space-y-2"></ul>
+          </div>
+          <div id="wyse-recipe-detail" class="hidden space-y-4"></div>
+        </div>
+
+        <div id="wyse-scan-view" class="space-y-5" role="tabpanel" aria-labelledby="wyse-tab-scan">
         <div id="wyse-welcome" class="hidden">
           <div class="flex items-start gap-3">
             <span class="wyse-avatar w-9 h-9 sm:w-10 sm:h-10" aria-hidden="true">
@@ -1127,11 +1150,26 @@ body.wyse-modal-open {
           </button>
           <p id="wyse-catalog-note" class="hidden"></p>
 
+          <!-- Save the recipe (all lines, including ones ShopWyse doesn't sell) -->
+          <div class="border-t border-slate-200 pt-4 space-y-2">
+            <label for="wyse-recipe-name" class="block text-xs font-bold uppercase tracking-wider text-slate-600">Save this recipe for later</label>
+            <div class="flex flex-col sm:flex-row gap-2">
+              <input id="wyse-recipe-name" type="text" maxlength="80" placeholder="Recipe name, e.g. Sunday pancakes"
+                class="min-w-0 flex-1 min-h-[48px] px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:border-accent-blue focus:outline-none font-semibold text-slate-900">
+              <button id="wyse-save-recipe-button" type="button" onclick="saveScannedRecipe()"
+                class="min-h-[48px] px-5 py-2.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-black rounded-xl transition flex items-center justify-center gap-2">
+                <i class="fa-regular fa-bookmark" aria-hidden="true"></i> Save recipe
+              </button>
+            </div>
+            <p id="wyse-save-status" class="text-sm font-bold" aria-live="polite"></p>
+          </div>
+
           <div class="hidden" aria-hidden="true">
             <pre id="recognized-text"></pre>
             <pre id="recipe-json"></pre>
           </div>
         </div>
+        </div><!-- /wyse-scan-view -->
       </div>
     </div>
   </div>
@@ -2643,22 +2681,41 @@ function openShoppingTimeBreakdown(event) {
       try { localStorage.setItem(APP_STATE_KEY, JSON.stringify(snapshot)); } catch (e) {}
     }
 
+    // A whole number of at least 1 (saved data may be old, hand-edited or corrupted)
+    const isValidQuantity = q => Number.isInteger(q) && q >= 1;
+
+    // Reads saved state back, keeping only values the app can use. Anything
+    // unexpected is dropped instead of crashing the page on every load.
     function loadAppState() {
       let saved = null;
       try { saved = JSON.parse(localStorage.getItem(APP_STATE_KEY)); } catch (e) {}
-      if (!saved) return; // first visit: keep the sample list
+      if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return; // first visit: keep the sample list
 
-      if (Array.isArray(saved.cart)) state.cart = saved.cart;
-      if (Array.isArray(saved.claimedDeals)) state.claimedDeals = saved.claimedDeals;
-      state.viewingSavedList = !!saved.viewingSavedList && !!saved.activeSavedList;
-      state.activeSavedList = state.viewingSavedList ? saved.activeSavedList : null;
+      if (Array.isArray(saved.cart)) {
+        state.cart = saved.cart
+          .filter(item => item && typeof item === 'object' &&
+            PRODUCTS.some(p => p.id === item.id) && isValidQuantity(item.quantity))
+          .map(item => ({ id: item.id, quantity: item.quantity }));
+      }
+      if (Array.isArray(saved.claimedDeals)) {
+        state.claimedDeals = saved.claimedDeals.filter(id => HOT_DEALS.some(d => d.id === id));
+      }
 
-      if (saved.search) {
-        const { term, zip, radius } = saved.search;
-        document.getElementById('input-search-term').value = term;
-        document.getElementById('input-zip-code').value = zip;
-        document.getElementById('select-radius').value = String(radius);
-        applySearch(term, zip, radius);
+      const list = saved.activeSavedList;
+      const listUsable = list && typeof list === 'object' && Array.isArray(list.items) &&
+        list.items.every(item => item && typeof item === 'object' && isValidQuantity(Number(item.quantity)));
+      state.viewingSavedList = saved.viewingSavedList === true && !!listUsable;
+      state.activeSavedList = state.viewingSavedList ? list : null;
+
+      const search = saved.search;
+      if (search && typeof search === 'object' && typeof search.term === 'string' && /^\d{5}$/.test(String(search.zip))) {
+        const radiusSelect = document.getElementById('select-radius');
+        const radiusOk = [...radiusSelect.options].some(o => o.value === String(search.radius));
+        const radius = radiusOk ? Number(search.radius) : parseInt(radiusSelect.value, 10);
+        document.getElementById('input-search-term').value = search.term;
+        document.getElementById('input-zip-code').value = String(search.zip);
+        radiusSelect.value = String(radius);
+        applySearch(search.term, String(search.zip), radius);
       }
     }
 
@@ -2817,6 +2874,9 @@ async function handleLogin(e) {
       state.savedLists = [];
       state.searchTerm = null;
       state.claimedDeals = [];
+      // Next user loads their own recipes; clear anything still on screen in Wyse
+      if (typeof resetSavedRecipesView === 'function') resetSavedRecipesView();
+      else state.savedRecipes = null;
       document.getElementById('input-search-term').value = '';
       renderCartDrawer();
       updateAuthUI();
@@ -2843,8 +2903,16 @@ async function handleLogin(e) {
 
     // --- App Boot ---
     window.addEventListener('DOMContentLoaded', async () => {
-      loadAppState();
-      renderCartDrawer();
+      try {
+        loadAppState();
+        renderCartDrawer();
+      } catch (e) {
+        // Last line of defense: never let saved data stop the app from starting
+        console.error('Saved app state could not be used; starting fresh.', e);
+        clearAppState();
+        Object.assign(state, { cart: [], claimedDeals: [], viewingSavedList: false, activeSavedList: null, searchTerm: null });
+        renderCartDrawer();
+      }
       updateAuthUI();
       // Wait for the user to load, or log-in-only screens would bounce to Log In
       try { await restoreSession(); } catch (e) { console.error('Session restore failed:', e); }
@@ -3726,26 +3794,556 @@ async function handleLogin(e) {
 
     addToListButton.addEventListener('click', () => {
       const productIds = [...new Set(selectedWyseOffers().map(offer => offer.productId))];
+      addProductsToList(productIds, 'from Wyse');
+    });
+</script>
 
+<script>
+    // =========================================================
+    // SAVED RECIPES (Wyse) — stored in the Supabase saved_recipes table.
+    // A recipe is { recipeid, userid, name, ingredients: ["3 eggs", "2 cups flour", ...] }.
+    // Only the text lines are saved; store matches and prices are worked out
+    // each time, so they stay current if the catalog changes.
+    // =========================================================
+    const RECIPES_TABLE = 'saved_recipes';
+    state.savedRecipes = null; // null until loaded for the signed-in user
+    let openRecipe = null;     // recipe being viewed: { recipeid, name, lines: [{ text, skip }], dirty }
+
+    const recipesStatus = document.getElementById('wyse-recipes-status');
+    const recipesListView = document.getElementById('wyse-recipes-list-view');
+    const recipesList = document.getElementById('wyse-recipes-list');
+    const recipeDetail = document.getElementById('wyse-recipe-detail');
+
+    // Add several products (1 each) and show one summary banner.
+    // Shared by "Add selected items" after a scan and by saved recipes.
+    function addProductsToList(productIds, sourceLabel) {
       if (!productIds.length) return;
+      closeWyseAssistant();
 
       if (!state.isLoggedIn) {
-        closeWyseAssistant();
         showToast('Log in to add Wyse ingredients to your grocery list.');
         navigateTo('login');
         return;
       }
 
-      if (state.weeklyShoppingMinutes === null || state.weeklyShoppingMinutes === undefined) {
-        closeWyseAssistant();
-        addToCart(productIds[0], 1, () => {
-          productIds.slice(1).forEach(productId => addToCart(productId, 1));
-        });
-      } else {
-        productIds.forEach(productId => addToCart(productId, 1));
-        closeWyseAssistant();
+      const count = productIds.length;
+      // The first add may wait for the shopping-time question; the rest follow it.
+      addToCart(productIds[0], 1, () => {
+        productIds.slice(1).forEach(productId => addToCart(productId, 1));
+        // After addToCart's own per-item banner, so this one is what stays on screen
+        setTimeout(() => showToast(`Added ${count} ${count === 1 ? 'item' : 'items'} ${sourceLabel} to your grocery list!`), 0);
+      });
+    }
+
+    // Store match for one ingredient line, or null if ShopWyse doesn't sell it
+    function recipeLineMatch(text) {
+      return enrichIngredientWithCatalog(parseIngredientLine(text)).catalog_match;
+    }
+
+    function setRecipesStatus(message, isError = false) {
+      recipesStatus.textContent = message;
+      recipesStatus.className = `text-sm font-bold ${isError ? 'text-red-700' : 'text-emerald-700'}`;
+    }
+
+    function showWyseTab(tab) {
+      const onRecipes = tab === 'recipes';
+      document.getElementById('wyse-tab-scan').setAttribute('aria-selected', String(!onRecipes));
+      document.getElementById('wyse-tab-recipes').setAttribute('aria-selected', String(onRecipes));
+      document.getElementById('wyse-scan-view').classList.toggle('hidden', onRecipes);
+      document.getElementById('wyse-recipes-view').classList.toggle('hidden', !onRecipes);
+      document.getElementById('wyse-header-start-over').classList.toggle('hidden', onRecipes); // scanning only
+      // A recipe left open (even with unsaved edits) is still there when you come back
+      if (onRecipes && !openRecipe) {
+        setRecipesStatus('');
+        showRecipeList();
       }
-    });
+    }
+
+    // ---------- List of saved recipes ----------
+    let recipesBootTimer = null;
+    let recipesLoadToken = 0; // bumps on logout so a late-arriving load is ignored
+
+    async function showRecipeList() {
+      openRecipe = null;
+      detailRefs = null;
+      recipeDetail.classList.add('hidden');
+      recipesListView.classList.remove('hidden');
+
+      // Right after page load the saved login may still be loading from Supabase
+      if (!appBooted) {
+        recipesList.replaceChildren(emptyMessage('Loading your recipes…'));
+        clearTimeout(recipesBootTimer); // one wait at a time, however often the tab is clicked
+        recipesBootTimer = setTimeout(showRecipeList, 300);
+        return;
+      }
+
+      if (!state.isLoggedIn) {
+        recipesList.replaceChildren(emptyMessage('Log in to save recipes and see them here.', 'Log in', () => {
+          closeWyseAssistant();
+          navigateTo('login');
+        }));
+        return;
+      }
+
+      if (state.savedRecipes === null) {
+        recipesList.replaceChildren(emptyMessage('Loading your recipes…'));
+        const token = recipesLoadToken;
+        const { data, error } = await db
+          .from(RECIPES_TABLE)
+          .select('*')
+          .eq('userid', state.userid)
+          .order('updated_at', { ascending: false });
+        if (token !== recipesLoadToken) return; // logged out while loading
+        if (error) {
+          console.error('Error loading saved recipes:', error);
+          recipesList.replaceChildren(emptyMessage('Could not load your recipes. Check your connection and try again.', 'Try again', showRecipeList));
+          return;
+        }
+        state.savedRecipes = data || [];
+      }
+      renderRecipeList();
+    }
+
+    function emptyMessage(text, buttonLabel, onClick) {
+      const li = document.createElement('li');
+      li.className = 'rounded-xl border border-dashed border-slate-300 p-5 text-center space-y-3';
+      const p = document.createElement('p');
+      p.className = 'text-sm font-semibold text-slate-600';
+      p.textContent = text;
+      li.append(p);
+      if (buttonLabel) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'min-h-[44px] px-4 py-2 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white text-sm font-bold rounded-xl';
+        button.textContent = buttonLabel;
+        button.addEventListener('click', onClick);
+        li.append(button);
+      }
+      return li;
+    }
+
+    function renderRecipeList() {
+      if (!state.savedRecipes.length) {
+        recipesList.replaceChildren(emptyMessage('No saved recipes yet. Scan or type a recipe, then tap Save recipe.', 'Scan a recipe', () => showWyseTab('scan')));
+        return;
+      }
+      recipesList.replaceChildren(...state.savedRecipes.map(recipe => {
+        const lines = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+        const sold = lines.filter(line => recipeLineMatch(line)).length;
+
+        const li = document.createElement('li');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'w-full text-left rounded-xl border border-slate-200 bg-white hover:border-accent-blue hover:bg-blue-50 p-4 flex items-center justify-between gap-3 transition';
+        button.addEventListener('click', () => openRecipeDetail(recipe));
+
+        const text = document.createElement('div');
+        text.className = 'min-w-0';
+        const name = document.createElement('p');
+        name.className = 'font-black text-slate-900 break-words';
+        name.textContent = recipe.name;
+        const meta = document.createElement('p');
+        meta.className = 'text-xs font-semibold text-slate-600 mt-0.5';
+        meta.textContent = `${lines.length} ${lines.length === 1 ? 'ingredient' : 'ingredients'} · ${sold} sold at ShopWyse`;
+        text.append(name, meta);
+
+        const chevron = document.createElement('i');
+        chevron.className = 'fa-solid fa-chevron-right text-slate-500 shrink-0';
+        chevron.setAttribute('aria-hidden', 'true');
+
+        button.append(text, chevron);
+        li.append(button);
+        return li;
+      }));
+    }
+
+    // ---------- One recipe: edit it, or add its ingredients ----------
+    // The view is built once per recipe and then updated in place. Rebuilding it on
+    // every edit replaced buttons mid-click (so Save needed two clicks) and dropped
+    // keyboard focus.
+    let detailRefs = null; // { list, newLine, total, addButton, saveButton, deleteButton }
+
+    function openRecipeDetail(recipe) {
+      openRecipe = {
+        recipeid: recipe.recipeid,
+        name: recipe.name,
+        lines: (recipe.ingredients || []).map(text => ({ text: String(text), skip: false })),
+        dirty: false,
+        version: 0,   // bumps on every edit, so a save can tell if more edits came in meanwhile
+        saving: false,
+        deleting: false
+      };
+      setRecipesStatus('');
+      recipesListView.classList.add('hidden');
+      recipeDetail.classList.remove('hidden');
+      renderRecipeDetail();
+    }
+
+    function markRecipeChanged() {
+      openRecipe.dirty = true;
+      openRecipe.version += 1;
+      setRecipesStatus('');
+      updateRecipeSummary();
+    }
+
+    function el(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    const RECIPE_INPUT_CLASS = 'min-w-0 w-full min-h-[44px] px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-accent-blue focus:border-accent-blue focus:outline-none font-semibold text-slate-900';
+
+    // One ingredient row. Handlers close over the line object, not its index,
+    // so removing other lines never points them at the wrong line.
+    function buildRecipeLineRow(line) {
+      const li = el('li', 'rounded-xl border border-slate-200 p-3 flex items-start gap-3');
+      const checkSlot = el('span', 'mt-3 w-5 h-5 shrink-0 flex');
+      const body = el('div', 'min-w-0 flex-1');
+      const textInput = el('input', RECIPE_INPUT_CLASS);
+      textInput.maxLength = 200;
+      textInput.value = line.text;
+      const note = el('p', 'text-xs font-bold mt-1');
+      body.append(textInput, note);
+
+      const remove = el('button', 'w-11 h-11 shrink-0 rounded-lg text-red-700 hover:bg-red-50 flex items-center justify-center');
+      remove.type = 'button';
+      remove.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
+
+      // Show sold / not sold for the line's current text
+      const refreshMatch = () => {
+        const match = recipeLineMatch(line.text);
+        li.classList.toggle('bg-white', !!match);
+        li.classList.toggle('bg-slate-50', !match);
+        note.className = `text-xs font-bold mt-1 ${match ? 'text-emerald-700' : 'text-slate-600'}`;
+        note.textContent = match
+          ? `${match.product_name} · cheapest at ${match.cheapest_store_name}, $${match.lowest_price.toFixed(2)}`
+          : 'Not sold in ShopWyse';
+        textInput.setAttribute('aria-label', `Ingredient: ${line.text}`);
+        remove.setAttribute('aria-label', `Remove ${line.text} from this recipe`);
+        let checkbox = checkSlot.querySelector('input');
+        if (match && !checkbox) {
+          checkbox = el('input', 'w-5 h-5 rounded border-slate-300 text-accent-blue focus:ring-accent-blue');
+          checkbox.type = 'checkbox';
+          checkbox.checked = !line.skip;
+          checkbox.addEventListener('change', () => { line.skip = !checkbox.checked; updateRecipeSummary(); }); // not a recipe edit
+          checkSlot.append(checkbox);
+        } else if (!match && checkbox) {
+          checkbox.remove();
+        }
+        if (checkbox) checkbox.setAttribute('aria-label', `Add ${line.text} to my list`);
+      };
+
+      // Commit as the user types, so Save is already enabled before they click it
+      textInput.addEventListener('input', () => {
+        const value = cleanLine(textInput.value);
+        if (!value || value === line.text) return;
+        line.text = value;
+        refreshMatch();
+        markRecipeChanged();
+      });
+      textInput.addEventListener('change', () => {
+        if (!cleanLine(textInput.value)) textInput.value = line.text; // emptied: put the last text back
+      });
+
+      remove.addEventListener('click', () => {
+        const index = openRecipe.lines.indexOf(line);
+        if (index < 0) return;
+        openRecipe.lines.splice(index, 1);
+        const nextRow = li.nextElementSibling;
+        li.remove();
+        showEmptyLinesNote();
+        markRecipeChanged();
+        // Keep keyboard focus nearby: the next line, or the "Add an ingredient" box
+        (nextRow?.querySelector('input:not([type=checkbox])') || detailRefs.newLine).focus();
+      });
+
+      li.append(checkSlot, body, remove);
+      refreshMatch();
+      return li;
+    }
+
+    function showEmptyLinesNote() {
+      const existing = detailRefs.list.querySelector('[data-empty-note]');
+      if (openRecipe.lines.length === 0 && !existing) {
+        const note = el('li', 'text-sm font-semibold text-slate-600', 'This recipe has no ingredients yet. Add one below.');
+        note.dataset.emptyNote = 'true';
+        detailRefs.list.append(note);
+      } else if (openRecipe.lines.length > 0 && existing) {
+        existing.remove();
+      }
+    }
+
+    // Total, add button and save button, from the current recipe state
+    function updateRecipeSummary() {
+      if (!detailRefs || !openRecipe) return;
+      const recipe = openRecipe;
+      const toAdd = new Set();
+      recipe.lines.forEach(line => {
+        const match = recipeLineMatch(line.text);
+        if (match && !line.skip) toAdd.add(match.product_id);
+      });
+      let total = 0;
+      toAdd.forEach(productId => {
+        const offer = cheapestOfferForProduct(PRODUCTS.find(p => p.id === productId));
+        if (offer) total += offer.price;
+      });
+      detailRefs.toAdd = [...toAdd];
+      detailRefs.total.textContent = `$${total.toFixed(2)}`;
+      detailRefs.addLabel.textContent = toAdd.size
+        ? `Add ${toAdd.size} ${toAdd.size === 1 ? 'item' : 'items'} to grocery list`
+        : 'Nothing selected to add';
+      detailRefs.addButton.disabled = toAdd.size === 0;
+      detailRefs.saveButton.textContent = recipe.saving ? 'Saving…' : (recipe.dirty ? 'Save changes' : 'No unsaved changes');
+      detailRefs.saveButton.disabled = recipe.saving || !recipe.dirty;
+    }
+
+    function renderRecipeDetail() {
+      const recipe = openRecipe;
+
+      // Back
+      const back = el('button', 'text-sm font-bold text-accent-blue hover:underline flex items-center gap-1.5');
+      back.type = 'button';
+      back.innerHTML = '<i class="fa-solid fa-arrow-left" aria-hidden="true"></i> ';
+      back.append('My recipes');
+      back.addEventListener('click', () => {
+        if (recipe.dirty && !confirm('You have unsaved changes to this recipe. Leave without saving?')) return;
+        showRecipeList();
+      });
+
+      // Name
+      const nameLabel = el('label', 'block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1', 'Recipe name');
+      nameLabel.htmlFor = 'wyse-open-recipe-name';
+      const nameInput = el('input', RECIPE_INPUT_CLASS + ' text-lg font-black');
+      nameInput.id = 'wyse-open-recipe-name';
+      nameInput.maxLength = 80;
+      nameInput.value = recipe.name;
+      nameInput.addEventListener('input', () => {
+        const value = nameInput.value.trim();
+        if (!value || value === recipe.name) return;
+        recipe.name = value;
+        markRecipeChanged();
+      });
+      nameInput.addEventListener('change', () => {
+        if (!nameInput.value.trim()) nameInput.value = recipe.name; // emptied: put the last name back
+      });
+      const nameBlock = el('div');
+      nameBlock.append(nameLabel, nameInput);
+
+      // Ingredients
+      const heading = el('div');
+      heading.append(
+        el('h4', 'font-black text-slate-900', 'Ingredients'),
+        el('p', 'text-xs font-semibold text-slate-600', 'Uncheck anything you already have. Edit a line if it’s wrong.')
+      );
+      const list = el('ul', 'space-y-2');
+      detailRefs = { list };
+      recipe.lines.forEach(line => list.append(buildRecipeLineRow(line)));
+
+      // Add a line
+      const addRow = el('div', 'flex gap-2');
+      const newLine = el('input', RECIPE_INPUT_CLASS);
+      newLine.id = 'wyse-recipe-new-line';
+      newLine.maxLength = 200;
+      newLine.placeholder = 'Add an ingredient, e.g. 1 cup milk';
+      newLine.setAttribute('aria-label', 'New ingredient');
+      const addLineButton = el('button', 'min-h-[44px] px-4 shrink-0 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold rounded-lg', 'Add');
+      addLineButton.type = 'button';
+      addLineButton.addEventListener('click', () => { addTypedRecipeLine(); newLine.focus(); });
+      newLine.addEventListener('keydown', event => { if (event.key === 'Enter') addTypedRecipeLine(); });
+      addRow.append(newLine, addLineButton);
+
+      // Total + add to grocery list
+      const totalRow = el('div', 'border-t border-slate-200 pt-4 flex items-center justify-between gap-4');
+      const total = el('p', 'text-2xl font-black text-accent-blue', '$0.00');
+      totalRow.append(el('p', 'text-base font-black text-slate-900', 'Estimated total'), total);
+
+      const addButton = el('button', 'w-full min-h-[50px] px-5 py-3 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-black rounded-xl shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed');
+      addButton.type = 'button';
+      addButton.innerHTML = '<i class="fa-solid fa-cart-plus" aria-hidden="true"></i>';
+      const addLabel = el('span');
+      addButton.append(addLabel);
+      addButton.addEventListener('click', () => addProductsToList(detailRefs.toAdd, `from “${recipe.name}”`));
+
+      // Save / delete
+      const actions = el('div', 'flex flex-col sm:flex-row gap-2');
+      const saveButton = el('button', 'flex-1 min-h-[48px] px-4 py-2 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-black rounded-xl disabled:opacity-50 disabled:cursor-not-allowed');
+      saveButton.type = 'button';
+      saveButton.addEventListener('click', saveRecipeChanges);
+      const deleteButton = el('button', 'min-h-[48px] px-4 py-2 bg-white hover:bg-red-50 border border-red-300 text-red-700 font-bold rounded-xl', 'Delete recipe');
+      deleteButton.type = 'button';
+      deleteButton.addEventListener('click', deleteOpenRecipe);
+      actions.append(saveButton, deleteButton);
+
+      Object.assign(detailRefs, { newLine, total, addButton, addLabel, saveButton, deleteButton });
+      recipeDetail.replaceChildren(back, nameBlock, heading, list, addRow, totalRow, addButton, actions);
+      showEmptyLinesNote();
+      updateRecipeSummary();
+    }
+
+    // Move text from the "Add an ingredient" box into the recipe. Returns true if a line was added.
+    function addTypedRecipeLine() {
+      const value = cleanLine(detailRefs.newLine.value);
+      if (!value) return false;
+      const line = { text: value, skip: false };
+      openRecipe.lines.push(line);
+      detailRefs.list.append(buildRecipeLineRow(line));
+      detailRefs.newLine.value = '';
+      showEmptyLinesNote();
+      markRecipeChanged();
+      return true;
+    }
+
+    async function saveRecipeChanges() {
+      const recipe = openRecipe;
+      if (!recipe || recipe.saving) return; // no double saves
+      addTypedRecipeLine(); // don't lose text typed in "Add an ingredient" but not added yet
+      if (!recipe.lines.length) {
+        setRecipesStatus('Add at least one ingredient before saving.', true);
+        return;
+      }
+      const ingredients = recipe.lines.map(line => line.text);
+      const name = recipe.name;
+      const savedVersion = recipe.version;
+      const updatedAt = new Date().toISOString();
+
+      recipe.saving = true;
+      updateRecipeSummary();
+      const { data, error } = await db
+        .from(RECIPES_TABLE)
+        .update({ name, ingredients, updated_at: updatedAt })
+        .eq('recipeid', recipe.recipeid)
+        .eq('userid', state.userid) // only ever change the signed-in user's own recipe
+        .select('recipeid');
+      recipe.saving = false;
+
+      if (!error && (!data || data.length === 0)) {
+        // Nothing matched: the recipe was deleted (e.g. in another tab)
+        state.savedRecipes = (state.savedRecipes || []).filter(r => r.recipeid !== recipe.recipeid);
+        if (openRecipe === recipe) {
+          recipe.dirty = false;
+          await showRecipeList();
+          setRecipesStatus(`“${name}” no longer exists, so your changes weren’t saved.`, true);
+        }
+        return;
+      }
+      if (error) {
+        console.error('Error saving recipe:', error);
+        if (openRecipe === recipe) {
+          updateRecipeSummary();
+          setRecipesStatus('Could not save your changes. Please try again.', true);
+        }
+        return;
+      }
+
+      const stored = state.savedRecipes?.find(r => r.recipeid === recipe.recipeid);
+      if (stored) Object.assign(stored, { name, ingredients, updated_at: updatedAt });
+      state.savedRecipes?.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
+
+      if (openRecipe !== recipe) return; // user left during the save; nothing on screen to update
+      recipe.dirty = recipe.version !== savedVersion; // edits made during the save still need saving
+      updateRecipeSummary();
+      setRecipesStatus(`Saved changes to “${name}”.`);
+    }
+
+    async function deleteOpenRecipe() {
+      const recipe = openRecipe;
+      if (!recipe || recipe.deleting) return;
+      if (!confirm(`Delete “${recipe.name}”? This can’t be undone.`)) return;
+      recipe.deleting = true;
+      detailRefs.deleteButton.disabled = true;
+      const { error } = await db
+        .from(RECIPES_TABLE)
+        .delete()
+        .eq('recipeid', recipe.recipeid)
+        .eq('userid', state.userid); // only ever delete the signed-in user's own recipe
+      recipe.deleting = false;
+      if (error) {
+        console.error('Error deleting recipe:', error);
+        if (openRecipe === recipe) {
+          detailRefs.deleteButton.disabled = false;
+          setRecipesStatus('Could not delete this recipe. Please try again.', true);
+        }
+        return;
+      }
+      state.savedRecipes = (state.savedRecipes || []).filter(r => r.recipeid !== recipe.recipeid);
+      if (openRecipe !== recipe) return;
+      await showRecipeList();
+      setRecipesStatus(`Deleted “${recipe.name}”.`);
+    }
+
+    // Logging out: forget everything shown for the previous user
+    function resetSavedRecipesView() {
+      openRecipe = null;
+      detailRefs = null;
+      state.savedRecipes = null;
+      recipesLoadToken += 1; // ignore any recipe load still in flight
+      recipeDetail.replaceChildren();
+      recipeDetail.classList.add('hidden');
+      recipesList.replaceChildren();
+      recipesListView.classList.remove('hidden');
+      setRecipesStatus('');
+      showWyseTab('scan');
+    }
+
+    // ---------- Save a recipe right after scanning ----------
+    async function saveScannedRecipe() {
+      const status = document.getElementById('wyse-save-status');
+      const nameInput = document.getElementById('wyse-recipe-name');
+      const button = document.getElementById('wyse-save-recipe-button');
+      const say = (message, isError = false) => {
+        status.textContent = message;
+        status.className = `text-sm font-bold ${isError ? 'text-red-700' : 'text-emerald-700'}`;
+      };
+
+      if (!appBooted) {
+        say('Still loading your account. Try again in a moment.', true);
+        return;
+      }
+      if (!state.isLoggedIn) {
+        closeWyseAssistant();
+        showToast('Log in to save recipes.');
+        navigateTo('login');
+        return;
+      }
+      const name = nameInput.value.trim();
+      if (!name) {
+        say('Give your recipe a name first.', true);
+        nameInput.focus();
+        return;
+      }
+      // Every line Wyse found, with the user's corrections, including ones ShopWyse doesn't sell
+      const ingredients = (lastWyseRecipe?.ingredients || [])
+        .map(ingredient => cleanLine(ingredient.corrected_text || ingredient.raw_text || ''))
+        .filter(Boolean);
+      if (!ingredients.length) {
+        say('There are no ingredients to save yet.', true);
+        return;
+      }
+
+      button.disabled = true; // no double saves
+      const { data, error } = await db
+        .from(RECIPES_TABLE)
+        .insert({ userid: state.userid, name, ingredients })
+        .select()
+        .single();
+      button.disabled = false;
+
+      if (error) {
+        console.error('Error saving recipe:', error);
+        say('Could not save your recipe. Please try again.', true);
+        return;
+      }
+      if (state.savedRecipes) state.savedRecipes.unshift(data);
+      nameInput.value = '';
+      say(`Saved “${name}” to My recipes.`);
+    }
+
+    // Clear the save message when a new scan starts over or runs again
+    document.querySelector('#extract-recipe').addEventListener('click', () => { document.getElementById('wyse-save-status').textContent = ''; });
+    document.querySelector('#wyse-start-over').addEventListener('click', () => { document.getElementById('wyse-save-status').textContent = ''; });
+    document.querySelector('#wyse-header-start-over').addEventListener('click', () => { document.getElementById('wyse-save-status').textContent = ''; });
 </script>
 </body>
 </html>
