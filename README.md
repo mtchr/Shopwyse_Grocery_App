@@ -34,6 +34,19 @@ Column names are all lowercase, so unlike the camelCase columns in `users` (`"fi
 | `estimated_seconds` | `numeric` | Estimated shopping time in seconds |
 | `items` | `jsonb` | Saved grocery list items and quantities |
 
+### saved_recipes table
+
+`saved_recipes` stores recipes users save from the Wyse AI Assistant. Only the ingredient text is saved; which ShopWyse products match and their prices are worked out each time a recipe is opened, so they stay current.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `recipeid` | `int8` | Primary key |
+| `userid` | `int8` | Foreign key to `users.userid` (one user has many recipes) |
+| `name` | `text` | Recipe name the user typed |
+| `ingredients` | `jsonb` | Array of ingredient lines, e.g. `["3 eggs", "2 cups flour"]`, including ones ShopWyse doesn't sell |
+| `created_at` | `timestamptz` | When the recipe was first saved |
+| `updated_at` | `timestamptz` | When the recipe was last edited |
+
 ## Tech Stack
 
 | Layer | What we used | Why |
@@ -93,6 +106,19 @@ This approach fits our team because we are a product design team building a prot
    );
    alter table public.saved_grocery_lists disable row level security;
    ```
+   Then create the `saved_recipes` table, which stores recipes saved from the Wyse AI Assistant:
+   ```sql
+   create table public.saved_recipes (
+     recipeid bigint generated always as identity primary key,
+     userid bigint not null references public.users (userid) on delete cascade,
+     name text not null,
+     ingredients jsonb not null default '[]'::jsonb,
+     created_at timestamptz not null default now(),
+     updated_at timestamptz not null default now()
+   );
+   alter table public.saved_recipes disable row level security;
+   grant select, insert, update, delete on public.saved_recipes to anon, authenticated;
+   ```
 
 3. Go to **Project Settings → API Keys** and copy the **Project URL** and **publishable key**. Never use the secret key in this app, because anyone who opens the page can read it.
 4. In `shopwyseapp.html`, replace the values of `SUPABASE_URL` and `SUPABASE_ANON_KEY` near the top of the main `<script>` block, then open the file in a browser.
@@ -129,3 +155,11 @@ Our vertical slice is account creation and login: the **Complete Registration** 
 ### View Shopping Time History
 - The Account Profile displays the average estimated shopping time across saved grocery lists.
 - Users can view their previous grocery lists, including their save dates and estimated shopping times.
+
+## Saved Recipes (Wyse AI Assistant)
+
+- After Wyse reads a recipe photo or typed ingredients, users can name the recipe and click **Save recipe**. Every line is saved, including fixes the user typed and ingredients ShopWyse doesn't sell.
+- The **My recipes** tab in the Wyse AI Assistant lists the user's saved recipes.
+- Opening a recipe lets users rename it, edit, remove, or add ingredient lines, then **Save changes**, or **Delete recipe**.
+- Each ingredient ShopWyse sells shows its cheapest store and price, with a checkbox. Users uncheck what they already have and click **Add items to grocery list**, which adds 1 of each checked item. Ingredients ShopWyse doesn't sell are marked "Not sold in ShopWyse."
+- Saving and viewing recipes requires an account.
