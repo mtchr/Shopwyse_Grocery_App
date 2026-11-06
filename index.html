@@ -2462,7 +2462,7 @@ function openShoppingTimeBreakdown(event) {
       return `
         <button
           type="button"
-          onclick="viewSavedGroceryList('${list.id}')"
+          onclick="viewSavedGroceryList('${list.listid}')"
           class="w-full flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-brand-200 hover:bg-brand-50 hover:border-brand-500 transition text-left">
 
           <div>
@@ -2499,22 +2499,22 @@ function openShoppingTimeBreakdown(event) {
     }
 
     function viewSavedGroceryList(listId) {
-  const selectedList = state.savedLists.find(
-    list => String(list.id) === String(listId)
-  );
+      const selectedList = state.savedLists.find(
+        list => String(list.listid) === String(listId)
+      );
 
-  if (!selectedList) {
-    showToast('Could not find that saved grocery list.');
-    return;
-  }
+      if (!selectedList) {
+        showToast('Could not find that saved grocery list.');
+        return;
+      }
 
-  state.activeSavedList = selectedList;
-  state.viewingSavedList = true;
+      state.activeSavedList = selectedList;
+      state.viewingSavedList = true;
 
-  navigateTo('list');
+      navigateTo('list');
 
-  showToast('Saved grocery list loaded!');
-}
+      showToast('Saved grocery list loaded!');
+    }
 
     async function requestStartNewGroceryList() {
       // A saved list can be left behind without losing anything
@@ -2579,11 +2579,14 @@ function openShoppingTimeBreakdown(event) {
 
       // Delete a previously saved list from Supabase
       if (isSavedList) {
-        const { error } = await db
+        const savedListId = state.activeSavedList.listid;
+
+        const { data: deletedRows, error } = await db
           .from('saved_grocery_lists')
           .delete()
-          .eq('listid', state.activeSavedList.listid)
-          .eq('userid', state.userid);
+          .eq('listid', savedListId)
+          .eq('userid', state.userid)
+          .select('listid');
 
         if (error) {
           console.error('Error deleting saved list:', error);
@@ -2591,8 +2594,16 @@ function openShoppingTimeBreakdown(event) {
           return;
         }
 
+        // Make sure Supabase actually deleted a row
+        if (!deletedRows || deletedRows.length === 0) {
+          console.error('No saved grocery list was deleted. Check the list ID and Supabase permissions.');
+          showToast('Your saved list could not be deleted. Please try again.');
+          await loadSavedGroceryLists();
+          return;
+        }
+
         state.savedLists = state.savedLists.filter(
-          list => String(list.listid) !== String(state.activeSavedList.listid)
+          list => String(list.listid) !== String(savedListId)
         );
       }
 
