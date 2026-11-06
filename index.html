@@ -1950,6 +1950,9 @@ async function promptAddSavedItemToCart(productId, savedQuantity) {
         '#grocery-list-prompt-actions button'
     );
 
+    confirmButton.className =
+      'px-5 py-2.5 bg-green-100 hover:bg-green-200 text-green-900 border-2 border-green-800 font-bold rounded-xl transition';
+
     quantityInput.addEventListener('input', () => {
         const quantity = Number(quantityInput.value);
         const validQuantity = Number.isInteger(quantity) && quantity >= 1;
@@ -2378,8 +2381,7 @@ function openShoppingTimeBreakdown(event) {
 
                       <button
                         onclick="promptAddSavedItemToCart('${cartItem.id}', ${cartItem.quantity})"
-                        class="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm transition"
-                      >
+                        class="px-4 py-2.5 rounded-xl bg-green-100 hover:bg-green-200 text-green-900 border-2 border-green-800 font-bold text-sm transition"                      >
                         <i class="fa-solid fa-cart-plus mr-1" aria-hidden="true"></i>
                         Add to Cart
                       </button>
