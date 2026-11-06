@@ -1319,9 +1319,7 @@ body.wyse-modal-open {
       </h3>
     </div>
 
-    <p id="grocery-list-prompt-message"
-       class="text-sm text-slate-600 leading-relaxed">
-    </p>
+    <p id="grocery-list-prompt-message" class="text-base sm:text-lg text-slate-700 leading-relaxed"></p>
 
     <div id="grocery-list-prompt-actions"
          class="flex justify-end gap-3 mt-6">
@@ -2160,7 +2158,14 @@ function openShoppingTimeBreakdown(event) {
       if (listItems.length === 0) {
         container.innerHTML = hasStartedNewList
           ? '<p class="py-8 text-center text-slate-400">No items in your grocery list. Search items or browse hot deals to add them!</p>'
-          : '<div class="py-8 text-center"><p class="font-semibold text-slate-700 mb-2">Ready to start your grocery list?</p><p class="text-sm text-slate-500">Click the blue + button above to create a new list!</p></div>';
+          : `<div class="py-8 text-center">
+              <p class="font-semibold text-slate-700 mb-2">Ready to start your grocery list?</p>
+              <p class="text-sm text-slate-600">
+                Click the blue
+                <i class="fa-solid fa-plus text-accent-blue mx-1" aria-hidden="true"></i>
+                button above to create a new list!
+              </p>
+            </div>`;
 
         storeTotalsContainer.innerHTML = '<p class="text-xs text-slate-400">No active store estimates.</p>';
         grandTotalLabel.textContent = '$0.00';
