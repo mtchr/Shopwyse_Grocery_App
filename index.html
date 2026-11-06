@@ -2577,7 +2577,7 @@ function openShoppingTimeBreakdown(event) {
         const { error } = await db
           .from('saved_grocery_lists')
           .delete()
-          .eq('id', state.activeSavedList.id)
+          .eq('listid', state.activeSavedList.listid)
           .eq('userid', state.userid);
 
         if (error) {
@@ -2587,7 +2587,7 @@ function openShoppingTimeBreakdown(event) {
         }
 
         state.savedLists = state.savedLists.filter(
-          list => String(list.id) !== String(state.activeSavedList.id)
+          list => String(list.listid) !== String(state.activeSavedList.listid)
         );
       }
 
