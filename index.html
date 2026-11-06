@@ -626,6 +626,16 @@ body.wyse-modal-open {
 
             <div class="flex items-center gap-2 shrink-0">
 
+              <!-- Return to Current Grocery List -->
+              <button
+                id="back-to-current-list-button"
+                onclick="returnToCurrentGroceryList()"
+                class="hidden w-full sm:w-auto px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-accent-blue font-bold text-sm transition items-center justify-center gap-2"
+              >
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                Back to My Current List
+              </button>
+
               <!-- Start New List -->
               <button
                 id="start-new-list-button"
@@ -1904,6 +1914,79 @@ function addProductToCart(productId) {
     addToCart(productId, readQty(productId), () => resetQty(productId));
 }
 
+
+async function promptAddSavedItemToCart(productId, savedQuantity) {
+    const product = PRODUCTS.find(p => p.id === productId);
+
+    if (!product) {
+        showToast('Could not find this grocery item.');
+        return;
+    }
+
+    const promptPromise = showGroceryListPrompt(
+        'Add Item to Cart',
+        `
+          <p class="mb-3">
+            How many ${product.name} would you like to add to your current cart?
+          </p>
+
+          <input
+            id="saved-item-quantity"
+            type="number"
+            min="1"
+            step="1"
+            value="${savedQuantity}"
+            class="w-full border border-slate-300 rounded-xl px-4 py-3 text-lg font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+        `,
+        [
+            {
+                label: `Add ${savedQuantity} ${product.name} to Cart`,
+                value: true,
+                style: 'primary'
+            }
+        ]
+    );
+
+    const quantityInput = document.getElementById('saved-item-quantity');
+    const confirmButton = document.querySelector(
+        '#grocery-list-prompt-actions button'
+    );
+
+    quantityInput.addEventListener('input', () => {
+        const quantity = Number(quantityInput.value);
+        const validQuantity = Number.isInteger(quantity) && quantity >= 1;
+
+        confirmButton.disabled = !validQuantity;
+
+        if (validQuantity) {
+            confirmButton.textContent =
+                `Add ${quantity} ${product.name} to Cart`;
+        }
+    });
+
+    const confirmed = await promptPromise;
+
+    if (!confirmed) return;
+
+    const quantity = Number(quantityInput.value);
+
+    if (!Number.isInteger(quantity) || quantity < 1) {
+        showToast('Please enter a valid quantity.');
+        return;
+    }
+
+    // Keep the saved list visible after adding the item
+    const savedList = state.activeSavedList;
+
+    addToCart(productId, quantity, () => {
+        state.activeSavedList = savedList;
+        state.viewingSavedList = true;
+
+        renderGroceryList();
+    });
+}
+
 // Returns true if the item was added now. onAdded runs once it's added,
 // including later if the shopping-time question has to be answered first.
 function addToCart(productId, quantity = 1, onAdded = null) {
@@ -2144,6 +2227,20 @@ function openShoppingTimeBreakdown(event) {
       const saveButton = document.getElementById('save-grocery-list-button');
       const deleteButton = document.getElementById('delete-current-list-button');
 
+      const backButton = document.getElementById('back-to-current-list-button');
+
+      if (backButton) {
+        backButton.classList.toggle(
+          'hidden',
+          !(state.viewingSavedList && state.cart.length > 0)
+        );
+
+        backButton.classList.toggle(
+          'flex',
+          state.viewingSavedList && state.cart.length > 0
+        );
+      }
+
       if (saveButton) {
         saveButton.disabled =
           state.viewingSavedList || totalItemsCount === 0;
@@ -2276,9 +2373,21 @@ function openShoppingTimeBreakdown(event) {
 
               <div class="flex items-center justify-between sm:justify-end gap-4">
                 ${state.viewingSavedList
-                  ? `<span class="text-sm font-bold text-slate-600">
-                      Quantity: ${cartItem.quantity}
-                    </span>`
+                  ? `
+                    <div class="flex flex-col items-end gap-2">
+                      <span class="text-sm font-bold text-slate-600">
+                        Quantity: ${cartItem.quantity}
+                      </span>
+
+                      <button
+                        onclick="promptAddSavedItemToCart('${cartItem.id}', ${cartItem.quantity})"
+                        class="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm transition"
+                      >
+                        <i class="fa-solid fa-cart-plus mr-1" aria-hidden="true"></i>
+                        Add to Cart
+                      </button>
+                    </div>
+                  `
                   : `
                     <div class="flex items-center border border-slate-200 rounded-xl bg-slate-50">
                       <button
@@ -2553,6 +2662,16 @@ function openShoppingTimeBreakdown(event) {
       renderCartDrawer();
 
       showToast('Started a new grocery list!');
+    }
+
+    function returnToCurrentGroceryList() {
+      state.activeSavedList = null;
+      state.viewingSavedList = false;
+
+      renderGroceryList();
+      renderCartDrawer();
+
+      showToast('Returned to your current grocery list!');
     }
 
     async function deleteCurrentGroceryList() {
