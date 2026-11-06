@@ -104,9 +104,21 @@
       font-weight: 700;
   }
   
+
   /* Remove item button */
-  #full-cart-items button:last-child {
+  #full-cart-items button:last-child:not([onclick^="promptAddSavedItemToCart"]) {
       color: #B91C1C;
+  }
+
+  /* Add to Cart button */
+  #full-cart-items button[onclick^="promptAddSavedItemToCart"] {
+      color: #1B4332 !important;
+      border: 2px solid #1B4332 !important;
+      background-color: #E1F3EA !important;
+  }
+
+  #full-cart-items button[onclick^="promptAddSavedItemToCart"]:hover {
+      background-color: #C3E7D5 !important;
   }
   
   /* Store comparison rows */
@@ -2381,9 +2393,9 @@ function openShoppingTimeBreakdown(event) {
 
                       <button
                         onclick="promptAddSavedItemToCart('${cartItem.id}', ${cartItem.quantity})"
-                        class="px-4 py-2.5 rounded-xl bg-brand-100 hover:bg-brand-200 !text-brand-800 border-2 border-brand-800 font-bold text-sm transition"
+                        class="px-4 py-2.5 rounded-xl font-bold text-sm transition"
                       >
-                        <i class="fa-solid fa-cart-plus mr-1 !text-brand-600" aria-hidden="true"></i>
+                        <i class="fa-solid fa-cart-plus mr-1" aria-hidden="true"></i>
                         Add to Cart
                       </button>
                     </div>
