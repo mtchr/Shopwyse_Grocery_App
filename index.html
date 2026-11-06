@@ -370,9 +370,22 @@ body.wyse-modal-open {
   </div>
 
   <!-- Notification Dropdown / Flash Toast (inside the sticky header so it stays visible while scrolled) -->
-  <div id="toast-banner" role="status" class="hidden bg-emerald-600 border-b-2 border-emerald-800 text-white px-4 py-2.5 text-center text-sm font-semibold shadow-md transition-all">
-    <span id="toast-msg">Alert notification message</span>
+  <div id="toast-banner" role="status"
+    class="hidden bg-emerald-600 border-b-2 border-emerald-800 text-white px-4 py-3 text-center text-sm font-semibold shadow-md">
+
+    <div class="flex flex-wrap items-center justify-center gap-3">
+      <span id="toast-msg">Alert notification message</span>
+
+      <button
+        id="toast-action"
+        type="button"
+        class="hidden px-3 py-1.5 bg-white text-emerald-800 hover:bg-emerald-50 rounded-lg font-bold text-xs transition"
+        onclick="navigateTo('account')">
+        Go to Profile
+      </button>
+    </div>
   </div>
+
 </header>
 
   <!-- MAIN CONTAINER -->
@@ -606,35 +619,47 @@ body.wyse-modal-open {
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <!-- Main Cart Items -->
         <div class="lg:col-span-8 bg-white rounded-2xl p-4 sm:p-6 border border-brand-200 shadow-sm space-y-4">
-          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-            <h3 class="font-bold text-slate-700">Selected Items (<span id="cart-item-count">0</span>)</h3>
-          </div>
+          <div class="flex items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <h3 class="font-bold text-slate-700">
+              Selected Items (<span id="cart-item-count">0</span>)
+            </h3>
 
+            <div class="flex items-center gap-2 shrink-0">
+
+              <!-- Start New List -->
+              <button
+                id="start-new-list-button"
+                onclick="requestStartNewGroceryList()"
+                title="Start a new grocery list"
+                aria-label="Start a new grocery list"
+                class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-accent-blue flex items-center justify-center transition">
+                <i class="fa-solid fa-plus text-lg"></i>
+              </button>
+
+              <!-- Save Grocery List -->
+              <button
+                id="save-grocery-list-button"
+                onclick="saveGroceryList()"
+                title="Save this grocery list"
+                aria-label="Save this grocery list"
+                class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-accent-blue flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed">
+                <i class="fa-solid fa-floppy-disk text-lg"></i>
+              </button>
+
+              <!-- Delete Current List -->
+              <button
+                id="delete-current-list-button"
+                onclick="deleteCurrentGroceryList()"
+                title="Delete the current grocery list"
+                aria-label="Delete the current grocery list"
+                class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-accent-blue flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed">
+                <i class="fa-solid fa-trash-can text-lg"></i>
+              </button>
+
+            </div>
+          </div>
           <div id="full-cart-items" class="divide-y divide-slate-100">
             <!-- Rendered by JS -->
-          </div>
-          <div class="pt-4 border-t border-slate-200 space-y-3">
-            <button
-              id="save-grocery-list-button"
-              onclick="saveGroceryList()"
-              class="w-full py-3 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold rounded-xl transition touch-btn">
-              <i class="fa-solid fa-floppy-disk mr-2"></i>
-              Save Grocery List
-            </button>
-
-            <div id="saved-list-actions" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                onclick="viewMostRecentGroceryList()"
-                class="py-3 bg-brand-100 hover:bg-brand-200 border border-brand-500 text-brand-600 font-bold rounded-xl transition touch-btn">
-                See Most Recent Grocery List
-              </button>
-
-              <button
-                onclick="startNewGroceryList()"
-                class="py-3 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold rounded-xl transition touch-btn">
-                Start New List
-              </button>
-            </div>
           </div>
         </div>
 
@@ -2034,19 +2059,17 @@ function openShoppingTimeBreakdown(event) {
       );
 
       const saveButton = document.getElementById('save-grocery-list-button');
-      const savedActions = document.getElementById('saved-list-actions');
+      const deleteButton = document.getElementById('delete-current-list-button');
 
       if (saveButton) {
-        saveButton.disabled = state.viewingSavedList || totalItemsCount === 0;
-        saveButton.classList.toggle(
-          'opacity-50',
-          state.viewingSavedList || totalItemsCount === 0
-        );
+        saveButton.disabled =
+          state.viewingSavedList || totalItemsCount === 0;
       }
 
-      if (savedActions) {
-        savedActions.classList.toggle('hidden', state.savedLists.length === 0);
+      if (deleteButton) {
+        deleteButton.disabled = totalItemsCount === 0;
       }
+
       countLabel.textContent = totalItemsCount;
 
       if (listItems.length === 0) {
@@ -2223,8 +2246,7 @@ function openShoppingTimeBreakdown(event) {
     }
 
     // --- Saved Grocery Lists ---
-
-    async function saveGroceryList() {
+    async function saveGroceryList(startNewAfterSave = false) {
       if (!state.isLoggedIn || !state.userid) {
         showToast('Please log in before saving a grocery list.');
         return;
@@ -2270,15 +2292,24 @@ function openShoppingTimeBreakdown(event) {
       }
 
       state.savedLists.unshift(data);
-      state.activeSavedList = data;
+
+      // Clear the current list after saving
       state.cart = [];
-      state.viewingSavedList = true;
+      state.activeSavedList = null;
+      state.viewingSavedList = false;
 
       renderGroceryList();
       renderCartDrawer();
+      renderSavedListHistory();
 
-      showToast('Grocery list saved successfully!');
+      showToast(
+        'Your grocery list has been saved! To view your saved grocery lists, visit your Account Profile.',
+        'Go to Profile',
+        'account',
+        10000
+      );
     }
+
 
     async function loadSavedGroceryLists() {
       if (!state.userid) return;
@@ -2387,6 +2418,32 @@ function openShoppingTimeBreakdown(event) {
   showToast('Saved grocery list loaded!');
 }
 
+
+    function requestStartNewGroceryList() {
+      // A saved list can be left behind without losing anything
+      if (state.viewingSavedList) {
+        startNewGroceryList();
+        return;
+      }
+
+      // If there are unsaved items, require the user to save them first
+      if (state.cart.length > 0) {
+        const shouldSave = confirm(
+          'Would you like to save your current grocery list before starting a new one?\n\n' +
+          'Select OK to save your list and start a new one. ' +
+          'Select Cancel to keep your current list. ' +
+          'You can delete it using the trash button.'
+        );
+
+        if (!shouldSave) return;
+
+        saveGroceryList(true);
+        return;
+      }
+
+      startNewGroceryList();
+    }
+
     function startNewGroceryList() {
       state.cart = [];
       state.activeSavedList = null;
@@ -2394,8 +2451,53 @@ function openShoppingTimeBreakdown(event) {
 
       renderGroceryList();
       renderCartDrawer();
+    }
 
-      showToast('Started a new grocery list!');
+    async function deleteCurrentGroceryList() {
+      const isSavedList =
+        state.viewingSavedList && state.activeSavedList;
+
+      if (!state.cart.length && !isSavedList) {
+        showToast('There is no current grocery list to delete.');
+        return;
+      }
+
+      const confirmed = confirm(
+        isSavedList
+          ? 'Are you sure you want to permanently delete this saved grocery list?'
+          : 'Are you sure you want to delete your current grocery list?'
+      );
+
+      if (!confirmed) return;
+
+      // Delete a previously saved list from Supabase
+      if (isSavedList) {
+        const { error } = await db
+          .from('saved_grocery_lists')
+          .delete()
+          .eq('id', state.activeSavedList.id)
+          .eq('userid', state.userid);
+
+        if (error) {
+          console.error('Error deleting saved list:', error);
+          showToast('Could not delete your saved list. Please try again.');
+          return;
+        }
+
+        state.savedLists = state.savedLists.filter(
+          list => String(list.id) !== String(state.activeSavedList.id)
+        );
+      }
+
+      state.cart = [];
+      state.activeSavedList = null;
+      state.viewingSavedList = false;
+
+      renderGroceryList();
+      renderCartDrawer();
+      renderSavedListHistory();
+
+      showToast('Your grocery list has been deleted.');
     }
 
     // --- Render Hot Deals (Sticky 3) ---
@@ -2941,14 +3043,34 @@ async function handleLogin(e) {
     }
 
     // --- Toast Notification Helper ---
-    function showToast(msg) {
+    function showToast(
+      msg,
+      actionLabel = '',
+      actionScreen = '',
+      duration = 3500
+    ) {
       const banner = document.getElementById('toast-banner');
       const text = document.getElementById('toast-msg');
+      const actionButton = document.getElementById('toast-action');
+
       text.textContent = msg;
+
+      if (actionLabel && actionScreen) {
+        actionButton.textContent = actionLabel;
+        actionButton.onclick = () => navigateTo(actionScreen);
+        actionButton.classList.remove('hidden');
+      } else {
+        actionButton.classList.add('hidden');
+        actionButton.onclick = null;
+      }
+
       banner.classList.remove('hidden');
-      // Restart the timer so a quick second banner isn't hidden early by the first one's timer
+
       clearTimeout(showToast.timer);
-      showToast.timer = setTimeout(() => banner.classList.add('hidden'), 3500);
+
+      showToast.timer = setTimeout(() => {
+        banner.classList.add('hidden');
+      }, duration);
     }
 
     // --- App Boot ---
