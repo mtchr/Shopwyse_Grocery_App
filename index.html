@@ -281,28 +281,26 @@ body.wyse-modal-open {
       </div>
     </div>
 
+    
     <!-- Mobile Header Buttons -->
     <div class="flex sm:hidden items-center gap-1">
-      <button onclick="openWyseAssistant()" aria-label="Open Wyse AI Assistant" class="w-11 h-11 rounded-lg hover:bg-brand-50 flex items-center justify-center">
-        <span class="wyse-avatar w-8 h-8" aria-hidden="true">
-          <svg viewBox="0 0 48 48" role="img">
-            <circle cx="24" cy="24" r="22" fill="#2563EB"/>
-            <path d="M15 19h18l-1.7 17H16.7L15 19Z" fill="white"/>
-            <path d="M19 19v-2.2a5 5 0 0 1 10 0V19" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-            <circle cx="21" cy="26" r="1.4" fill="#2563EB"/>
-            <circle cx="27" cy="26" r="1.4" fill="#2563EB"/>
-            <path d="M20.5 30c1.8 2 5.2 2 7 0" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round"/>
-          </svg>
-        </span>
+      <button
+        onclick="closeMobileMenu(); navigateTo('search')"
+        aria-label="Search"
+        class="w-11 h-11 rounded-lg text-slate-700 hover:bg-brand-50 flex items-center justify-center"
+      >
+        <i class="fa-solid fa-magnifying-glass text-accent-blue text-xl"></i>
       </button>
-      <button onclick="closeMobileMenu(); guardNav('list')" class="relative w-11 h-11 rounded-lg text-slate-600 hover:bg-brand-50 flex items-center justify-center">
-        <i class="fa-solid fa-cart-shopping text-accent-blue text-lg"></i>
-        <span id="mobile-cart-badge" class="absolute top-0 right-0 bg-accent-blue text-white text-[10px] font-bold px-1.5 rounded-full">0</span>
-      </button>
-      <button onclick="toggleMobileMenu()" class="w-11 h-11 rounded-lg text-slate-700 hover:bg-brand-50 flex items-center justify-center text-xl">
+
+      <button
+        onclick="toggleMobileMenu()"
+        aria-label="Open navigation menu"
+        class="w-11 h-11 rounded-lg text-slate-700 hover:bg-brand-50 flex items-center justify-center text-xl"
+      >
         <i id="menu-button-icon" class="fa-solid fa-bars"></i>
       </button>
     </div>
+
 
     <!-- Desktop Navigation -->
     <nav class="hidden sm:flex items-center gap-1 sm:gap-2">
@@ -351,9 +349,6 @@ body.wyse-modal-open {
 
   <!-- Mobile Dropdown Menu -->
   <div id="mobile-menu" class="hidden sm:hidden border-t border-brand-200 bg-white px-4 py-2">
-    <button onclick="closeMobileMenu(); navigateTo('search')" class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 border-b border-slate-100 touch-btn">
-      <i class="fa-solid fa-magnifying-glass text-accent-blue w-5"></i> Search
-    </button>
     <button onclick="closeMobileMenu(); guardNav('deals')" class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 border-b border-slate-100 touch-btn">
       <i class="fa-solid fa-fire text-amber-500 w-5"></i> Hot Deals
     </button>
