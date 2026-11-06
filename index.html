@@ -1831,16 +1831,16 @@ function closeGroceryListPrompt(value = false) {
       const mobileSheetList = document.getElementById('mobile-sheet-items');
 
       const totalItemsCount = state.cart.reduce((acc, curr) => acc + curr.quantity, 0);
-      counter.textContent = totalItemsCount;
-      navBadge.textContent = totalItemsCount;
-      mobileBadge.textContent = totalItemsCount;
-      mobileBarCount.textContent = totalItemsCount;
+      if (counter) counter.textContent = totalItemsCount;
+      if (navBadge) navBadge.textContent = totalItemsCount;
+      if (mobileBadge) mobileBadge.textContent = totalItemsCount;
+      if (mobileBarCount) mobileBarCount.textContent = totalItemsCount;
 
       if (state.cart.length === 0) {
-        container.innerHTML = '<p class="py-4 text-center text-slate-400">Your list is currently empty.</p>';
-        mobileSheetList.innerHTML = '<p class="py-4 text-center text-slate-400">Your list is currently empty.</p>';
-        badgeTotal.textContent = '$0.00';
-        mobileBarTotal.textContent = '$0.00';
+        if (container) container.innerHTML = '<p class="py-4 text-center text-slate-400">Your list is currently empty.</p>';
+        if (mobileSheetList) mobileSheetList.innerHTML = '<p class="py-4 text-center text-slate-400">Your list is currently empty.</p>';
+        if (badgeTotal) badgeTotal.textContent = '$0.00';
+        if (mobileBarTotal) mobileBarTotal.textContent = '$0.00';
         return;
       }
 
