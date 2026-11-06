@@ -1377,6 +1377,9 @@ body.wyse-modal-open {
       ]
     };
 
+    let hasStartedNewList = false;
+
+
     // --- Provo/Orem Region Stores & Coordinates ---
     const STORES = [
       { id: 'walmart_provo', name: 'Walmart Supercenter', address: '2255 N University Pkwy, Provo', lat: 40.2642, lng: -111.6558, distance: 1.2 },
@@ -2073,7 +2076,10 @@ function openShoppingTimeBreakdown(event) {
       countLabel.textContent = totalItemsCount;
 
       if (listItems.length === 0) {
-        container.innerHTML = '<p class="py-8 text-center text-slate-400">No items in your grocery list. Search items or browse hot deals to add them!</p>';
+        container.innerHTML = hasStartedNewList
+          ? '<p class="py-8 text-center text-slate-400">No items in your grocery list. Search items or browse hot deals to add them!</p>'
+          : '<div class="py-8 text-center"><p class="font-semibold text-slate-700 mb-2">Ready to start your grocery list?</p><p class="text-sm text-slate-500">Click the blue + button above to create a new list!</p></div>';
+
         storeTotalsContainer.innerHTML = '<p class="text-xs text-slate-400">No active store estimates.</p>';
         grandTotalLabel.textContent = '$0.00';
         mobileTotalLabel.textContent = '$0.00';
@@ -2298,6 +2304,11 @@ function openShoppingTimeBreakdown(event) {
       state.activeSavedList = null;
       state.viewingSavedList = false;
 
+      // If the user clicked + to start a new list, update the empty-list message
+      if (startNewAfterSave) {
+        hasStartedNewList = true;
+      }
+
       renderGroceryList();
       renderCartDrawer();
       renderSavedListHistory();
@@ -2449,8 +2460,12 @@ function openShoppingTimeBreakdown(event) {
       state.activeSavedList = null;
       state.viewingSavedList = false;
 
+      hasStartedNewList = true;
+
       renderGroceryList();
       renderCartDrawer();
+
+      showToast('Started a new grocery list!');
     }
 
     async function deleteCurrentGroceryList() {
