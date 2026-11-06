@@ -2429,21 +2429,52 @@ function openShoppingTimeBreakdown(event) {
       grandTotalLabel.textContent = `$${bestSplitTotal.toFixed(2)}`;
       mobileTotalLabel.textContent = `$${bestSplitTotal.toFixed(2)}`;
 
+
       // Store by Store comparison list
+      const sortedStores = Object.values(storeBaskets).sort(
+        (a, b) => a.total - b.total
+      );
+
+      const cheapestTotal = sortedStores.length > 0
+        ? sortedStores[0].total
+        : 0;
+
       let storeListHtml = '';
-      Object.values(storeBaskets).forEach(sb => {
+
+      sortedStores.forEach(sb => {
+        const isCheapest = Math.abs(sb.total - cheapestTotal) < 0.001;
+
         storeListHtml += `
-          <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50">
+          <div class="flex items-center justify-between p-3 rounded-xl ${
+            isCheapest
+              ? 'bg-brand-100 border-2 border-brand-700'
+              : 'bg-slate-50 border border-slate-200'
+          }">
             <div>
-              <span class="font-bold text-slate-800">${sb.store.name}</span>
-              <span class="text-[11px] block text-slate-600">${sb.itemsCheapestCount} items cheapest here</span>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-bold ${
+                  isCheapest ? 'text-brand-800' : 'text-slate-800'
+                }">${sb.store.name}</span>
+                ${
+                  isCheapest
+                    ? '<span class="text-[10px] font-black uppercase text-brand-800 bg-white px-2 py-1 rounded-full border border-brand-700">Cheapest Option</span>'
+                    : ''
+                }
+              </div>
+              <span class="text-[11px] block ${
+                isCheapest ? 'text-brand-800' : 'text-slate-600'
+              }">${sb.itemsCheapestCount} items cheapest here</span>
             </div>
-            <span class="font-black text-slate-700">$${sb.total.toFixed(2)}</span>
+            <span class="font-black ${
+              isCheapest ? 'text-brand-800 text-lg' : 'text-slate-700'
+            }">$${sb.total.toFixed(2)}</span>
           </div>
         `;
       });
+
       storeTotalsContainer.innerHTML = storeListHtml;
       loadAverageShoppingTime(totalItemsCount, storeBaskets);
+
 
     }
 
