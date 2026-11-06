@@ -646,7 +646,8 @@ body.wyse-modal-open {
                 onclick="requestStartNewGroceryList()"
                 title="Start a new grocery list"
                 aria-label="Start a new grocery list"
-                class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-accent-blue flex items-center justify-center transition disabled:opacity-100 disabled:cursor-not-allowed"                <i class="fa-solid fa-plus text-lg"></i>
+                class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-accent-blue flex items-center justify-center transition">
+                <i class="fa-solid fa-plus text-lg"></i>
               </button>
 
               <!-- Save Grocery List -->
@@ -2236,15 +2237,7 @@ function openShoppingTimeBreakdown(event) {
       const newListButton = document.getElementById('start-new-list-button');
 
       if (newListButton) {
-        newListButton.disabled = hasStartedNewList;
-
-        newListButton.classList.toggle('bg-slate-100', hasStartedNewList);
-        newListButton.classList.toggle('border-slate-300', hasStartedNewList);
-        newListButton.classList.toggle('text-slate-400', hasStartedNewList);
-        newListButton.classList.toggle('hover:bg-blue-100', !hasStartedNewList);
-        newListButton.classList.toggle('bg-blue-50', !hasStartedNewList);
-        newListButton.classList.toggle('border-blue-200', !hasStartedNewList);
-        newListButton.classList.toggle('text-accent-blue', !hasStartedNewList);
+        newListButton.disabled = false;
       }
 
       const backButton = document.getElementById('back-to-current-list-button');
