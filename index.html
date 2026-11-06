@@ -2292,22 +2292,26 @@ function openShoppingTimeBreakdown(event) {
           { month: 'short', day: 'numeric', year: 'numeric' }
         );
 
-        return `
-          <div class="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-brand-200">
-            <div>
-              <span class="block text-sm font-bold text-slate-800">
-                ${savedDate}
-              </span>
-              <span class="text-xs text-slate-600">
-                ${list.item_count} items
-              </span>
-            </div>
+      return `
+        <button
+          type="button"
+          onclick="viewSavedGroceryList('${list.id}')"
+          class="w-full flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-brand-200 hover:bg-brand-50 hover:border-brand-500 transition text-left">
 
-            <span class="font-black text-brand-600 whitespace-nowrap">
-              ${formatEstimatedTime(Number(list.estimated_seconds))}
+          <div>
+            <span class="block text-sm font-bold text-slate-800">
+              ${savedDate}
+            </span>
+            <span class="text-xs text-slate-600">
+              ${list.item_count} items
             </span>
           </div>
-        `;
+
+          <span class="font-black text-brand-600 whitespace-nowrap">
+            ${formatEstimatedTime(Number(list.estimated_seconds))}
+          </span>
+        </button>
+      `;
       }).join('');
     }
 
@@ -2326,6 +2330,24 @@ function openShoppingTimeBreakdown(event) {
 
       navigateTo('list');
     }
+
+    function viewSavedGroceryList(listId) {
+  const selectedList = state.savedLists.find(
+    list => String(list.id) === String(listId)
+  );
+
+  if (!selectedList) {
+    showToast('Could not find that saved grocery list.');
+    return;
+  }
+
+  state.activeSavedList = selectedList;
+  state.viewingSavedList = true;
+
+  navigateTo('list');
+
+  showToast('Saved grocery list loaded!');
+}
 
     function startNewGroceryList() {
       state.cart = [];
