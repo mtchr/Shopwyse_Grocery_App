@@ -1426,7 +1426,11 @@ function showGroceryListPrompt(title, message, actions) {
   const actionsContainer = document.getElementById('grocery-list-prompt-actions');
 
   titleElement.textContent = title;
+  titleElement.classList.add('text-center');
+
   messageElement.innerHTML = message;
+  messageElement.classList.add('text-center');
+
   actionsContainer.innerHTML = '';
   actionsContainer.className = 'flex justify-center w-full mt-4';
 
