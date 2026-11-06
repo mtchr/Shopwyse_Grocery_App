@@ -1306,6 +1306,30 @@ body.wyse-modal-open {
   </div>
 </div>
 
+<!-- Grocery List Prompt Modal -->
+<div id="grocery-list-prompt-modal"
+     class="hidden fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+     onclick="if (event.target === this) closeGroceryListPrompt(false)">
+
+  <div class="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-brand-200">
+
+    <div class="border-b border-slate-100 pb-3 mb-4">
+      <h3 id="grocery-list-prompt-title"
+          class="text-lg font-black text-slate-900">
+      </h3>
+    </div>
+
+    <p id="grocery-list-prompt-message"
+       class="text-sm text-slate-600 leading-relaxed">
+    </p>
+
+    <div id="grocery-list-prompt-actions"
+         class="flex justify-end gap-3 mt-6">
+    </div>
+
+  </div>
+</div>
+
 <div id="shopping-time-breakdown-modal"
      class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
      onclick="if (event.target === this) closeShoppingTimeBreakdown()">
@@ -1378,6 +1402,55 @@ body.wyse-modal-open {
     };
 
     let hasStartedNewList = false;
+
+    // --- Grocery List Custom Prompt ---
+
+let groceryListPromptResolver = null;
+
+function showGroceryListPrompt(title, message, actions) {
+  const modal = document.getElementById('grocery-list-prompt-modal');
+  const titleElement = document.getElementById('grocery-list-prompt-title');
+  const messageElement = document.getElementById('grocery-list-prompt-message');
+  const actionsContainer = document.getElementById('grocery-list-prompt-actions');
+
+  titleElement.textContent = title;
+  messageElement.innerHTML = message;
+  actionsContainer.innerHTML = '';
+
+  return new Promise(resolve => {
+    groceryListPromptResolver = resolve;
+
+    actions.forEach(action => {
+      const button = document.createElement('button');
+
+      button.type = 'button';
+      button.textContent = action.label;
+
+      button.className = action.style === 'danger'
+        ? 'px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition'
+        : action.style === 'secondary'
+          ? 'px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition'
+          : 'px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition';
+
+      button.onclick = () => closeGroceryListPrompt(action.value);
+
+      actionsContainer.appendChild(button);
+    });
+
+    modal.classList.remove('hidden');
+  });
+}
+
+function closeGroceryListPrompt(value = false) {
+  const modal = document.getElementById('grocery-list-prompt-modal');
+
+  modal.classList.add('hidden');
+
+  if (groceryListPromptResolver) {
+    groceryListPromptResolver(value);
+    groceryListPromptResolver = null;
+  }
+}
 
 
     // --- Provo/Orem Region Stores & Coordinates ---
@@ -2031,17 +2104,26 @@ function openShoppingTimeBreakdown(event) {
       renderCartDrawer();
     }
 
-    function clearCart() {
+    async function clearCart() {
       if (state.viewingSavedList) {
         showToast('Start a new list to make changes.');
         return;
       }
 
-      if (confirm('Clear all items from your grocery list?')) {
-        state.cart = [];
-        renderGroceryList();
-        renderCartDrawer();
-      }
+      const confirmed = await showGroceryListPrompt(
+        'Clear Grocery List?',
+        'Are you sure you want to clear all items from your current grocery list?',
+        [
+          { label: 'Cancel', value: false, style: 'secondary' },
+          { label: 'Clear List', value: true, style: 'danger' }
+        ]
+      );
+
+      if (!confirmed) return;
+
+      state.cart = [];
+      renderGroceryList();
+      renderCartDrawer();
     }
 
     // --- Render Grocery List Screen (Sticky 5) ---
@@ -2429,26 +2511,26 @@ function openShoppingTimeBreakdown(event) {
   showToast('Saved grocery list loaded!');
 }
 
-
-    function requestStartNewGroceryList() {
+    async function requestStartNewGroceryList() {
       // A saved list can be left behind without losing anything
       if (state.viewingSavedList) {
         startNewGroceryList();
         return;
       }
 
-      // If there are unsaved items, require the user to save them first
+      // Require the current list to be saved or deleted first
       if (state.cart.length > 0) {
-        const shouldSave = confirm(
-          'Would you like to save your current grocery list before starting a new one?\n\n' +
-          'Select OK to save your list and start a new one. ' +
-          'Select Cancel to keep your current list. ' +
-          'You can delete it using the trash button.'
+        await showGroceryListPrompt(
+          'Cannot Start a New List',
+          `Error: You cannot create a new list until the current list is either saved
+          <i class="fa-solid fa-floppy-disk text-accent-blue mx-1" aria-hidden="true"></i>
+          or deleted
+          <i class="fa-solid fa-trash-can text-accent-blue mx-1" aria-hidden="true"></i>.`,
+          [
+            { label: 'OK', value: true, style: 'primary' }
+          ]
         );
 
-        if (!shouldSave) return;
-
-        saveGroceryList(true);
         return;
       }
 
@@ -2477,10 +2559,15 @@ function openShoppingTimeBreakdown(event) {
         return;
       }
 
-      const confirmed = confirm(
+      const confirmed = await showGroceryListPrompt(
+        'Delete Grocery List?',
         isSavedList
-          ? 'Are you sure you want to permanently delete this saved grocery list?'
-          : 'Are you sure you want to delete your current grocery list?'
+          ? 'Are you sure you want to permanently delete this saved grocery list? This action cannot be undone.'
+          : 'Are you sure you want to delete your current grocery list?',
+        [
+          { label: 'Cancel', value: false, style: 'secondary' },
+          { label: 'Delete List', value: true, style: 'danger' }
+        ]
       );
 
       if (!confirmed) return;
