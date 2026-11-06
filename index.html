@@ -219,6 +219,34 @@ body.wyse-modal-open {
     }
   }
 }
+
+/* Improve Wyse AI Assistant placeholder contrast */
+#wyse-assistant-modal input::placeholder,
+#wyse-assistant-modal textarea::placeholder {
+    color: #475569;
+    opacity: 1;
+}
+
+/* ACCESSIBILITY: PAGE-SPECIFIC TEXT CONTRAST FIXES */
+
+/* Grocery List */
+#full-cart-items .text-slate-400,
+#store-totals-list .text-slate-400 {
+    color: #334155 !important;
+}
+
+/* Account Profile */
+#screen-account .text-slate-500,
+#screen-account .text-slate-400 {
+    color: #475569 !important;
+}
+
+/* Wyse AI Assistant */
+#wyse-assistant-modal .text-slate-500,
+#wyse-assistant-modal .text-slate-400 {
+    color: #475569 !important;
+}
+
   </style>
 </head>
 
@@ -1094,7 +1122,7 @@ body.wyse-modal-open {
 
         <div class="flex items-center gap-3" aria-hidden="true">
           <span class="h-px bg-slate-200 flex-1"></span>
-          <span class="text-xs font-black uppercase tracking-widest text-slate-400">or type ingredients</span>
+          <span class="text-xs font-black uppercase tracking-widest text-slate-600">or type ingredients</span>
           <span class="h-px bg-slate-200 flex-1"></span>
         </div>
 
