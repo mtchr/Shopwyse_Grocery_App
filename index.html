@@ -1435,7 +1435,7 @@ function showGroceryListPrompt(title, message, actions) {
         ? 'px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition'
         : action.style === 'secondary'
           ? 'px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition'
-          : 'px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition';
+          : 'px-5 py-2.5 bg-brand-800 hover:bg-brand-900 !text-white border-2 border-brand-800 font-bold rounded-xl transition';
 
       button.onclick = () => closeGroceryListPrompt(action.value);
 
@@ -2381,7 +2381,7 @@ function openShoppingTimeBreakdown(event) {
 
                       <button
                         onclick="promptAddSavedItemToCart('${cartItem.id}', ${cartItem.quantity})"
-                        class="px-4 py-2.5 rounded-xl bg-green-100 hover:bg-green-200 text-green-900 border-2 border-green-800 font-bold text-sm transition"                      >
+                        class="px-4 py-2.5 rounded-xl bg-brand-100 hover:bg-brand-200 !text-brand-800 border-2 border-brand-800 font-bold text-sm transition"                      >
                         <i class="fa-solid fa-cart-plus mr-1" aria-hidden="true"></i>
                         Add to Cart
                       </button>
