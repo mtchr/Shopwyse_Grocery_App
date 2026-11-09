@@ -1713,13 +1713,57 @@ function closeGroceryListPrompt(value = false) {
       const container = document.getElementById('results-container');
       container.innerHTML = '';
 
-      let matches = PRODUCTS;
-      if (term) {
-        matches = PRODUCTS.filter(p => p.name.toLowerCase().includes(term.toLowerCase()));
-      }
-      if (matches.length === 0) matches = PRODUCTS;
+      // Rank useful matches rather than relying on one exact substring.
+      // Search uses the existing sample PRODUCTS only; it does not fetch live prices.
+      const normalizeSearch = value => String(value || '')
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
 
-      matches.forEach(product => {
+      const singularSearchWord = word => {
+        if (word.endsWith('ies') && word.length > 4) return word.slice(0, -3) + 'y';
+        if (word.endsWith('oes') && word.length > 4) return word.slice(0, -2);
+        if (word.endsWith('s') && !word.endsWith('ss') && word.length > 3) return word.slice(0, -1);
+        return word;
+      };
+
+      const query = normalizeSearch(term);
+      const queryWords = query.split(' ').filter(Boolean).map(singularSearchWord);
+      const rankedMatches = PRODUCTS.map(product => {
+        const name = normalizeSearch(product.name);
+        const category = normalizeSearch(product.category);
+        const nameWords = name.split(' ').map(singularSearchWord);
+        const categoryWords = category.split(' ').map(singularSearchWord);
+        let score = 0;
+
+        if (!queryWords.length) score = 1;
+        else if (name === query) score = 100;
+        else if (name.includes(query)) score = 80;
+        else if (queryWords.every(word => nameWords.includes(word))) score = 65;
+        else if (queryWords.every(word => [...nameWords, ...categoryWords].includes(word))) score = 45;
+        else if (queryWords.length === 1 && nameWords.some(word => word.startsWith(queryWords[0]))) score = 30;
+        else if (queryWords.length === 1 && categoryWords.includes(queryWords[0])) score = 20;
+
+        return { product, score };
+      }).filter(result => result.score > 0)
+        .sort((a, b) => b.score - a.score || a.product.name.localeCompare(b.product.name));
+
+      if (rankedMatches.length === 0) {
+        const emptyState = document.createElement('div');
+        emptyState.className = 'bg-white rounded-2xl p-8 border border-brand-200 shadow-sm text-center';
+        const heading = document.createElement('h3');
+        heading.className = 'text-lg font-black text-slate-900';
+        heading.textContent = 'No matching groceries found';
+        const description = document.createElement('p');
+        description.className = 'text-sm text-slate-600 mt-2';
+        description.textContent = 'Try a shorter search, a different spelling, or a category such as Dairy or Produce. Our current sample catalog is limited.';
+        emptyState.append(heading, description);
+        container.appendChild(emptyState);
+      }
+
+      rankedMatches.forEach(({ product }) => {
         // Calculate cheapest store for this product
         let cheapestStoreId = null;
         let lowestPrice = Infinity;
