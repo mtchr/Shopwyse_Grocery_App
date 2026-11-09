@@ -1391,7 +1391,7 @@ body.wyse-modal-open {
 
     // --- Global Application State ---
     const state = {
-      userid: null, // !tentatively add this. check with teammates!
+      user_id: null, // !tentatively add this. check with teammates!
       isLoggedIn: false,
       userEmail: '',
       userFirstName: '',
@@ -2498,7 +2498,7 @@ function openShoppingTimeBreakdown(event) {
 
     // --- Saved Grocery Lists ---
     async function saveGroceryList(startNewAfterSave = false) {
-      if (!state.isLoggedIn || !state.userid) {
+      if (!state.isLoggedIn || !state.user_id) {
         showToast('Please log in before saving a grocery list.');
         return;
       }
@@ -2528,7 +2528,7 @@ function openShoppingTimeBreakdown(event) {
       const { data, error } = await db
         .from('saved_grocery_lists')
         .insert({
-          userid: state.userid,
+          user_id: state.user_id,
           item_count: itemCount,
           estimated_seconds: estimatedSeconds,
           items: items
@@ -2569,12 +2569,12 @@ function openShoppingTimeBreakdown(event) {
 
 
     async function loadSavedGroceryLists() {
-      if (!state.userid) return;
+      if (!state.user_id) return;
 
       const { data, error } = await db
         .from('saved_grocery_lists')
         .select('*')
-        .eq('userid', state.userid)
+        .eq('user_id', state.user_id)
         .order('saved_at', { ascending: false });
 
       if (error) {
@@ -2621,7 +2621,7 @@ function openShoppingTimeBreakdown(event) {
       return `
         <button
           type="button"
-          onclick="viewSavedGroceryList('${list.listid}')"
+          onclick="viewSavedGroceryList('${list.list_id}')"
           class="w-full flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-brand-200 hover:bg-brand-50 hover:border-brand-500 transition text-left">
 
           <div>
@@ -2659,7 +2659,7 @@ function openShoppingTimeBreakdown(event) {
 
     function viewSavedGroceryList(listId) {
       const selectedList = state.savedLists.find(
-        list => String(list.listid) === String(listId)
+        list => String(list.list_id) === String(listId)
       );
 
       if (!selectedList) {
@@ -2748,14 +2748,14 @@ function openShoppingTimeBreakdown(event) {
 
       // Delete a previously saved list from Supabase
       if (isSavedList) {
-        const savedListId = state.activeSavedList.listid;
+        const savedListId = state.activeSavedList.list_id;
 
         const { data: deletedRows, error } = await db
           .from('saved_grocery_lists')
           .delete()
-          .eq('listid', savedListId)
-          .eq('userid', state.userid)
-          .select('listid');
+          .eq('list_id', savedListId)
+          .eq('user_id', state.user_id)
+          .select('list_id');
 
         if (error) {
           console.error('Error deleting saved list:', error);
@@ -2772,7 +2772,7 @@ function openShoppingTimeBreakdown(event) {
         }
 
         state.savedLists = state.savedLists.filter(
-          list => String(list.listid) !== String(savedListId)
+          list => String(list.list_id) !== String(savedListId)
         );
       }
 
@@ -3054,9 +3054,9 @@ function openShoppingTimeBreakdown(event) {
     const SESSION_DAYS = 30;
 
     // Chrome ignores cookies on file:// pages, so fall back to localStorage there
-    function saveSession(userid) {
-      document.cookie = `${SESSION_COOKIE}=${encodeURIComponent(userid)}; max-age=${SESSION_DAYS * 86400}; path=/; SameSite=Lax`;
-      try { localStorage.setItem(SESSION_COOKIE, userid); } catch (e) {}
+    function saveSession(user_id) {
+      document.cookie = `${SESSION_COOKIE}=${encodeURIComponent(user_id)}; max-age=${SESSION_DAYS * 86400}; path=/; SameSite=Lax`;
+      try { localStorage.setItem(SESSION_COOKIE, user_id); } catch (e) {}
     }
 
     function readSession() {
@@ -3072,23 +3072,23 @@ function openShoppingTimeBreakdown(event) {
 
     function applyUser(user) {
       state.isLoggedIn = true;
-      state.userid = user.userid;
+      state.user_id = user.user_id;
       state.userEmail = user.email;
-      state.userFirstName = user.firstName || '';
+      state.userFirstName = user.first_name || '';
       state.weeklyShoppingMinutes = user.weekly_shopping_minutes ?? null;
       document.getElementById('account-email-display').textContent = user.email;
-      saveSession(user.userid);
+      saveSession(user.user_id);
       updateAuthUI();
     }
 
     async function restoreSession() {
-      const userid = readSession();
-      if (!userid) return;
+      const user_id = readSession();
+      if (!user_id) return;
 
       const { data, error } = await db
         .from(USERS_TABLE)
         .select('*')
-        .eq('userid', userid)
+        .eq('user_id', user_id)
         .maybeSingle();
 
       if (error) {
@@ -3277,12 +3277,12 @@ async function handleLogin(e) {
       const { data, error } = await db
         .from(USERS_TABLE)
         .insert({
-          firstName,
-          lastName,
+          first_name: firstName,
+          last_name: lastName,
           email,
           password,
           notifications,
-          recentZip: state.zipCode
+          recent_zip: state.zipCode
         })
         .select()
         .single();
@@ -3300,7 +3300,7 @@ async function handleLogin(e) {
 
     function handleLogout() {
       state.isLoggedIn = false;
-      state.userid = null; // added this as well
+      state.user_id = null; // added this as well
       state.userEmail = '';
       state.userFirstName = '';
       state.weeklyShoppingMinutes = null;
@@ -4261,13 +4261,13 @@ async function handleLogin(e) {
 <script>
     // =========================================================
     // SAVED RECIPES (Wyse) — stored in the Supabase saved_recipes table.
-    // A recipe is { recipeid, userid, name, ingredients: ["3 eggs", "2 cups flour", ...] }.
+    // A recipe is { recipe_id, user_id, name, ingredients: ["3 eggs", "2 cups flour", ...] }.
     // Only the text lines are saved; store matches and prices are worked out
     // each time, so they stay current if the catalog changes.
     // =========================================================
     const RECIPES_TABLE = 'saved_recipes';
     state.savedRecipes = null; // null until loaded for the signed-in user
-    let openRecipe = null;     // recipe being viewed: { recipeid, name, lines: [{ text, skip }], dirty }
+    let openRecipe = null;     // recipe being viewed: { recipe_id, name, lines: [{ text, skip }], dirty }
 
     const recipesStatus = document.getElementById('wyse-recipes-status');
     const recipesListView = document.getElementById('wyse-recipes-list-view');
@@ -4351,7 +4351,7 @@ async function handleLogin(e) {
         const { data, error } = await db
           .from(RECIPES_TABLE)
           .select('*')
-          .eq('userid', state.userid)
+          .eq('user_id', state.user_id)
           .order('updated_at', { ascending: false });
         if (token !== recipesLoadToken) return; // logged out while loading
         if (error) {
@@ -4425,7 +4425,7 @@ async function handleLogin(e) {
 
     function openRecipeDetail(recipe) {
       openRecipe = {
-        recipeid: recipe.recipeid,
+        recipe_id: recipe.recipe_id,
         name: recipe.name,
         lines: (recipe.ingredients || []).map(text => ({ text: String(text), skip: false })),
         dirty: false,
@@ -4673,14 +4673,14 @@ async function handleLogin(e) {
       const { data, error } = await db
         .from(RECIPES_TABLE)
         .update({ name, ingredients, updated_at: updatedAt })
-        .eq('recipeid', recipe.recipeid)
-        .eq('userid', state.userid) // only ever change the signed-in user's own recipe
-        .select('recipeid');
+        .eq('recipe_id', recipe.recipe_id)
+        .eq('user_id', state.user_id) // only ever change the signed-in user's own recipe
+        .select('recipe_id');
       recipe.saving = false;
 
       if (!error && (!data || data.length === 0)) {
         // Nothing matched: the recipe was deleted (e.g. in another tab)
-        state.savedRecipes = (state.savedRecipes || []).filter(r => r.recipeid !== recipe.recipeid);
+        state.savedRecipes = (state.savedRecipes || []).filter(r => r.recipe_id !== recipe.recipe_id);
         if (openRecipe === recipe) {
           recipe.dirty = false;
           await showRecipeList();
@@ -4697,7 +4697,7 @@ async function handleLogin(e) {
         return;
       }
 
-      const stored = state.savedRecipes?.find(r => r.recipeid === recipe.recipeid);
+      const stored = state.savedRecipes?.find(r => r.recipe_id === recipe.recipe_id);
       if (stored) Object.assign(stored, { name, ingredients, updated_at: updatedAt });
       state.savedRecipes?.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
 
@@ -4716,8 +4716,8 @@ async function handleLogin(e) {
       const { error } = await db
         .from(RECIPES_TABLE)
         .delete()
-        .eq('recipeid', recipe.recipeid)
-        .eq('userid', state.userid); // only ever delete the signed-in user's own recipe
+        .eq('recipe_id', recipe.recipe_id)
+        .eq('user_id', state.user_id); // only ever delete the signed-in user's own recipe
       recipe.deleting = false;
       if (error) {
         console.error('Error deleting recipe:', error);
@@ -4727,7 +4727,7 @@ async function handleLogin(e) {
         }
         return;
       }
-      state.savedRecipes = (state.savedRecipes || []).filter(r => r.recipeid !== recipe.recipeid);
+      state.savedRecipes = (state.savedRecipes || []).filter(r => r.recipe_id !== recipe.recipe_id);
       if (openRecipe !== recipe) return;
       await showRecipeList();
       setRecipesStatus(`Deleted “${recipe.name}”.`);
@@ -4785,7 +4785,7 @@ async function handleLogin(e) {
       button.disabled = true; // no double saves
       const { data, error } = await db
         .from(RECIPES_TABLE)
-        .insert({ userid: state.userid, name, ingredients })
+        .insert({ user_id: state.user_id, name, ingredients })
         .select()
         .single();
       button.disabled = false;
