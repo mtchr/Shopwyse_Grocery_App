@@ -2496,8 +2496,62 @@ function openShoppingTimeBreakdown(event) {
 
     }
 
-    // --- Saved Grocery Lists ---
+
+    // Prevent repeated submissions while a Supabase operation is in flight.
+    const pendingShopWyseActions = new Set();
+    async function runWithPendingButton(actionKey, button, task, busyLabel = 'Saving...') {
+      if (pendingShopWyseActions.has(actionKey)) return;
+      pendingShopWyseActions.add(actionKey);
+      const previousHTML = button?.innerHTML;
+      const previousTitle = button?.getAttribute('title');
+      const previousDisabled = button?.disabled;
+      if (button) {
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+        button.innerHTML = `<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> <span class="sr-only">${busyLabel}</span>`;
+        button.title = busyLabel;
+      }
+      try {
+        return await task();
+      } catch (err) {
+        console.error(`${actionKey} failed unexpectedly:`, err);
+        showToast('Something went wrong. Please try again.');
+      } finally {
+        pendingShopWyseActions.delete(actionKey);
+        if (button) {
+          button.disabled = previousDisabled;
+          button.removeAttribute('aria-busy');
+          button.innerHTML = previousHTML;
+          if (previousTitle === null) button.removeAttribute('title');
+          else button.setAttribute('title', previousTitle);
+        }
+      }
+    }
+
     async function saveGroceryList(startNewAfterSave = false) {
+      return runWithPendingButton('save-grocery-list', document.getElementById('save-grocery-list-button'),
+        () => saveGroceryListImpl(startNewAfterSave));
+    }
+
+    async function deleteCurrentGroceryList() {
+      return runWithPendingButton('delete-grocery-list', document.getElementById('delete-current-list-button'),
+        () => deleteCurrentGroceryListImpl(), 'Deleting...');
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      return runWithPendingButton('login', e.currentTarget.querySelector('button[type="submit"]'),
+        () => handleLoginImpl(e), 'Logging in...');
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      return runWithPendingButton('register', e.currentTarget.querySelector('button[type="submit"]'),
+        () => handleRegisterImpl(e), 'Registering...');
+    }
+
+    // --- Saved Grocery Lists ---
+    async function saveGroceryListImpl(startNewAfterSave = false) {
       if (!state.isLoggedIn || !state.user_id) {
         showToast('Please log in before saving a grocery list.');
         return;
@@ -2724,7 +2778,7 @@ function openShoppingTimeBreakdown(event) {
       showToast('Returned to your current grocery list!');
     }
 
-    async function deleteCurrentGroceryList() {
+    async function deleteCurrentGroceryListImpl() {
       const isSavedList =
         state.viewingSavedList && state.activeSavedList;
 
@@ -3189,7 +3243,7 @@ function openShoppingTimeBreakdown(event) {
     });
 
     // --- Authentication Actions (Sticky 2) ---
-async function handleLogin(e) {
+async function handleLoginImpl(e) {
     e.preventDefault();
 
     const email = document.getElementById('login-email')
@@ -3250,7 +3304,7 @@ async function handleLogin(e) {
     }
 }
 
-    async function handleRegister(e) {
+    async function handleRegisterImpl(e) {
       e.preventDefault();
       const firstName = document.getElementById('reg-first-name').value.trim();
       const lastName = document.getElementById('reg-last-name').value.trim();
