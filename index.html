@@ -411,7 +411,7 @@ body.wyse-modal-open {
         <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
           <!-- Item Input -->
           <div class="md:col-span-6">
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Item Search</label>
+            <label for="input-search-term" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Item Search</label>
             <div class="relative">
               <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
               <input type="text" id="input-search-term" placeholder="e.g. Gallon Milk, Eggs, Bread..." 
@@ -421,7 +421,7 @@ body.wyse-modal-open {
 
           <!-- ZIP Input -->
           <div class="md:col-span-3">
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">ZIP Code</label>
+            <label for="input-zip-code" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">ZIP Code</label>
             <div class="relative">
               <i class="fa-solid fa-location-dot absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
               <input type="text" id="input-zip-code" value="84064" maxlength="5" inputmode="numeric"
@@ -431,7 +431,7 @@ body.wyse-modal-open {
 
           <!-- Radius Dropdown -->
           <div class="md:col-span-3">
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Search Radius</label>
+            <label for="select-radius" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Search Radius</label>
             <select id="select-radius" class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-semibold text-slate-900">
               <option value="5" selected>5 miles</option>
               <option value="10">10 miles</option>
@@ -453,9 +453,9 @@ body.wyse-modal-open {
 
       <!-- Suggested Staples Fast-Discovery Chips -->
       <div class="bg-white rounded-2xl p-5 border border-brand-200">
-        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-600 mb-3 flex items-center gap-2">
-          <i class="fa-solid fa-star text-amber-500"></i> Frequent Family Essentials (Tap to search)
-        </h3>
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-600 mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-star text-amber-500" aria-hidden="true"></i> Frequent Family Essentials (Tap to search)
+        </h2>
         <!-- On phones the chips stack in a 2-column grid; on bigger screens they wrap in a row -->
         <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <button onclick="quickSearch('Gallon Whole Milk')" class="px-3 py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-xl sm:rounded-full text-sm font-semibold border border-brand-200 transition">
@@ -563,7 +563,7 @@ body.wyse-modal-open {
               <i class="fa-solid fa-basket-shopping text-accent-blue"></i>
               Preview of Grocery List
             </h3>
-            <button onclick="closeMobileCartSheet()" class="w-11 h-11 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-400 text-slate-600 flex items-center justify-center font-bold">✕</button>
+            <button onclick="closeMobileCartSheet()" aria-label="Close grocery list preview" class="w-11 h-11 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-400 text-slate-600 flex items-center justify-center font-bold">✕</button>
           </div>
 
           <div id="mobile-sheet-items" class="divide-y divide-slate-100 my-3 text-sm"></div>
@@ -753,12 +753,13 @@ body.wyse-modal-open {
     <!-- SCREEN 5: MAP VIEW (Sticky 6 & Option A Logic)             -->
     <!-- ========================================================= -->
     <section id="screen-map" class="hidden space-y-4">
+      <h2 class="sr-only">Store Map</h2>
       <!-- Search bar for ZIP at top as a reference with GO button -->
       <div class="bg-white p-4 rounded-2xl border border-brand-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
         <!-- On phones the ZIP row takes the full width and Radius drops to the next line -->
         <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <div class="flex items-center gap-2 w-full sm:w-auto">
-            <label class="text-xs font-bold uppercase text-slate-600 whitespace-nowrap">ZIP Code:</label>
+            <label for="map-zip-input" class="text-xs font-bold uppercase text-slate-600 whitespace-nowrap">ZIP Code:</label>
             <input type="text" id="map-zip-input" value="84064" maxlength="5" inputmode="numeric" class="flex-1 min-w-0 sm:flex-none sm:w-24 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-base sm:text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-accent-blue" />
             <button onclick="updateMapLocation()" class="px-5 py-2 min-h-[44px] bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold text-sm rounded-lg shadow transition">
               GO
@@ -766,7 +767,7 @@ body.wyse-modal-open {
           </div>
 
           <div class="flex items-center gap-2">
-            <label class="text-xs font-bold uppercase text-slate-600">Radius:</label>
+            <label for="map-radius-select" class="text-xs font-bold uppercase text-slate-600">Radius:</label>
             <select id="map-radius-select" onchange="updateMapLocation()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-base sm:text-sm font-bold text-slate-700">
               <option value="5" selected>5 miles</option>
               <option value="10">10 miles</option>
@@ -812,12 +813,12 @@ body.wyse-modal-open {
         <div class="flex items-start justify-between border-b border-slate-100 pb-3">
           <div>
             <div class="flex items-center gap-2">
-              <h3 id="store-modal-name" class="text-2xl font-black text-slate-900">Store Name</h3>
+              <h2 id="store-modal-name" class="text-2xl font-black text-slate-900">Store Name</h2>
               <span id="store-modal-dist" class="whitespace-nowrap text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded">0.0 mi</span>
             </div>
             <p id="store-modal-addr" class="text-xs text-slate-600">Provo / Orem, UT</p>
           </div>
-          <button onclick="closeStoreModal()" class="w-11 h-11 shrink-0 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-400 text-slate-600 flex items-center justify-center font-bold">✕</button>
+          <button onclick="closeStoreModal()" aria-label="Close store details" class="w-11 h-11 shrink-0 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-400 text-slate-600 flex items-center justify-center font-bold">✕</button>
         </div>
 
         <!-- Store Estimated Total -->
@@ -831,9 +832,9 @@ body.wyse-modal-open {
 
         <!-- Breakdown Section: Cheapest at this Store -->
         <div>
-          <h4 class="text-sm font-black uppercase text-emerald-800 tracking-wider mb-2 flex items-center gap-1.5">
-            <i class="fa-solid fa-circle-check text-emerald-600"></i> Best Prices Here (Cheapest)
-          </h4>
+          <h3 class="text-sm font-black uppercase text-emerald-800 tracking-wider mb-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-check text-emerald-600" aria-hidden="true"></i> Best Prices Here (Cheapest)
+          </h3>
           <div id="store-modal-cheapest-list" class="space-y-2">
             <!-- Rendered by JS -->
           </div>
@@ -841,9 +842,9 @@ body.wyse-modal-open {
 
         <!-- Breakdown Section: Items More Expensive Here (with Cross-Out Comparisons) -->
         <div>
-          <h4 class="text-sm font-black uppercase text-amber-800 tracking-wider mb-2 flex items-center gap-1.5">
-            <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> More Expensive Here (Cheaper Elsewhere)
-          </h4>
+          <h3 class="text-sm font-black uppercase text-amber-800 tracking-wider mb-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-triangle-exclamation text-amber-500" aria-hidden="true"></i> More Expensive Here (Cheaper Elsewhere)
+          </h3>
           <div id="store-modal-other-list" class="space-y-2">
             <!-- Rendered by JS -->
           </div>
@@ -875,13 +876,13 @@ body.wyse-modal-open {
 
       <form onsubmit="handleLogin(event)" class="space-y-4">
         <div>
-          <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Email</label>
+          <label for="login-email" class="block text-xs font-bold uppercase text-slate-600 mb-1">Email</label>
           <input type="email" id="login-email" placeholder="you@example.com" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-medium" />
         </div>
 
 <!-- Password Field -->
         <div>
-          <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Password</label>
+          <label for="login-password" class="block text-xs font-bold uppercase text-slate-600 mb-1">Password</label>
           <input type="password" id="login-password" placeholder="••••••••" required
             class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-medium" />
         </div>
@@ -916,22 +917,22 @@ body.wyse-modal-open {
       <form onsubmit="handleRegister(event)" class="space-y-4">
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">First Name</label>
+            <label for="reg-first-name" class="block text-xs font-bold uppercase text-slate-600 mb-1">First Name</label>
             <input type="text" id="reg-first-name" placeholder="First" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none" />
           </div>
           <div>
-            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Last Name</label>
+            <label for="reg-last-name" class="block text-xs font-bold uppercase text-slate-600 mb-1">Last Name</label>
             <input type="text" id="reg-last-name" placeholder="Last" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none" />
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Email</label>
+          <label for="reg-email" class="block text-xs font-bold uppercase text-slate-600 mb-1">Email</label>
           <input type="email" id="reg-email" placeholder="you@example.com" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none" />
         </div>
 
         <div>
-          <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Password</label>
+          <label for="reg-password" class="block text-xs font-bold uppercase text-slate-600 mb-1">Password</label>
           <input type="password" id="reg-password" placeholder="••••••••" required class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none" />
         </div>
 
@@ -1250,7 +1251,7 @@ body.wyse-modal-open {
         <i class="fa-solid fa-lock"></i>
       </div>
       <div>
-        <h3 class="text-xl font-black text-slate-900">Login Required</h3>
+        <h2 class="text-xl font-black text-slate-900">Login Required</h2>
         <p class="text-slate-600 text-xs mt-1">To view your grocery list, route maps, and low price deals, please log into your ShopWyse account.</p>
       </div>
 
@@ -1328,9 +1329,9 @@ body.wyse-modal-open {
   <div class="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-brand-200">
 
     <div class="border-b border-slate-100 pb-3 mb-4">
-      <h3 id="grocery-list-prompt-title"
+      <h2 id="grocery-list-prompt-title"
           class="text-lg font-black text-slate-900">
-      </h3>
+      </h2>
     </div>
 
     <p id="grocery-list-prompt-message" class="text-base sm:text-lg text-slate-700 leading-relaxed"></p>
@@ -1350,9 +1351,9 @@ body.wyse-modal-open {
 
     <div class="flex items-start justify-between border-b border-slate-100 pb-3">
       <div>
-        <h3 class="text-lg font-black text-slate-900">
+        <h2 class="text-lg font-black text-slate-900">
           Shopping-Time Breakdown
-        </h3>
+        </h2>
 
         <p id="shopping-time-breakdown-summary"
            class="text-xs text-slate-600 mt-1">
@@ -1917,7 +1918,7 @@ function closeGroceryListPrompt(value = false) {
             </div>
             <div class="flex items-center gap-2">
               <span class="font-black text-xs text-brand-600">$${itemTotal.toFixed(2)}</span>
-              <button onclick="removeFromCart('${cartItem.id}')" class="w-10 h-10 flex items-center justify-center border border-red-300 rounded-lg text-red-500 hover:text-red-700 hover:border-red-600 text-sm">✕</button>
+              <button onclick="removeFromCart('${cartItem.id}')" aria-label="Remove ${prod.name} from list" class="w-10 h-10 flex items-center justify-center border border-red-300 rounded-lg text-red-500 hover:text-red-700 hover:border-red-600 text-sm">✕</button>
             </div>
           </div>
         `;
@@ -1985,6 +1986,7 @@ async function promptAddSavedItemToCart(productId, savedQuantity) {
 
           <input
             id="saved-item-quantity"
+            aria-label="Quantity to add"
             type="number"
             min="1"
             step="1"
@@ -2423,9 +2425,9 @@ function openShoppingTimeBreakdown(event) {
                 <span class="text-3xl">${prod.icon}</span>
 
                 <div>
-                  <h4 class="font-black text-slate-900 text-base">
+                  <h5 class="font-black text-slate-900 text-base">
                     ${prod.name}
-                  </h4>
+                  </h5>
 
                   <span class="text-xs text-slate-600 font-medium">
                     ($${lowestPrice.toFixed(2)} each)
@@ -2454,6 +2456,7 @@ function openShoppingTimeBreakdown(event) {
                     <div class="flex items-center border border-slate-200 rounded-xl bg-slate-50">
                       <button
                         onclick="updateCartQuantity('${cartItem.id}', -1)"
+                        aria-label="Decrease quantity of ${prod.name}"
                         class="w-11 h-11 flex items-center justify-center text-slate-600 text-lg font-bold hover:bg-slate-200 rounded-l-xl">
                         -
                       </button>
@@ -2464,6 +2467,7 @@ function openShoppingTimeBreakdown(event) {
 
                       <button
                         onclick="updateCartQuantity('${cartItem.id}', 1)"
+                        aria-label="Increase quantity of ${prod.name}"
                         class="w-11 h-11 flex items-center justify-center text-slate-600 text-lg font-bold hover:bg-slate-200 rounded-r-xl">
                         +
                       </button>
@@ -2471,8 +2475,9 @@ function openShoppingTimeBreakdown(event) {
 
                     <button
                       onclick="removeFromCart('${cartItem.id}')"
+                      aria-label="Remove ${prod.name} from list"
                       class="w-11 h-11 flex items-center justify-center border border-red-300 rounded-lg text-red-500 hover:text-red-700 hover:border-red-600">
-                      <i class="fa-solid fa-trash-can text-sm"></i>
+                      <i class="fa-solid fa-trash-can text-sm" aria-hidden="true"></i>
                     </button>
                   `
                 }
