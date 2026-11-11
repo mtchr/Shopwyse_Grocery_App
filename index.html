@@ -179,6 +179,88 @@
   }
 }
 
+
+/* Wyse Recipes full-page layout */
+body.recipes-screen-active main {
+  max-width: none;
+}
+
+#screen-recipes {
+  width: 100%;
+  max-width: none;
+  padding: 1.25rem clamp(0.75rem, 2vw, 2rem) 2rem;
+}
+
+.wyse-section-tabs {
+  background: linear-gradient(110deg, #d9eee2 0%, #e7f0ff 100%);
+  border: 1px solid #b9d9c8;
+  box-shadow: 0 2px 8px rgba(27, 67, 50, 0.07);
+}
+
+.wyse-tab-button {
+  color: #315b48;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid transparent;
+}
+
+.wyse-tab-button:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.wyse-tab-button[aria-selected="true"] {
+  color: #1b4332;
+  background: #ffffff;
+  border-color: #9bc8ad;
+  box-shadow: 0 2px 7px rgba(27, 67, 50, 0.12);
+}
+
+.wyse-saved-page {
+  min-height: max(680px, calc(100vh - 190px));
+  background: linear-gradient(135deg, #e5f3e9 0%, #edf4ff 52%, #f7f4e9 100%);
+}
+
+#wyse-recipes-list-view,
+#wyse-recipe-detail {
+  width: 100%;
+}
+
+#wyse-recipe-detail {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid #b9d9c8;
+  border-radius: 1.25rem;
+  padding: clamp(1rem, 2vw, 1.75rem);
+  box-shadow: 0 3px 12px rgba(27, 67, 50, 0.07);
+}
+
+#screen-recipes .wyse-recipe-card {
+  min-width: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border-color: #b9d9c8;
+}
+
+#screen-recipes .wyse-recipe-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 640px) {
+  #screen-recipes {
+    padding: 0.75rem 0.65rem 1.25rem;
+  }
+
+  .wyse-saved-page {
+    min-height: calc(100vh - 175px);
+    padding: 1rem;
+  }
+
+  .wyse-tab-button {
+    gap: 0.4rem;
+  }
+}
+
 /* Wyse AI assistant */
 body.wyse-modal-open {
   overflow: hidden;
@@ -233,8 +315,8 @@ body.wyse-modal-open {
 }
 
 /* Improve Wyse AI Assistant placeholder contrast */
-#wyse-assistant-modal input::placeholder,
-#wyse-assistant-modal textarea::placeholder {
+#screen-recipes input::placeholder,
+#screen-recipes textarea::placeholder {
     color: #475569;
     opacity: 1;
 }
@@ -253,9 +335,9 @@ body.wyse-modal-open {
     color: #475569 !important;
 }
 
-/* Wyse AI Assistant */
-#wyse-assistant-modal .text-slate-500,
-#wyse-assistant-modal .text-slate-400 {
+/* Wyse Recipes */
+#screen-recipes .text-slate-500,
+#screen-recipes .text-slate-400 {
     color: #475569 !important;
 }
 
@@ -271,7 +353,12 @@ body.wyse-modal-open {
 <header class="sticky top-0 z-40 bg-white border-b border-brand-200 shadow-sm">
   <div class="max-w-full mx-auto px-4 py-3 flex items-center justify-between gap-4">
     <!-- App Brand -->
-    <div class="flex items-center gap-3 shrink-0">
+    <button
+      type="button"
+      onclick="closeMobileMenu(); navigateTo('search')"
+      aria-label="ShopWyse - Go to Search"
+      class="flex items-center gap-3 shrink-0 text-left cursor-pointer"
+    >
       <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-brand-500 text-white flex items-center justify-center text-lg sm:text-xl font-bold shadow-sm">
         <i class="fa-solid fa-basket-shopping"></i>
       </div>
@@ -279,7 +366,7 @@ body.wyse-modal-open {
         <span class="text-xl sm:text-2xl font-black tracking-tight text-brand-600">Shop<span class="text-accent-blue">Wyse</span></span>
         <span class="hidden sm:inline-block ml-2 text-xs bg-brand-100 text-brand-600 px-2 py-0.5 rounded-full font-semibold">Provo / Salt Lake</span>
       </div>
-    </div>
+    </button>
 
     
     <!-- Mobile Header Buttons -->
@@ -325,24 +412,15 @@ body.wyse-modal-open {
         <span id="cart-counter-badge" class="bg-accent-blue text-white text-xs font-bold px-2 py-0.5 rounded-full ml-1">0</span>
       </button>
 
+      <button onclick="guardNav('recipes')" id="nav-recipes"
+        class="px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
+        <i class="fa-solid fa-book-open text-accent-blue"></i>
+        <span>Wyse Recipes</span>
+      </button>
+
       <button onclick="guardNav('account')" id="nav-account" class="px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
         <i class="fa-regular fa-circle-user text-slate-600 text-lg"></i>
         <span id="account-nav-label" class="hidden md:inline">Account</span>
-      </button>
-
-      <button onclick="openWyseAssistant()" id="nav-wyse" class="px-2.5 py-1.5 rounded-xl font-bold text-slate-700 hover:text-accent-blue hover:bg-blue-50 flex items-center gap-2 transition" aria-label="Open Wyse AI Assistant">
-        <span class="wyse-avatar w-8 h-8" aria-hidden="true">
-          <svg viewBox="0 0 48 48" role="img">
-            <circle cx="24" cy="24" r="22" fill="#2563EB"/>
-            <path d="M15 19h18l-1.7 17H16.7L15 19Z" fill="white"/>
-            <path d="M19 19v-2.2a5 5 0 0 1 10 0V19" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-            <circle cx="21" cy="26" r="1.4" fill="#2563EB"/>
-            <circle cx="27" cy="26" r="1.4" fill="#2563EB"/>
-            <path d="M20.5 30c1.8 2 5.2 2 7 0" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round"/>
-          </svg>
-        </span>
-        <span class="hidden lg:inline whitespace-nowrap">Wyse AI Assistant</span>
-        <span class="lg:hidden whitespace-nowrap">Wyse AI</span>
       </button>
     </nav>
   </div>
@@ -358,21 +436,13 @@ body.wyse-modal-open {
     <button onclick="closeMobileMenu(); guardNav('list')" class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 border-b border-slate-100 touch-btn">
       <i class="fa-solid fa-cart-shopping text-accent-blue w-5"></i> Grocery List
     </button>
+    <button onclick="closeMobileMenu(); guardNav('recipes')"
+      class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 border-b border-slate-100 touch-btn">
+      <i class="fa-solid fa-book-open text-accent-blue w-5"></i>
+      Wyse Recipes
+    </button>
     <button onclick="closeMobileMenu(); guardNav('account')" class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 touch-btn">
       <i class="fa-regular fa-circle-user text-slate-600 w-5"></i> Account
-    </button>
-    <button onclick="closeMobileMenu(); openWyseAssistant()" class="w-full py-3 flex items-center gap-3 text-left font-bold text-slate-700 border-t border-slate-100 touch-btn">
-      <span class="wyse-avatar w-7 h-7" aria-hidden="true">
-        <svg viewBox="0 0 48 48" role="img">
-          <circle cx="24" cy="24" r="22" fill="#2563EB"/>
-          <path d="M15 19h18l-1.7 17H16.7L15 19Z" fill="white"/>
-          <path d="M19 19v-2.2a5 5 0 0 1 10 0V19" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-          <circle cx="21" cy="26" r="1.4" fill="#2563EB"/>
-          <circle cx="27" cy="26" r="1.4" fill="#2563EB"/>
-          <path d="M20.5 30c1.8 2 5.2 2 7 0" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round"/>
-        </svg>
-      </span>
-      Wyse AI Assistant
     </button>
   </div>
 
@@ -1037,210 +1107,208 @@ body.wyse-modal-open {
       </div>
     </section>
 
-  </main>
-
   <!-- ========================================================= -->
-  <!-- WYSE AI ASSISTANT MODAL                                  -->
-  <!-- ========================================================= -->
-  <div id="wyse-assistant-modal"
-    class="hidden fixed inset-0 z-[70] bg-slate-950/55 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="wyse-assistant-title"
-    onclick="if (event.target === this) closeWyseAssistant()">
+    <!-- WYSE AI ASSISTANT MODAL                                  -->
+    <!-- ========================================================= -->
+    <section id="screen-recipes"
+      class="hidden w-full space-y-5"
+      aria-label="Wyse Recipes">
 
-    <div class="wyse-modal-card bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-brand-200">
-      <div class="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-slate-100 px-5 sm:px-6 py-4 rounded-t-3xl flex items-center justify-between gap-4">
-        <div class="flex items-center gap-3 min-w-0">
-          <span class="wyse-avatar w-11 h-11 sm:w-12 sm:h-12" aria-hidden="true">
-            <svg viewBox="0 0 48 48" role="img">
-              <circle cx="24" cy="24" r="22" fill="#2563EB"/>
-              <path d="M15 19h18l-1.7 17H16.7L15 19Z" fill="white"/>
-              <path d="M19 19v-2.2a5 5 0 0 1 10 0V19" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-              <circle cx="21" cy="26" r="1.4" fill="#2563EB"/>
-              <circle cx="27" cy="26" r="1.4" fill="#2563EB"/>
-              <path d="M20.5 30c1.8 2 5.2 2 7 0" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-          </span>
-          <div class="min-w-0">
-            <h2 id="wyse-assistant-title" class="text-lg sm:text-xl font-black text-slate-900 leading-tight">Wyse AI Assistant</h2>
+      <div class="wyse-section-tabs grid grid-cols-2 gap-2 p-2 rounded-2xl"
+        role="tablist" aria-label="Wyse Recipes sections">
+
+      <button id="wyse-tab-scan" type="button" role="tab"
+        aria-selected="true" aria-controls="wyse-scan-view"
+        onclick="showWyseTab('scan')"
+        class="wyse-tab-button min-h-[48px] rounded-xl text-sm sm:text-base font-black flex items-center justify-center gap-2 transition">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        Wyse AI
+      </button>
+
+      <button id="wyse-tab-recipes" type="button" role="tab"
+        aria-selected="false" aria-controls="wyse-recipes-view"
+        onclick="showWyseTab('recipes')"
+        class="wyse-tab-button min-h-[48px] rounded-xl text-sm sm:text-base font-black flex items-center justify-center gap-2 transition">
+        <i class="fa-solid fa-book-open"></i>
+        Saved Recipes
+      </button>
+
+    </div>
+
+      <div class="wyse-modal-card w-full bg-white rounded-2xl shadow-sm border border-brand-200 overflow-hidden">
+
+        <div class="space-y-5">
+
+          <!-- My recipes (filled in by the Saved Recipes script) -->
+          <div id="wyse-recipes-view"
+            class="hidden wyse-saved-page rounded-2xl p-4 sm:p-6 space-y-4"
+            role="tabpanel" aria-labelledby="wyse-tab-recipes">
+            <p id="wyse-recipes-status" class="text-sm font-bold text-slate-700" aria-live="polite"></p>
+            <div id="wyse-recipes-list-view" class="space-y-3">
+              <h2 class="text-2xl font-black text-slate-900">
+                Saved Recipes
+              </h2>
+              <ul id="wyse-recipes-list" class="space-y-2"></ul>
+            </div>
+            <div id="wyse-recipe-detail" class="hidden space-y-4"></div>
           </div>
-        </div>
 
-        <div class="flex items-center gap-1.5 shrink-0">
-          <button id="wyse-header-start-over" type="button" class="min-h-[44px] px-3 rounded-xl text-sm font-bold text-accent-blue hover:bg-blue-50 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i>
-            <span class="hidden sm:inline">Start over</span>
-          </button>
-          <button id="wyse-close-button" type="button" onclick="closeWyseAssistant()" aria-label="Close Wyse AI Assistant"
-            class="w-11 h-11 shrink-0 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-600 flex items-center justify-center transition">
-            <i class="fa-solid fa-xmark text-lg"></i>
-          </button>
-        </div>
-      </div>
-
-      <div class="p-5 sm:p-6 space-y-5">
-        <!-- Tabs: scan a new recipe, or use a saved one -->
-        <div class="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl" role="tablist" aria-label="Wyse sections">
-          <button id="wyse-tab-scan" type="button" role="tab" aria-selected="true" aria-controls="wyse-scan-view" onclick="showWyseTab('scan')"
-            class="min-h-[44px] rounded-lg text-sm font-black text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm transition flex items-center justify-center gap-2">
-            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Scan a recipe
-          </button>
-          <button id="wyse-tab-recipes" type="button" role="tab" aria-selected="false" aria-controls="wyse-recipes-view" onclick="showWyseTab('recipes')"
-            class="min-h-[44px] rounded-lg text-sm font-black text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm transition flex items-center justify-center gap-2">
-            <i class="fa-solid fa-book-open" aria-hidden="true"></i> My recipes
-          </button>
-        </div>
-
-        <!-- My recipes (filled in by the Saved Recipes script) -->
-        <div id="wyse-recipes-view" class="hidden space-y-4" role="tabpanel" aria-labelledby="wyse-tab-recipes">
-          <p id="wyse-recipes-status" class="text-sm font-bold text-slate-700" aria-live="polite"></p>
-          <div id="wyse-recipes-list-view" class="space-y-3">
-            <h3 class="text-lg font-black text-slate-900">My recipes</h3>
-            <ul id="wyse-recipes-list" class="space-y-2"></ul>
-          </div>
-          <div id="wyse-recipe-detail" class="hidden space-y-4"></div>
-        </div>
-
-        <div id="wyse-scan-view" class="space-y-5" role="tabpanel" aria-labelledby="wyse-tab-scan">
-        <div id="wyse-welcome" class="hidden">
-          <div class="flex items-start gap-3">
-            <span class="wyse-avatar w-9 h-9 sm:w-10 sm:h-10" aria-hidden="true">
-              <svg viewBox="0 0 48 48" role="img">
-                <circle cx="24" cy="24" r="22" fill="#2563EB"/>
-                <path d="M15 19h18l-1.7 17H16.7L15 19Z" fill="white"/>
-                <path d="M19 19v-2.2a5 5 0 0 1 10 0V19" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-                <circle cx="21" cy="26" r="1.4" fill="#2563EB"/>
-                <circle cx="27" cy="26" r="1.4" fill="#2563EB"/>
-                <path d="M20.5 30c1.8 2 5.2 2 7 0" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round"/>
-              </svg>
-            </span>
-            <div class="min-w-0 flex-1 bg-brand-50 border border-brand-200 rounded-2xl rounded-bl-md px-4 py-3 sm:px-5 sm:py-4">
-              <p class="text-sm sm:text-base text-slate-700 font-semibold leading-relaxed">
-                Hello, I’m Wyse, your recipe and shopping assistant! Show me one of your recipe cards or type in some ingredients, and I’ll add them to your grocery list.
+          <div id="wyse-scan-view" class="space-y-5 px-4 sm:px-6" role="tabpanel" aria-labelledby="wyse-tab-scan">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 class="text-2xl sm:text-3xl font-black text-slate-900">
+                Wyse Recipes
+              </h2>
+              <p class="text-sm text-slate-600 mt-1">
+                Scan a recipe or enter ingredients to build your grocery list.
               </p>
             </div>
+
+            <button id="wyse-header-start-over" type="button"
+              class="min-h-[44px] px-4 py-2 rounded-xl text-sm font-bold text-accent-blue hover:bg-blue-50 transition flex items-center gap-2">
+              <i class="fa-solid fa-arrow-rotate-left"></i>
+              Start Over
+            </button>
           </div>
-        </div>
-
-        <div id="wyse-dropzone" class="wyse-dropzone rounded-2xl p-6 sm:p-8 text-center outline-none" tabindex="0" role="button" aria-label="Choose a recipe photo or drop it here">
-          <input id="recipe-image" type="file" accept="image/png,image/jpeg,image/webp,image/heic" class="hidden">
-          <input id="recipe-camera" type="file" accept="image/*" capture="environment" class="hidden">
-
-          <div id="wyse-upload-prompt" class="space-y-4">
-            <div class="w-16 h-16 rounded-2xl bg-white border border-brand-200 shadow-sm text-accent-blue flex items-center justify-center mx-auto">
-              <i class="fa-solid fa-arrow-up-from-bracket text-2xl"></i>
-            </div>
-            <div>
-              <h3 class="text-lg font-black text-slate-900">Add a recipe photo</h3>
-            </div>
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2">
-              <button id="choose-recipe-photo" type="button" class="min-h-[48px] px-5 py-3 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2">
-                <i class="fa-regular fa-image"></i>
-                Choose photo
-              </button>
-              <button id="take-recipe-photo" type="button" class="min-h-[48px] px-5 py-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold rounded-xl transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-camera"></i>
-                Take photo
-              </button>
-            </div>
-          </div>
-
-          <div id="wyse-photo-preview" class="hidden">
-            <img id="wyse-preview-image" alt="Selected recipe preview" class="max-h-56 w-auto mx-auto rounded-xl border border-slate-200 shadow-sm object-contain">
-            <div class="mt-3 flex items-center justify-center gap-3">
-              <p id="wyse-photo-name" class="text-sm font-bold text-slate-700 truncate max-w-[70%]"></p>
-              <button id="remove-recipe-photo" type="button" class="text-sm font-bold text-red-600 hover:text-red-700">Remove</button>
-            </div>
-          </div>
-
-          <label class="mt-4 inline-flex items-center justify-center gap-2 text-sm font-bold text-slate-700 cursor-pointer">
-            <input id="recipe-handwriting-mode" type="checkbox" class="w-5 h-5 rounded border-slate-300 text-accent-blue focus:ring-accent-blue">
-            Handwritten or cursive recipe
-          </label>
-        </div>
-
-        <div class="flex items-center gap-3" aria-hidden="true">
-          <span class="h-px bg-slate-200 flex-1"></span>
-          <span class="text-xs font-black uppercase tracking-widest text-slate-600">or type ingredients</span>
-          <span class="h-px bg-slate-200 flex-1"></span>
-        </div>
-
-        <div>
-          <label for="recipe-text" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Ingredients</label>
-          <textarea id="recipe-text" rows="5" placeholder="Example:&#10;2 cups flour&#10;1 teaspoon salt&#10;3 eggs"
-            class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:border-accent-blue focus:outline-none font-medium text-slate-900 resize-y"></textarea>
-        </div>
-
-        <button id="extract-recipe" type="button" class="w-full min-h-[52px] px-6 py-3.5 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-black text-base rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait">
-          <i class="fa-solid fa-wand-magic-sparkles"></i>
-          Find my ingredients
-        </button>
-
-        <div id="wyse-progress" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-3.5 flex items-center gap-3">
-          <span class="w-5 h-5 border-2 border-blue-200 border-t-accent-blue rounded-full animate-spin shrink-0" aria-hidden="true"></span>
-          <p id="ai-status" class="text-sm font-bold text-blue-900" aria-live="polite">Getting ready…</p>
-        </div>
-
-        <div id="wyse-results-panel" class="hidden border-t border-slate-200 pt-5 space-y-4">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <h3 class="text-lg font-black text-slate-900">Ingredients found</h3>
-              <p id="wyse-results-summary" class="hidden"></p>
-            </div>
-            <button id="wyse-start-over" type="button" class="text-sm font-bold text-accent-blue hover:underline whitespace-nowrap">Start over</button>
-          </div>
-
-          <ul id="ingredient-results" class="space-y-2"></ul>
-
-          <div id="wyse-read-warning" class="hidden rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
+            <div id="wyse-welcome" class="hidden">
             <div class="flex items-start gap-3">
-              <i class="fa-solid fa-triangle-exclamation mt-0.5 text-amber-600" aria-hidden="true"></i>
-              <div class="min-w-0">
-                <p class="font-black">I couldn’t confidently identify ingredient lines.</p>
-                <p class="mt-1 text-sm">Here’s what I was able to read:</p>
-                <p id="wyse-readback-text" class="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white/70 p-3 text-xs font-medium text-slate-700"></p>
+              <span class="wyse-avatar w-9 h-9 sm:w-10 sm:h-10" aria-hidden="true">
+                <svg viewBox="0 0 48 48" role="img">
+                  <circle cx="24" cy="24" r="22" fill="#2563EB"/>
+                  <path d="M15 19h18l-1.7 17H16.7L15 19Z" fill="white"/>
+                  <path d="M19 19v-2.2a5 5 0 0 1 10 0V19" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                  <circle cx="21" cy="26" r="1.4" fill="#2563EB"/>
+                  <circle cx="27" cy="26" r="1.4" fill="#2563EB"/>
+                  <path d="M20.5 30c1.8 2 5.2 2 7 0" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <div class="min-w-0 flex-1 bg-brand-50 border border-brand-200 rounded-2xl rounded-bl-md px-4 py-3 sm:px-5 sm:py-4">
+                <p class="text-sm sm:text-base text-slate-700 font-semibold leading-relaxed">
+                  Hello, I’m Wyse, your recipe and shopping assistant! Show me one of your recipe cards or type in some ingredients, and I’ll add them to your grocery list.
+                </p>
               </div>
             </div>
           </div>
 
-          <div id="wyse-total-card" class="border-t border-slate-200 pt-4">
-            <div class="flex items-center justify-between gap-4">
-              <p class="text-base font-black text-slate-900">Estimated total</p>
-              <p id="wyse-selected-count" class="sr-only">0 items selected</p>
-              <p id="wyse-estimated-total" class="text-2xl font-black text-accent-blue">$0.00</p>
+          <div id="wyse-dropzone" class="wyse-dropzone rounded-2xl p-6 sm:p-8 text-center outline-none" tabindex="0" role="button" aria-label="Choose a recipe photo or drop it here">
+            <input id="recipe-image" type="file" accept="image/png,image/jpeg,image/webp,image/heic" class="hidden">
+            <input id="recipe-camera" type="file" accept="image/*" capture="environment" class="hidden">
+
+            <div id="wyse-upload-prompt" class="space-y-4">
+              <div class="w-16 h-16 rounded-2xl bg-white border border-brand-200 shadow-sm text-accent-blue flex items-center justify-center mx-auto">
+                <i class="fa-solid fa-arrow-up-from-bracket text-2xl"></i>
+              </div>
+              <div>
+                <h3 class="text-lg font-black text-slate-900">Add a recipe photo</h3>
+              </div>
+              <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2">
+                <button id="choose-recipe-photo" type="button" class="min-h-[48px] px-5 py-3 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2">
+                  <i class="fa-regular fa-image"></i>
+                  Choose photo
+                </button>
+                <button id="take-recipe-photo" type="button" class="min-h-[48px] px-5 py-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold rounded-xl transition flex items-center justify-center gap-2">
+                  <i class="fa-solid fa-camera"></i>
+                  Take photo
+                </button>
+              </div>
             </div>
+
+            <div id="wyse-photo-preview" class="hidden">
+              <img id="wyse-preview-image" alt="Selected recipe preview" class="max-h-56 w-auto mx-auto rounded-xl border border-slate-200 shadow-sm object-contain">
+              <div class="mt-3 flex items-center justify-center gap-3">
+                <p id="wyse-photo-name" class="text-sm font-bold text-slate-700 truncate max-w-[70%]"></p>
+                <button id="remove-recipe-photo" type="button" class="text-sm font-bold text-red-600 hover:text-red-700">Remove</button>
+              </div>
+            </div>
+
+            <label class="mt-4 inline-flex items-center justify-center gap-2 text-sm font-bold text-slate-700 cursor-pointer">
+              <input id="recipe-handwriting-mode" type="checkbox" class="w-5 h-5 rounded border-slate-300 text-accent-blue focus:ring-accent-blue">
+              Handwritten or cursive recipe
+            </label>
           </div>
 
-          <button id="add-wyse-to-list" type="button" class="w-full min-h-[50px] px-5 py-3 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-black rounded-xl shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-            <i class="fa-solid fa-cart-plus"></i>
-            <span id="add-wyse-to-list-label">Select items to add</span>
+          <div class="flex items-center gap-3" aria-hidden="true">
+            <span class="h-px bg-slate-200 flex-1"></span>
+            <span class="text-xs font-black uppercase tracking-widest text-slate-600">or type ingredients</span>
+            <span class="h-px bg-slate-200 flex-1"></span>
+          </div>
+
+          <div>
+            <label for="recipe-text" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Ingredients</label>
+            <textarea id="recipe-text" rows="5" placeholder="Example:&#10;2 cups flour&#10;1 teaspoon salt&#10;3 eggs"
+              class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:border-accent-blue focus:outline-none font-medium text-slate-900 resize-y"></textarea>
+          </div>
+
+          <button id="extract-recipe" type="button" class="w-full min-h-[52px] px-6 py-3.5 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-black text-base rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            Find my ingredients
           </button>
-          <p id="wyse-catalog-note" class="hidden"></p>
 
-          <!-- Save the recipe (all lines, including ones ShopWyse doesn't sell) -->
-          <div class="border-t border-slate-200 pt-4 space-y-2">
-            <label for="wyse-recipe-name" class="block text-xs font-bold uppercase tracking-wider text-slate-600">Save this recipe for later</label>
-            <div class="flex flex-col sm:flex-row gap-2">
-              <input id="wyse-recipe-name" type="text" maxlength="80" placeholder="Recipe name, e.g. Sunday pancakes"
-                class="min-w-0 flex-1 min-h-[48px] px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:border-accent-blue focus:outline-none font-semibold text-slate-900">
-              <button id="wyse-save-recipe-button" type="button" onclick="saveScannedRecipe()"
-                class="min-h-[48px] px-5 py-2.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-black rounded-xl transition flex items-center justify-center gap-2">
-                <i class="fa-regular fa-bookmark" aria-hidden="true"></i> Save recipe
-              </button>
+          <div id="wyse-progress" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-3.5 flex items-center gap-3">
+            <span class="w-5 h-5 border-2 border-blue-200 border-t-accent-blue rounded-full animate-spin shrink-0" aria-hidden="true"></span>
+            <p id="ai-status" class="text-sm font-bold text-blue-900" aria-live="polite">Getting ready…</p>
+          </div>
+
+          <div id="wyse-results-panel" class="hidden border-t border-slate-200 pt-5 space-y-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h3 class="text-lg font-black text-slate-900">Ingredients found</h3>
+                <p id="wyse-results-summary" class="hidden"></p>
+              </div>
+              <button id="wyse-start-over" type="button" class="text-sm font-bold text-accent-blue hover:underline whitespace-nowrap">Start over</button>
             </div>
-            <p id="wyse-save-status" class="text-sm font-bold" aria-live="polite"></p>
-          </div>
 
-          <div class="hidden" aria-hidden="true">
-            <pre id="recognized-text"></pre>
-            <pre id="recipe-json"></pre>
+            <ul id="ingredient-results" class="space-y-2"></ul>
+
+            <div id="wyse-read-warning" class="hidden rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
+              <div class="flex items-start gap-3">
+                <i class="fa-solid fa-triangle-exclamation mt-0.5 text-amber-600" aria-hidden="true"></i>
+                <div class="min-w-0">
+                  <p class="font-black">I couldn’t confidently identify ingredient lines.</p>
+                  <p class="mt-1 text-sm">Here’s what I was able to read:</p>
+                  <p id="wyse-readback-text" class="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white/70 p-3 text-xs font-medium text-slate-700"></p>
+                </div>
+              </div>
+            </div>
+
+            <div id="wyse-total-card" class="border-t border-slate-200 pt-4">
+              <div class="flex items-center justify-between gap-4">
+                <p class="text-base font-black text-slate-900">Estimated total</p>
+                <p id="wyse-selected-count" class="sr-only">0 items selected</p>
+                <p id="wyse-estimated-total" class="text-2xl font-black text-accent-blue">$0.00</p>
+              </div>
+            </div>
+
+            <button id="add-wyse-to-list" type="button" class="w-full min-h-[50px] px-5 py-3 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-black rounded-xl shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              <i class="fa-solid fa-cart-plus"></i>
+              <span id="add-wyse-to-list-label">Select items to add</span>
+            </button>
+            <p id="wyse-catalog-note" class="hidden"></p>
+
+            <!-- Save the recipe (all lines, including ones ShopWyse doesn't sell) -->
+            <div class="border-t border-slate-200 pt-4 space-y-2">
+              <label for="wyse-recipe-name" class="block text-xs font-bold uppercase tracking-wider text-slate-600">Save this recipe for later</label>
+              <div class="flex flex-col sm:flex-row gap-2">
+                <input id="wyse-recipe-name" type="text" maxlength="80" placeholder="Recipe name, e.g. Sunday pancakes"
+                  class="min-w-0 flex-1 min-h-[48px] px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:border-accent-blue focus:outline-none font-semibold text-slate-900">
+                <button id="wyse-save-recipe-button" type="button" onclick="saveScannedRecipe()"
+                  class="min-h-[48px] px-5 py-2.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-black rounded-xl transition flex items-center justify-center gap-2">
+                  <i class="fa-regular fa-bookmark" aria-hidden="true"></i> Save recipe
+                </button>
+              </div>
+              <p id="wyse-save-status" class="text-sm font-bold" aria-live="polite"></p>
+            </div>
+
+            <div class="hidden" aria-hidden="true">
+              <pre id="recognized-text"></pre>
+              <pre id="recipe-json"></pre>
+            </div>
           </div>
+          </div><!-- /wyse-scan-view -->
         </div>
-        </div><!-- /wyse-scan-view -->
       </div>
-    </div>
-  </div>
+    </section>
+  </main>
 
   <!-- ========================================================= -->
   <!-- MODAL: LOGIN REQUIRED POPUP                               -->
@@ -1391,27 +1459,24 @@ body.wyse-modal-open {
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // --- Global Application State ---
+
     const state = {
-      user_id: null, // !tentatively add this. check with teammates!
+      user_id: null,
       isLoggedIn: false,
       userEmail: '',
       userFirstName: '',
       zipCode: '84064',
       radius: 5,
-      searchTerm: null, // null until the user runs a search
-      claimedDeals: [], // Hot Deal ids already added to the cart
+      searchTerm: null,
+      claimedDeals: [],
       currentScreen: 'search',
       weeklyShoppingMinutes: null,
-      shoppingTimeSummary: null, // added these two but i don't knwo how that data would be stored
-      shoppingTimeBreakdown: [], // have to check with group
+      shoppingTimeSummary: null,
+      shoppingTimeBreakdown: [],
       savedLists: [],
       activeSavedList: null,
       viewingSavedList: false,
-      cart: [
-        { id: 'item_milk', name: 'Gallon Whole Milk', quantity: 2 },
-        { id: 'item_eggs', name: 'Large Grade A Eggs (18pk)', quantity: 2 },
-        { id: 'item_bread', name: 'Honey Wheat Bread', quantity: 3 }
-      ]
+      cart: []
     };
 
     let hasStartedNewList = false;
@@ -1620,12 +1685,13 @@ function closeGroceryListPrompt(value = false) {
       document.getElementById('modal-auth-interceptor').classList.add('hidden');
     }
 
-    const SCREENS = ['search', 'results', 'deals', 'list', 'map', 'login', 'register', 'account'];
+    const SCREENS = ['search', 'results', 'deals', 'list', 'map', 'login', 'register', 'account', 'recipes'];
     const PROTECTED_SCREENS = ['deals', 'map', 'list', 'account'];
 
     // replace: true updates the URL without adding a Back-button entry
     function navigateTo(screenId, { replace = false } = {}) {
       const screens = SCREENS;
+
       screens.forEach(s => {
         const el = document.getElementById(`screen-${s}`);
         if (el) el.classList.add('hidden');
@@ -1633,17 +1699,30 @@ function closeGroceryListPrompt(value = false) {
 
       const target = document.getElementById(`screen-${screenId}`);
       if (target) target.classList.remove('hidden');
+
       state.currentScreen = screenId;
+
+      // Let the page use its own full-width layout when Wyse Recipes is open
+      document.body.classList.toggle(
+        'recipes-screen-active',
+        screenId === 'recipes'
+      );
+
       window.scrollTo(0, 0);
 
-      // Keep the screen in the URL (#list, #map, ...) so a refresh returns here
+      // Keep the screen in the URL so refreshing returns to the same page
       if (location.hash !== `#${screenId}`) {
         if (replace) location.replace(`#${screenId}`);
         else location.hash = screenId;
       }
+
       persistAppState();
 
       // Trigger screen-specific rendering
+      if (screenId === 'recipes') {
+        showWyseTab('scan');
+      }
+
       if (screenId === 'deals') renderDeals();
 
       if (screenId === 'list') {
@@ -3232,8 +3311,7 @@ function openShoppingTimeBreakdown(event) {
     function loadAppState() {
       let saved = null;
       try { saved = JSON.parse(localStorage.getItem(APP_STATE_KEY)); } catch (e) {}
-      if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return; // first visit: keep the sample list
-
+      if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return; // first visit: start with an empty list
       if (Array.isArray(saved.cart)) {
         state.cart = saved.cart
           .filter(item => item && typeof item === 'object' &&
@@ -3490,7 +3568,7 @@ async function handleLoginImpl(e) {
     const WYSE_WELCOME_KEY = 'shopwyse_wyse_welcome_seen';
     const WYSE_MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
-    const wyseModal = document.querySelector('#wyse-assistant-modal');
+    const wysePage = document.querySelector('#screen-recipes');
     const wyseWelcome = document.querySelector('#wyse-welcome');
     const imageInput = document.querySelector('#recipe-image');
     const cameraInput = document.querySelector('#recipe-camera');
@@ -3543,11 +3621,10 @@ async function handleLoginImpl(e) {
     ];
 
     function openWyseAssistant() {
-      lastFocusedElement = document.activeElement;
-      wyseModal.classList.remove('hidden');
-      document.body.classList.add('wyse-modal-open');
+      navigateTo('recipes');
 
       let hasSeenWelcome = false;
+
       try {
         hasSeenWelcome = localStorage.getItem(WYSE_WELCOME_KEY) === 'true';
       } catch (error) {}
@@ -3555,30 +3632,18 @@ async function handleLoginImpl(e) {
       wyseWelcome.classList.toggle('hidden', hasSeenWelcome);
 
       if (!hasSeenWelcome) {
-        try { localStorage.setItem(WYSE_WELCOME_KEY, 'true'); } catch (error) {}
-      }
-
-      requestAnimationFrame(() => {
-        document.querySelector('#wyse-close-button').focus();
-      });
-    }
-
-    function closeWyseAssistant() {
-      wyseModal.classList.add('hidden');
-      document.body.classList.remove('wyse-modal-open');
-      if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
-        lastFocusedElement.focus();
+        try {
+          localStorage.setItem(WYSE_WELCOME_KEY, 'true');
+        } catch (error) {}
       }
     }
+
+    // Kept so existing recipe actions that call this function still work.
+    // Wyse Recipes is now a regular page, not a popup.
+    function closeWyseAssistant() {}
 
     window.openWyseAssistant = openWyseAssistant;
     window.closeWyseAssistant = closeWyseAssistant;
-
-    document.addEventListener('keydown', event => {
-      if (event.key === 'Escape' && !wyseModal.classList.contains('hidden')) {
-        closeWyseAssistant();
-      }
-    });
 
     function updateProgress(message) {
       statusElement.textContent = message;
@@ -3639,6 +3704,28 @@ async function handleLoginImpl(e) {
         };
         image.src = url;
       });
+    }
+
+    async function prepareRecipeImage(file) {
+      if (!file) return null;
+
+      const image = await loadBrowserImage(file);
+      const canvas = document.createElement('canvas');
+
+      const maxSize = 720;
+      const scale = Math.min(
+        1,
+        maxSize / Math.max(image.width, image.height)
+      );
+
+      canvas.width = Math.round(image.width * scale);
+      canvas.height = Math.round(image.height * scale);
+
+      const context = canvas.getContext('2d');
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+      // Compress the photo so it takes up less database space
+      return canvas.toDataURL('image/jpeg', 0.72);
     }
 
     function flattenTesseractLines(blocks = []) {
@@ -4408,19 +4495,32 @@ async function handleLoginImpl(e) {
       recipesStatus.className = `text-sm font-bold ${isError ? 'text-red-700' : 'text-emerald-700'}`;
     }
 
+    
     function showWyseTab(tab) {
       const onRecipes = tab === 'recipes';
-      document.getElementById('wyse-tab-scan').setAttribute('aria-selected', String(!onRecipes));
-      document.getElementById('wyse-tab-recipes').setAttribute('aria-selected', String(onRecipes));
-      document.getElementById('wyse-scan-view').classList.toggle('hidden', onRecipes);
-      document.getElementById('wyse-recipes-view').classList.toggle('hidden', !onRecipes);
-      document.getElementById('wyse-header-start-over').classList.toggle('hidden', onRecipes); // scanning only
-      // A recipe left open (even with unsaved edits) is still there when you come back
+
+      document.getElementById('wyse-tab-scan')
+        .setAttribute('aria-selected', String(!onRecipes));
+
+      document.getElementById('wyse-tab-recipes')
+        .setAttribute('aria-selected', String(onRecipes));
+
+      document.getElementById('wyse-scan-view')
+        .classList.toggle('hidden', onRecipes);
+
+      document.getElementById('wyse-recipes-view')
+        .classList.toggle('hidden', !onRecipes);
+
+      // Start Over belongs only to the Wyse AI tab
+      document.getElementById('wyse-header-start-over')
+        .classList.toggle('hidden', onRecipes);
+
       if (onRecipes && !openRecipe) {
         setRecipesStatus('');
         showRecipeList();
       }
     }
+
 
     // ---------- List of saved recipes ----------
     let recipesBootTimer = null;
@@ -4487,36 +4587,67 @@ async function handleLoginImpl(e) {
 
     function renderRecipeList() {
       if (!state.savedRecipes.length) {
-        recipesList.replaceChildren(emptyMessage('No saved recipes yet. Scan or type a recipe, then tap Save recipe.', 'Scan a recipe', () => showWyseTab('scan')));
+        recipesList.replaceChildren(
+          emptyMessage(
+            'No saved recipes yet. Scan or type a recipe, then tap Save recipe.',
+            'Scan a recipe',
+            () => showWyseTab('scan')
+          )
+        );
         return;
       }
-      recipesList.replaceChildren(...state.savedRecipes.map(recipe => {
-        const lines = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
-        const sold = lines.filter(line => recipeLineMatch(line)).length;
 
-        const li = document.createElement('li');
+      recipesList.className =
+        'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5';
+
+      recipesList.replaceChildren(...state.savedRecipes.map(recipe => {
+        const lines = Array.isArray(recipe.ingredients)
+          ? recipe.ingredients
+          : [];
+
+        const card = document.createElement('li');
+        card.className = 'wyse-recipe-card rounded-2xl border shadow-sm';
+
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = 'w-full text-left rounded-xl border border-slate-200 bg-white hover:border-accent-blue hover:bg-blue-50 p-4 flex items-center justify-between gap-3 transition';
+        button.className =
+          'w-full aspect-[4/3] flex flex-col text-left rounded-2xl overflow-hidden hover:shadow-md transition focus:outline-none focus:ring-2 focus:ring-blue-600';
+
         button.addEventListener('click', () => openRecipeDetail(recipe));
 
-        const text = document.createElement('div');
-        text.className = 'min-w-0';
-        const name = document.createElement('p');
-        name.className = 'font-black text-slate-900 break-words';
+        const image = document.createElement('img');
+        image.className = 'w-full flex-[3_1_0%] min-h-0 object-cover bg-brand-100';
+        image.alt = `${recipe.name} recipe preview`;
+
+        if (recipe.image_data) {
+          image.src = recipe.image_data;
+        } else {
+          image.src =
+            'https://placehold.co/600x400/e1f3ea/1b4332?text=Saved+Recipe';
+        }
+
+        const content = document.createElement('div');
+        content.className =
+          'flex-[1_1_0%] min-h-0 p-3 flex flex-col justify-center gap-1 overflow-hidden';
+
+        const name = document.createElement('h3');
+        name.className = 'font-black text-lg text-slate-900 break-words';
         name.textContent = recipe.name;
+
         const meta = document.createElement('p');
-        meta.className = 'text-xs font-semibold text-slate-600 mt-0.5';
-        meta.textContent = `${lines.length} ${lines.length === 1 ? 'ingredient' : 'ingredients'} · ${sold} sold at ShopWyse`;
-        text.append(name, meta);
+        meta.className = 'text-sm font-semibold text-slate-600';
+        meta.textContent =
+          `${lines.length} ${lines.length === 1 ? 'ingredient' : 'ingredients'}`;
 
-        const chevron = document.createElement('i');
-        chevron.className = 'fa-solid fa-chevron-right text-slate-500 shrink-0';
-        chevron.setAttribute('aria-hidden', 'true');
+        const openLabel = document.createElement('p');
+        openLabel.className = 'text-sm font-bold text-blue-700 pt-1';
+        openLabel.textContent = 'View recipe →';
 
-        button.append(text, chevron);
-        li.append(button);
-        return li;
+        content.append(name, meta, openLabel);
+        button.append(image, content);
+        card.append(button);
+
+        return card;
       }));
     }
 
@@ -4669,7 +4800,7 @@ async function handleLoginImpl(e) {
       const back = el('button', 'text-sm font-bold text-accent-blue hover:underline flex items-center gap-1.5');
       back.type = 'button';
       back.innerHTML = '<i class="fa-solid fa-arrow-left" aria-hidden="true"></i> ';
-      back.append('My recipes');
+      back.append('Back to saved recipes');
       back.addEventListener('click', () => {
         if (recipe.dirty && !confirm('You have unsaved changes to this recipe. Leave without saving?')) return;
         showRecipeList();
@@ -4885,22 +5016,41 @@ async function handleLoginImpl(e) {
         return;
       }
 
-      button.disabled = true; // no double saves
-      const { data, error } = await db
-        .from(RECIPES_TABLE)
-        .insert({ user_id: state.user_id, name, ingredients })
-        .select()
-        .single();
-      button.disabled = false;
+      button.disabled = true;
 
-      if (error) {
-        console.error('Error saving recipe:', error);
-        say('Could not save your recipe. Please try again.', true);
-        return;
+      try {
+        // Save a compressed copy of the selected recipe photo
+        const imageData = await prepareRecipeImage(selectedRecipeImage);
+
+        const { data, error } = await db
+          .from(RECIPES_TABLE)
+          .insert({
+            user_id: state.user_id,
+            name,
+            ingredients,
+            image_data: imageData
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error saving recipe:', error);
+          say('Could not save your recipe. Please try again.', true);
+          return;
+        }
+
+        if (state.savedRecipes) {
+          state.savedRecipes.unshift(data);
+        }
+
+        nameInput.value = '';
+        say(`Saved “${name}” to Saved Recipes.`);
+      } catch (error) {
+        console.error('Error preparing recipe photo:', error);
+        say('Could not prepare the recipe photo. Please try again.', true);
+      } finally {
+        button.disabled = false;
       }
-      if (state.savedRecipes) state.savedRecipes.unshift(data);
-      nameInput.value = '';
-      say(`Saved “${name}” to My recipes.`);
     }
 
     // Clear the save message when a new scan starts over or runs again
