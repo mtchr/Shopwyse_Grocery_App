@@ -1949,6 +1949,68 @@ function closeGroceryListPrompt(value = false) {
         description.className = 'text-sm text-slate-600 mt-2';
         description.textContent = 'Try a shorter search, a different spelling, or a category such as Dairy or Produce. Our current sample catalog is limited.';
         emptyState.append(heading, description);
+
+        // Recommend only products that really exist in the current catalog.
+        // For a multi-word request, keep the core food (bread in "gluten free bread")
+        // and use related pantry categories as a secondary fallback.
+        const commonModifiers = new Set([
+          'gluten', 'free', 'organic', 'low', 'no', 'sugar', 'reduced',
+          'fat', 'vegan', 'dairy', 'fresh', 'large', 'small', 'whole',
+          'unsalted', 'salted', 'non', 'lactose', 'brand', 'pack'
+        ]);
+        const relatedFoodWords = {
+          bread: ['bread', 'flour', 'baking', 'cereal'],
+          flour: ['flour', 'bread', 'baking', 'cereal'],
+          milk: ['milk', 'dairy', 'cheese', 'yogurt'],
+          cheese: ['cheese', 'dairy', 'milk'],
+          egg: ['egg', 'dairy'],
+          pasta: ['pasta', 'noodle', 'rice', 'pantry'],
+          rice: ['rice', 'pasta', 'pantry'],
+          apple: ['apple', 'fruit', 'produce'],
+          banana: ['banana', 'fruit', 'produce'],
+          chicken: ['chicken', 'meat', 'beef'],
+          beef: ['beef', 'meat', 'chicken']
+        };
+        const coreWords = [...new Set(queryWords.filter(word => !commonModifiers.has(word)))];
+        const candidateWords = coreWords.length ? coreWords : queryWords;
+        const suggestions = PRODUCTS.map(product => {
+          const productWords = normalizeSearch(product.name + ' ' + product.category)
+            .split(' ').map(singularSearchWord);
+          let relevance = 0;
+          for (const word of candidateWords) {
+            if (productWords.includes(word)) relevance += 10;
+            else if (productWords.some(pw => pw.startsWith(word) || word.startsWith(pw) && pw.length >= 4)) relevance += 5;
+            const related = relatedFoodWords[word] || [];
+            if (related.some(relatedWord => productWords.includes(relatedWord))) relevance += 2;
+          }
+          return { product, relevance };
+        }).filter(item => item.relevance > 0)
+          .sort((a, b) => b.relevance - a.relevance || a.product.name.localeCompare(b.product.name))
+          .slice(0, 5);
+
+        if (suggestions.length) {
+          const suggestionHeading = document.createElement('h4');
+          suggestionHeading.className = 'mt-6 text-base font-black text-slate-900';
+          suggestionHeading.textContent = 'Related options available';
+          const note = document.createElement('p');
+          note.className = 'text-xs text-slate-600 mt-1 mb-3';
+          note.textContent = 'These are alternatives, not guaranteed substitutes. Check ingredients and dietary requirements before purchasing.';
+          const suggestionList = document.createElement('div');
+          suggestionList.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2 text-left';
+          suggestions.forEach(({ product }) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'w-full text-left rounded-xl border border-brand-200 bg-brand-50 hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-accent-blue p-3 font-semibold text-brand-600';
+            button.textContent = `${product.icon || '🛒'} ${product.name}`;
+            button.setAttribute('aria-label', `Search for ${product.name}`);
+            button.addEventListener('click', () => {
+              document.getElementById('input-search-term').value = product.name;
+              applySearch(product.name, state.zipCode, state.radius);
+            });
+            suggestionList.appendChild(button);
+          });
+          emptyState.append(suggestionHeading, note, suggestionList);
+        }
         container.appendChild(emptyState);
       }
 
