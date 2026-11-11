@@ -364,7 +364,10 @@ body.wyse-modal-open {
       </div>
       <div>
         <span class="text-xl sm:text-2xl font-black tracking-tight text-brand-600">Shop<span class="text-accent-blue">Wyse</span></span>
-        <span class="hidden sm:inline-block ml-2 text-xs bg-brand-100 text-brand-600 px-2 py-0.5 rounded-full font-semibold">Provo / Salt Lake</span>
+        <span id="location-display"
+          class="hidden sm:inline-block ml-2 text-xs bg-brand-100 text-brand-600 px-2 py-0.5 rounded-full font-semibold">
+          Loading location...
+        </span>
       </div>
     </button>
 
@@ -494,7 +497,9 @@ body.wyse-modal-open {
             <label for="input-zip-code" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">ZIP Code</label>
             <div class="relative">
               <i class="fa-solid fa-location-dot absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-              <input type="text" id="input-zip-code" value="84064" maxlength="5" inputmode="numeric"
+              <input type="text" id="input-zip-code" value="84601" 
+                maxlength="5" inputmode="numeric"
+                oninput="saveZipPreference(this.value)"
                 class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-semibold text-slate-900" />
             </div>
           </div>
@@ -570,7 +575,7 @@ body.wyse-modal-open {
           <h2 class="text-2xl font-black text-slate-900">
             Results for: <span id="results-query-label" class="text-accent-blue font-semibold"></span>
           </h2>
-          <p class="text-sm text-slate-600">Comparing prices within <span id="results-radius-label" class="font-bold">5 miles</span> of <span id="results-zip-label" class="font-bold">84064</span></p>
+          <p class="text-sm text-slate-600">Comparing prices within <span id="results-radius-label" class="font-bold">5 miles</span> of <span id="results-zip-label" class="font-bold">84601</span></p>
         </div>
 
         <!-- Toggle Preview of Grocery List Button (desktop only; phones use the bottom bar) -->
@@ -655,11 +660,14 @@ body.wyse-modal-open {
           <h2 class="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
             <i class="fa-solid fa-fire text-amber-500 shrink-0"></i> Hot Deals Nearby
           </h2>
-          <p class="text-sm text-slate-600">Recent price drops and weekly specials in the Provo/Orem area.</p>
+          <p class="text-sm text-slate-600">Sample deals based on your selected ZIP code.</p>
         </div>
         <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
           <label for="deals-zip-input" class="text-xs font-bold uppercase text-slate-600">ZIP:</label>
-          <input type="text" id="deals-zip-input" value="84064" maxlength="5" inputmode="numeric" class="min-w-0 flex-1 sm:flex-none sm:w-24 px-3 py-3 sm:py-2 bg-slate-50 border border-slate-300 rounded-lg text-base font-bold text-center" />
+          <input type="text" id="deals-zip-input" value="84601" 
+                maxlength="5" inputmode="numeric"
+                oninput="saveZipPreference(this.value)"
+                class="min-w-0 flex-1 sm:flex-none sm:w-24 px-3 py-3 sm:py-2 bg-slate-50 border border-slate-300 rounded-lg text-base font-bold text-center" />
           <button onclick="refreshDeals()" class="shrink-0 px-5 py-3 sm:py-2 min-h-[44px] bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold rounded-lg text-sm transition">Update</button>
         </div>
       </div>
@@ -830,7 +838,10 @@ body.wyse-modal-open {
         <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <div class="flex items-center gap-2 w-full sm:w-auto">
             <label for="map-zip-input" class="text-xs font-bold uppercase text-slate-600 whitespace-nowrap">ZIP Code:</label>
-            <input type="text" id="map-zip-input" value="84064" maxlength="5" inputmode="numeric" class="flex-1 min-w-0 sm:flex-none sm:w-24 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-base sm:text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-accent-blue" />
+            <input type="text" id="map-zip-input" value="84601"
+              maxlength="5" inputmode="numeric"
+              oninput="saveZipPreference(this.value)"
+              class="flex-1 min-w-0 sm:flex-none sm:w-24 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-base sm:text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-accent-blue" />
             <button onclick="updateMapLocation()" class="px-5 py-2 min-h-[44px] bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold text-sm rounded-lg shadow transition">
               GO
             </button>
@@ -1465,7 +1476,7 @@ body.wyse-modal-open {
       isLoggedIn: false,
       userEmail: '',
       userFirstName: '',
-      zipCode: '84064',
+      zipCode: '84601',
       radius: 5,
       searchTerm: null,
       claimedDeals: [],
@@ -1478,6 +1489,68 @@ body.wyse-modal-open {
       viewingSavedList: false,
       cart: []
     };
+
+    // Update the header using the selected ZIP code  
+    let locationLookupRequest = 0;
+
+    async function updateLocationDisplay(zip) {
+      const display = document.getElementById('location-display');
+      const requestNumber = ++locationLookupRequest;
+
+      if (!display) return;
+
+      // Show the known default immediately instead of a loading message.
+      if (zip === '84601') {
+        display.textContent = 'Provo, UT, USA';
+        return;
+      }
+
+      if (!/^\d{5}$/.test(zip)) {
+        display.textContent = 'Provo, UT, USA';
+        return;
+      }
+
+      // Show the ZIP code while looking up other locations.
+      display.textContent = `ZIP ${zip}`;
+
+      try {
+        const response = await fetch(`https://api.zippopotam.us/us/${zip}`);
+
+        if (requestNumber !== locationLookupRequest) return;
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        if (requestNumber !== locationLookupRequest) return;
+
+        const place = data.places && data.places[0];
+
+        if (place) {
+          display.textContent =
+            `${place['place name']}, ${place['state abbreviation']}, USA`;
+        }
+      } catch (error) {
+        console.error('ZIP location lookup failed:', error);
+      }
+    }
+
+
+        // Save and synchronize a selected ZIP code
+        function saveZipPreference(value) {
+          const zip = String(value).trim();
+
+          if (!/^\d{5}$/.test(zip)) return;
+
+          state.zipCode = zip;
+
+          document.getElementById('input-zip-code').value = zip;
+          document.getElementById('deals-zip-input').value = zip;
+          document.getElementById('map-zip-input').value = zip;
+
+          persistAppState();
+          updateLocationDisplay(zip);
+        }
 
     let hasStartedNewList = false;
 
@@ -1657,16 +1730,54 @@ function closeGroceryListPrompt(value = false) {
     // productId links each deal to PRODUCTS so it can be added to the cart.
     // The first DEALS_SHOWN unclaimed deals are shown; the rest replace them as they're added.
     const DEALS_SHOWN = 6;
-    const HOT_DEALS = [
-      { id: 'deal_1', productId: 'item_milk', name: 'Gallon Whole Milk', storeId: 'costco_orem', oldPrice: 3.99, dealPrice: 2.95, discount: '26% off', icon: '🥛' },
-      { id: 'deal_2', productId: 'item_bananas', name: 'Bananas (Fresh Bunch)', storeId: 'traderjoes_orem', oldPrice: 1.69, dealPrice: 0.99, discount: '41% off', icon: '🍌' },
-      { id: 'deal_3', productId: 'item_eggs', name: 'Large Grade A Eggs (18pk)', storeId: 'walmart_provo', oldPrice: 4.49, dealPrice: 2.88, discount: '36% off', icon: '🥚' },
-      { id: 'deal_4', productId: 'item_beef', name: 'Ground Beef 80/20 (3 lb)', storeId: 'costco_orem', oldPrice: 16.99, dealPrice: 11.99, discount: '30% off', icon: '🥩' },
-      { id: 'deal_5', productId: 'item_cereal', name: 'Cereal Family Size', storeId: 'smiths_provo', oldPrice: 5.99, dealPrice: 2.99, discount: '50% off', icon: '🥣' },
-      { id: 'deal_6', productId: 'item_oj', name: 'Orange Juice 52oz', storeId: 'target_provo', oldPrice: 4.29, dealPrice: 2.49, discount: '42% off', icon: '🍊' },
-      { id: 'deal_7', productId: 'item_bread', name: 'Honey Wheat Bread', storeId: 'walmart_provo', oldPrice: 2.49, dealPrice: 1.84, discount: '26% off', icon: '🍞' },
-      { id: 'deal_8', productId: 'item_apples', name: 'Honeycrisp Apples (3 lb bag)', storeId: 'traderjoes_orem', oldPrice: 5.99, dealPrice: 4.49, discount: '25% off', icon: '🍎' }
-    ];
+    const HOT_DEALS_BY_REGION = {
+      provo: [
+        { id: 'provo_deal_1', productId: 'item_milk', name: 'Gallon Whole Milk', storeName: 'Costco Wholesale', oldPrice: 3.99, dealPrice: 2.95, discount: '26% off', icon: '🥛' },
+        { id: 'provo_deal_2', productId: 'item_bananas', name: 'Bananas (Fresh Bunch)', storeName: "Trader Joe's", oldPrice: 1.69, dealPrice: 0.99, discount: '41% off', icon: '🍌' },
+        { id: 'provo_deal_3', productId: 'item_eggs', name: 'Large Grade A Eggs (18pk)', storeName: 'Walmart Supercenter', oldPrice: 4.49, dealPrice: 2.88, discount: '36% off', icon: '🥚' },
+        { id: 'provo_deal_4', productId: 'item_beef', name: 'Ground Beef 80/20 (3 lb)', storeName: 'Costco Wholesale', oldPrice: 16.99, dealPrice: 11.99, discount: '30% off', icon: '🥩' },
+        { id: 'provo_deal_5', productId: 'item_cereal', name: 'Cereal Family Size', storeName: "Smith's Food & Drug", oldPrice: 5.99, dealPrice: 2.99, discount: '50% off', icon: '🥣' },
+        { id: 'provo_deal_6', productId: 'item_oj', name: 'Orange Juice 52oz', storeName: 'Target', oldPrice: 4.29, dealPrice: 2.49, discount: '42% off', icon: '🍊' },
+        { id: 'provo_deal_7', productId: 'item_bread', name: 'Honey Wheat Bread', storeName: 'Walmart Supercenter', oldPrice: 2.49, dealPrice: 1.84, discount: '26% off', icon: '🍞' },
+        { id: 'provo_deal_8', productId: 'item_apples', name: 'Honeycrisp Apples (3 lb bag)', storeName: "Trader Joe's", oldPrice: 5.99, dealPrice: 4.49, discount: '25% off', icon: '🍎' }
+      ],
+
+      gilbert: [
+        { id: 'gilbert_deal_1', productId: 'item_milk', name: 'Gallon Whole Milk', storeName: 'Fry’s Food Stores', oldPrice: 3.99, dealPrice: 2.79, discount: '30% off', icon: '🥛' },
+        { id: 'gilbert_deal_2', productId: 'item_bananas', name: 'Bananas (Fresh Bunch)', storeName: 'Walmart Supercenter', oldPrice: 1.69, dealPrice: 0.89, discount: '47% off', icon: '🍌' },
+        { id: 'gilbert_deal_3', productId: 'item_eggs', name: 'Large Grade A Eggs (18pk)', storeName: 'Target', oldPrice: 4.49, dealPrice: 2.99, discount: '33% off', icon: '🥚' },
+        { id: 'gilbert_deal_4', productId: 'item_beef', name: 'Ground Beef 80/20 (3 lb)', storeName: 'Costco Wholesale', oldPrice: 16.99, dealPrice: 12.49, discount: '26% off', icon: '🥩' },
+        { id: 'gilbert_deal_5', productId: 'item_cereal', name: 'Cereal Family Size', storeName: 'Fry’s Food Stores', oldPrice: 5.99, dealPrice: 3.49, discount: '42% off', icon: '🥣' },
+        { id: 'gilbert_deal_6', productId: 'item_oj', name: 'Orange Juice 52oz', storeName: 'Walmart Supercenter', oldPrice: 4.29, dealPrice: 2.69, discount: '37% off', icon: '🍊' },
+        { id: 'gilbert_deal_7', productId: 'item_bread', name: 'Honey Wheat Bread', storeName: 'Target', oldPrice: 2.49, dealPrice: 1.79, discount: '28% off', icon: '🍞' },
+        { id: 'gilbert_deal_8', productId: 'item_apples', name: 'Honeycrisp Apples (3 lb bag)', storeName: 'Costco Wholesale', oldPrice: 5.99, dealPrice: 4.29, discount: '28% off', icon: '🍎' }
+      ],
+
+      nyc: [
+        { id: 'nyc_deal_1', productId: 'item_milk', name: 'Gallon Whole Milk', storeName: 'Target', oldPrice: 5.49, dealPrice: 3.99, discount: '27% off', icon: '🥛' },
+        { id: 'nyc_deal_2', productId: 'item_bananas', name: 'Bananas (Fresh Bunch)', storeName: 'Trader Joe’s', oldPrice: 1.99, dealPrice: 1.29, discount: '35% off', icon: '🍌' },
+        { id: 'nyc_deal_3', productId: 'item_eggs', name: 'Large Grade A Eggs (18pk)', storeName: 'Costco Wholesale', oldPrice: 5.49, dealPrice: 3.99, discount: '27% off', icon: '🥚' },
+        { id: 'nyc_deal_4', productId: 'item_beef', name: 'Ground Beef 80/20 (3 lb)', storeName: 'Target', oldPrice: 18.99, dealPrice: 14.99, discount: '21% off', icon: '🥩' },
+        { id: 'nyc_deal_5', productId: 'item_cereal', name: 'Cereal Family Size', storeName: 'Trader Joe’s', oldPrice: 6.49, dealPrice: 3.99, discount: '39% off', icon: '🥣' },
+        { id: 'nyc_deal_6', productId: 'item_oj', name: 'Orange Juice 52oz', storeName: 'Target', oldPrice: 4.99, dealPrice: 3.49, discount: '30% off', icon: '🍊' },
+        { id: 'nyc_deal_7', productId: 'item_bread', name: 'Honey Wheat Bread', storeName: 'Trader Joe’s', oldPrice: 3.49, dealPrice: 2.49, discount: '29% off', icon: '🍞' },
+        { id: 'nyc_deal_8', productId: 'item_apples', name: 'Honeycrisp Apples (3 lb bag)', storeName: 'Target', oldPrice: 6.99, dealPrice: 5.49, discount: '21% off', icon: '🍎' }
+      ]
+    };
+
+    function getActiveDeals() {
+      const zip = String(state.zipCode || '84601');
+
+      if (zip.startsWith('85')) {
+        return HOT_DEALS_BY_REGION.gilbert;
+      }
+
+      if (zip.startsWith('10')) {
+        return HOT_DEALS_BY_REGION.nyc;
+      }
+
+      return HOT_DEALS_BY_REGION.provo;
+    }
 
     // Leaflet map instance
     let leafletMap = null;
@@ -2974,31 +3085,42 @@ function openShoppingTimeBreakdown(event) {
     // A deal stays hidden only while its item is still in the list, so removing
     // the item (or clearing, starting a new, or saving the list) brings the deal back.
     function pruneClaimedDeals() {
+      const allDeals = Object.values(HOT_DEALS_BY_REGION).flat();
+
       state.claimedDeals = state.claimedDeals.filter(id => {
-        const deal = HOT_DEALS.find(d => d.id === id);
+        const deal = allDeals.find(d => d.id === id);
         return deal && state.cart.some(item => item.id === deal.productId);
       });
     }
 
     function renderDeals() {
       const container = document.getElementById('deals-container');
+      const activeDeals = getActiveDeals();
+
       pruneClaimedDeals();
 
       // Keep quantities the user already picked on cards that stay on screen
       const pickedQty = {};
-      container.querySelectorAll('[id^="qty-"]').forEach(el => { pickedQty[el.id] = el.textContent; });
+      container.querySelectorAll('[id^="qty-"]').forEach(el => {
+        pickedQty[el.id] = el.textContent;
+      });
+
       container.innerHTML = '';
 
-      const available = HOT_DEALS.filter(d => !state.claimedDeals.includes(d.id)).slice(0, DEALS_SHOWN);
+      const available = activeDeals
+        .filter(d => !state.claimedDeals.includes(d.id))
+        .slice(0, DEALS_SHOWN);
+
       if (available.length === 0) {
         container.innerHTML = '<p class="col-span-full py-8 text-center text-slate-600">You\'ve added every Hot Deal to your list. Check back soon for new ones.</p>';
         return;
       }
 
       available.forEach(deal => {
-        const store = STORES.find(s => s.id === deal.storeId);
         const card = document.createElement('div');
+
         card.className = 'min-w-0 w-full bg-white rounded-2xl p-4 sm:p-5 border border-brand-200 shadow-sm flex flex-col justify-between gap-3';
+
         card.innerHTML = `
           <div>
             <div class="flex items-center justify-between mb-3">
@@ -3007,7 +3129,7 @@ function openShoppingTimeBreakdown(event) {
             </div>
             <h3 class="font-black text-slate-900 text-base sm:text-lg break-words">${deal.name}</h3>
             <p class="text-sm text-slate-600 font-medium flex items-start gap-2 mt-2 break-words">
-              <i class="fa-solid fa-location-dot text-brand-500"></i> ${store.name} (${store.distance} mi)
+              <i class="fa-solid fa-location-dot text-brand-500"></i> ${deal.storeName}
             </p>
             <div class="mt-3 flex flex-wrap items-baseline gap-2">
               <span class="text-2xl font-black text-brand-600">$${deal.dealPrice.toFixed(2)}</span>
@@ -3019,6 +3141,7 @@ function openShoppingTimeBreakdown(event) {
             <i class="fa-solid fa-cart-plus"></i> Add Deal to Cart
           </button>
         `;
+
         container.appendChild(card);
       });
 
@@ -3029,9 +3152,12 @@ function openShoppingTimeBreakdown(event) {
     }
 
     function addDealToCart(dealId) {
-      const deal = HOT_DEALS.find(d => d.id === dealId);
+      const deal = getActiveDeals().find(d => d.id === dealId);
+
       pruneClaimedDeals();
-      if (!deal || state.claimedDeals.includes(dealId)) return; // ignore repeat clicks
+
+      if (!deal || state.claimedDeals.includes(dealId)) return;
+
       const quantity = readQty(dealId);
 
       // Remove the card and show the next deal only once the item is really in the cart
@@ -3042,9 +3168,17 @@ function openShoppingTimeBreakdown(event) {
     }
 
     function refreshDeals() {
-      const zip = document.getElementById('deals-zip-input').value;
-      state.zipCode = zip;
-      showToast(`Updated Hot Deals for ZIP ${zip}`);
+      const zip = document.getElementById('deals-zip-input').value.trim();
+
+      if (!/^\d{5}$/.test(zip)) {
+        alert('Please enter a valid 5-digit ZIP code.');
+        return;
+      }
+
+      saveZipPreference(zip);
+      renderDeals();
+
+      showToast(`Updated sample Hot Deals for ZIP ${zip}`);
     }
 
     // --- MAP VIEW (Sticky 6 & Option A Logic) ---
@@ -3297,6 +3431,8 @@ function openShoppingTimeBreakdown(event) {
         viewingSavedList: state.viewingSavedList,
         activeSavedList: state.activeSavedList,
         claimedDeals: state.claimedDeals,
+        zipCode: state.zipCode,
+        radius: state.radius,
         search: state.searchTerm === null ? null
           : { term: state.searchTerm, zip: state.zipCode, radius: state.radius }
       };
@@ -3327,6 +3463,19 @@ function openShoppingTimeBreakdown(event) {
         list.items.every(item => item && typeof item === 'object' && isValidQuantity(Number(item.quantity)));
       state.viewingSavedList = saved.viewingSavedList === true && !!listUsable;
       state.activeSavedList = state.viewingSavedList ? list : null;
+
+      // Restore the last selected ZIP code, even if no search was completed
+      const savedZip = /^\d{5}$/.test(String(saved.zipCode))
+        ? String(saved.zipCode)
+        : saved.search && /^\d{5}$/.test(String(saved.search.zip))
+          ? String(saved.search.zip)
+          : '84601';
+
+      state.zipCode = savedZip;
+
+      document.getElementById('input-zip-code').value = savedZip;
+      document.getElementById('deals-zip-input').value = savedZip;
+      document.getElementById('map-zip-input').value = savedZip;
 
       const search = saved.search;
       if (search && typeof search === 'object' && typeof search.term === 'string' && /^\d{5}$/.test(String(search.zip))) {
@@ -3546,6 +3695,7 @@ async function handleLoginImpl(e) {
     window.addEventListener('DOMContentLoaded', async () => {
       try {
         loadAppState();
+        updateLocationDisplay(state.zipCode || '84601');
         renderCartDrawer();
       } catch (e) {
         // Last line of defense: never let saved data stop the app from starting
