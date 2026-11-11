@@ -828,7 +828,7 @@ body.wyse-modal-open {
         <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <div class="flex items-center gap-2 w-full sm:w-auto">
             <label for="map-zip-input" class="text-xs font-bold uppercase text-slate-600 whitespace-nowrap">ZIP Code:</label>
-            <input type="text" id="map-zip-input" value="84601"
+            <input type="text" id="map-zip-input" aria-label="Map ZIP code" value="84601"
               maxlength="5" inputmode="numeric"
               oninput="saveZipPreference(this.value)"
               class="flex-1 min-w-0 sm:flex-none sm:w-24 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-base sm:text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-accent-blue" />
@@ -839,7 +839,7 @@ body.wyse-modal-open {
 
           <div class="flex items-center gap-2">
             <label for="map-radius-select" class="text-xs font-bold uppercase text-slate-600">Radius:</label>
-            <select id="map-radius-select" onchange="updateMapLocation()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-base sm:text-sm font-bold text-slate-700">
+            <select id="map-radius-select" aria-label="Map search radius" onchange="updateMapLocation()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-base sm:text-sm font-bold text-slate-700">
               <option value="5" selected>5 miles</option>
               <option value="10">10 miles</option>
               <option value="15">15 miles</option>
