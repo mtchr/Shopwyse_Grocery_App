@@ -718,16 +718,6 @@ body.wyse-modal-open {
                 Back to My Current List
               </button>
 
-              <!-- Start New List -->
-              <button
-                id="start-new-list-button"
-                onclick="requestStartNewGroceryList()"
-                title="Start a new grocery list"
-                aria-label="Start a new grocery list"
-                class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-accent-blue flex items-center justify-center transition">
-                <i class="fa-solid fa-plus text-lg"></i>
-              </button>
-
               <!-- Save Grocery List -->
               <button
                 id="save-grocery-list-button"
@@ -2507,16 +2497,18 @@ function openShoppingTimeBreakdown(event) {
       countLabel.textContent = totalItemsCount;
 
       if (listItems.length === 0) {
-        container.innerHTML = hasStartedNewList
-          ? '<p class="py-8 text-center text-slate-400">No items in your grocery list. Search items or browse hot deals to add them!</p>'
-          : `<div class="py-8 text-center">
-              <p class="font-semibold text-slate-700 mb-2">Ready to start your grocery list?</p>
-              <p class="text-sm text-slate-600">
-                Click the blue
-                <i class="fa-solid fa-plus text-accent-blue mx-1" aria-hidden="true"></i>
-                button above to create a new list!
-              </p>
-            </div>`;
+        container.innerHTML = `
+          <div class="py-8 text-center">
+            <p class="font-semibold text-slate-700">
+              Nothing is in your cart yet! Click
+              <a
+                href="#search"
+                onclick="navigateTo('search'); return false;"
+                class="text-brand-600 font-bold underline hover:text-brand-700"
+              >here</a>
+              to begin adding items.
+            </p>
+          </div>`;
 
         storeTotalsContainer.innerHTML = '<p class="text-xs text-slate-400">No active store estimates.</p>';
         grandTotalLabel.textContent = '$0.00';
@@ -2790,7 +2782,7 @@ function openShoppingTimeBreakdown(event) {
     }
 
     // --- Saved Grocery Lists ---
-    async function saveGroceryListImpl(startNewAfterSave = false) {
+    async function saveGroceryListImpl() {
       if (!state.isLoggedIn || !state.user_id) {
         showToast('Please log in before saving a grocery list.');
         return;
@@ -2837,16 +2829,11 @@ function openShoppingTimeBreakdown(event) {
 
       state.savedLists.unshift(data);
 
-      // Clear the current list after saving
+      // Automatically start a fresh grocery list after saving
       state.cart = [];
       state.activeSavedList = null;
       state.viewingSavedList = false;
-      hasStartedNewList = false;
-
-      // If the user clicked + to start a new list, update the empty-list message
-      if (startNewAfterSave) {
-        hasStartedNewList = true;
-      }
+      hasStartedNewList = true;
 
       renderGroceryList();
       renderCartDrawer();
@@ -2859,7 +2846,6 @@ function openShoppingTimeBreakdown(event) {
         10000
       );
     }
-
 
     async function loadSavedGroceryLists() {
       if (!state.user_id) return;
@@ -3072,7 +3058,7 @@ function openShoppingTimeBreakdown(event) {
       state.cart = [];
       state.activeSavedList = null;
       state.viewingSavedList = false;
-      hasStartedNewList = false;
+      hasStartedNewList = true;
 
       renderGroceryList();
       renderCartDrawer();
