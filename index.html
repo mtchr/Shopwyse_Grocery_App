@@ -755,24 +755,6 @@ body.wyse-modal-open {
               <!-- Dynamically populated -->
             </div>
 
-            <div class="pt-4 border-t border-slate-200">
-              <div class="totals-summary">
-                <div class="totals-summary__line">
-                  <span class="totals-summary__label">
-                    Estimated subtotal
-                  </span>
-
-                  <span class="totals-summary__tax-note">
-                    (Taxes not included)
-                  </span>
-                </div>
-
-                <span id="cart-grand-total" class="totals-summary__amount">
-                  $0.00
-                </span>
-              </div>
-            </div>
-
             <div class="pt-4 border-t border-slate-200 flex justify-between items-center">
               <div>
                 <div class="flex items-center gap-1.5">
@@ -794,6 +776,32 @@ body.wyse-modal-open {
               </div>
             </div>
             
+
+            <!-- Savings compared with buying everything at the cheapest single store -->
+            <div class="pt-4 border-t border-slate-200">
+              <span class="block text-xs uppercase font-bold text-slate-600">Estimated Money Saved</span>
+              <span id="cart-estimated-savings" class="block mt-1 text-2xl font-black text-emerald-700">$0.00</span>
+              <p class="mt-1 text-xs text-slate-600">Compared with buying your entire list at the cheapest single store.</p>
+            </div>
+
+            <div class="pt-4 border-t border-slate-200">
+              <div class="totals-summary">
+                <div class="totals-summary__line">
+                  <span class="totals-summary__label">
+                    Estimated Total (Before Tax)
+                  </span>
+
+                  <span class="totals-summary__tax-note">
+                    (Tax not included)
+                  </span>
+                </div>
+
+                <span id="cart-grand-total" class="totals-summary__amount">
+                  $0.00
+                </span>
+              </div>
+            </div>
+
 
             <!-- Desktop only; phones use the bottom bar instead -->
             <button onclick="guardNav('map')" class="hidden lg:flex w-full py-3.5 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold rounded-xl shadow transition items-center justify-center gap-2 touch-btn">
@@ -2687,6 +2695,12 @@ function openShoppingTimeBreakdown(event) {
       const cheapestTotal = sortedStores.length > 0
         ? sortedStores[0].total
         : 0;
+
+      const estimatedSavings = Math.max(0, cheapestTotal - bestSplitTotal);
+      const savingsLabel = document.getElementById('cart-estimated-savings');
+      if (savingsLabel) {
+        savingsLabel.textContent = `$${estimatedSavings.toFixed(2)}`;
+      }
 
       let storeListHtml = '';
 
