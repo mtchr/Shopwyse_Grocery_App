@@ -1934,6 +1934,26 @@ function closeGroceryListPrompt(value = false) {
       return Number(Math.max(0.29, Math.round(raw * 10) / 10 - 0.01).toFixed(2));
     }
 
+    // Kroger departments that aren't groceries or household items; any product tagged
+    // with one of these is left out of search results (clothing, medicine, etc.)
+    const NON_GROCERY_CATEGORIES = new Set([
+      'Apparel',
+      'Health',          // medicine, vitamins, first aid, pharmacy
+      'Electronics',
+      'Gift Cards',
+      'Automotive',
+      'Sporting Goods'
+    ]);
+
+    // Backstop for medicine Kroger files under another department (e.g. pain relievers in Personal Care)
+    const MEDICINE_NAME_PATTERN = /\b(ibuprofen|acetaminophen|naproxen|aspirin|pain relie(f|ver)|caplets?|antacid|antihistamine|allergy relief|decongestant|cough|cold (and|&) flu|laxative|sleep aid|nicotine)\b/i;
+
+    function isGroceryProduct(p) {
+      const categories = Array.isArray(p && p.categories) ? p.categories : [];
+      if (categories.some(category => NON_GROCERY_CATEGORIES.has(category))) return false;
+      return !MEDICINE_NAME_PATTERN.test(String((p && p.description) || ''));
+    }
+
     function isKrogerProductKey(id) {
       return /^kr_\d{13}$/.test(String(id));
     }
@@ -2230,10 +2250,14 @@ function closeGroceryListPrompt(value = false) {
       fetchKrogerSearch(query, state.zipCode, state.radius)
         .then(result => {
           if (seq !== searchRequestSeq) return; // a newer search has started
-          const products = registerKrogerProducts(result.products, result.location);
+          const groceryResults = result.products.filter(isGroceryProduct);
+          const hiddenCount = result.products.length - groceryResults.length;
+          const products = registerKrogerProducts(groceryResults, result.location);
           renderResultCards(products, {
             live: result,
-            emptyText: "Smith's doesn't carry anything matching that search. Try a different word or spelling."
+            emptyText: hiddenCount
+              ? "ShopWyse compares groceries and household items, so clothing, medicine and similar products aren't shown. Try a grocery search."
+              : "Smith's doesn't carry anything matching that search. Try a different word or spelling."
           });
         })
         .catch(error => {
