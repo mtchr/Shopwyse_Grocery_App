@@ -12,6 +12,10 @@ Please see the ERD PDF for full ERD
 
 `userstimes` records one row per shopping trip, so we can track how long each user spends shopping.
 
+alana - 10 minutes, 3 items 
+      - 12 minutes, 6 items
+      - 25 minutes, 30 items 
+
 | Column | Type | Notes |
 | --- | --- | --- |
 | `timeid` | `int8` | Primary key |
