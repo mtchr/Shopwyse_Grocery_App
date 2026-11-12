@@ -179,6 +179,88 @@
   }
 }
 
+
+/* Wyse Recipes full-page layout */
+body.recipes-screen-active main {
+  max-width: none;
+}
+
+#screen-recipes {
+  width: 100%;
+  max-width: none;
+  padding: 1.25rem clamp(0.75rem, 2vw, 2rem) 2rem;
+}
+
+.wyse-section-tabs {
+  background: linear-gradient(110deg, #d9eee2 0%, #e7f0ff 100%);
+  border: 1px solid #b9d9c8;
+  box-shadow: 0 2px 8px rgba(27, 67, 50, 0.07);
+}
+
+.wyse-tab-button {
+  color: #315b48;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid transparent;
+}
+
+.wyse-tab-button:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.wyse-tab-button[aria-selected="true"] {
+  color: #1b4332;
+  background: #ffffff;
+  border-color: #9bc8ad;
+  box-shadow: 0 2px 7px rgba(27, 67, 50, 0.12);
+}
+
+.wyse-saved-page {
+  min-height: max(680px, calc(100vh - 190px));
+  background: linear-gradient(135deg, #e5f3e9 0%, #edf4ff 52%, #f7f4e9 100%);
+}
+
+#wyse-recipes-list-view,
+#wyse-recipe-detail {
+  width: 100%;
+}
+
+#wyse-recipe-detail {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid #b9d9c8;
+  border-radius: 1.25rem;
+  padding: clamp(1rem, 2vw, 1.75rem);
+  box-shadow: 0 3px 12px rgba(27, 67, 50, 0.07);
+}
+
+#screen-recipes .wyse-recipe-card {
+  min-width: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border-color: #b9d9c8;
+}
+
+#screen-recipes .wyse-recipe-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 640px) {
+  #screen-recipes {
+    padding: 0.75rem 0.65rem 1.25rem;
+  }
+
+  .wyse-saved-page {
+    min-height: calc(100vh - 175px);
+    padding: 1rem;
+  }
+
+  .wyse-tab-button {
+    gap: 0.4rem;
+  }
+}
+
 /* Wyse AI assistant */
 body.wyse-modal-open {
   overflow: hidden;
@@ -197,19 +279,21 @@ body.wyse-modal-open {
   height: 100%;
 }
 
+
 .wyse-dropzone {
-  background: #f2f9f5;
+  background: linear-gradient(135deg, #e5f3e9 0%, #edf4ff 52%, #f7f4e9 100%);
   border: 2px dashed #94a3b8;
-  transition: border-color 160ms ease, background-color 160ms ease,
+  transition: border-color 160ms ease, background 160ms ease,
     transform 160ms ease;
 }
 
 .wyse-dropzone:hover,
 .wyse-dropzone:focus-within,
 .wyse-dropzone.is-dragging {
-  background: #e1f3ea;
-  border-color: #2563eb;
+  background: linear-gradient(135deg, #e5f3e9 0%, #edf4ff 52%, #f7f4e9 100%);
+  border-color: #8b5cf6;
 }
+
 
 .wyse-dropzone.is-dragging {
   transform: scale(1.01);
@@ -233,8 +317,8 @@ body.wyse-modal-open {
 }
 
 /* Improve Wyse AI Assistant placeholder contrast */
-#wyse-assistant-modal input::placeholder,
-#wyse-assistant-modal textarea::placeholder {
+#screen-recipes input::placeholder,
+#screen-recipes textarea::placeholder {
     color: #475569;
     opacity: 1;
 }
@@ -253,10 +337,112 @@ body.wyse-modal-open {
     color: #475569 !important;
 }
 
-/* Wyse AI Assistant */
-#wyse-assistant-modal .text-slate-500,
-#wyse-assistant-modal .text-slate-400 {
+/* Wyse Recipes */
+#screen-recipes .text-slate-500,
+#screen-recipes .text-slate-400 {
     color: #475569 !important;
+}
+
+/* WYSE RECIPES: Change blue accents to purple */
+#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).text-accent-blue {
+  color: #7c3aed !important;
+}
+
+#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).bg-accent-blue {
+  background-color: #7c3aed !important;
+}
+
+#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).hover\:bg-accent-blueHover:hover {
+  background-color: #6d28d9 !important;
+}
+
+#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).border-blue-800,
+#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).border-blue-200,
+#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).border-blue-400 {
+  border-color: #c4b5fd !important;
+}
+
+#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).bg-blue-50 {
+  background-color: #f5f3ff !important;
+}
+
+#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).text-blue-900 {
+  color: #4c1d95 !important;
+}
+
+#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).border-t-accent-blue {
+  border-top-color: #7c3aed !important;
+}
+
+#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).hover\:border-blue-500:hover {
+  border-color: #8b5cf6 !important;
+}
+
+#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).focus\:ring-blue-100:focus {
+  --tw-ring-color: #ede9fe !important;
+}
+
+#screen-recipes .wyse-dropzone:hover,
+#screen-recipes .wyse-dropzone:focus-within,
+#screen-recipes .wyse-dropzone.is-dragging {
+  border-color: #7c3aed !important;
+}
+
+#screen-recipes svg [fill="#2563EB"] {
+  fill: #7c3aed !important;
+}
+
+#screen-recipes svg [stroke="#2563EB"] {
+  stroke: #7c3aed !important;
+}
+
+/* WYSE RECIPES: Additional purple styling fixes */
+
+/* WYSE RECIPES: Make saved recipe preview links purple */
+#screen-recipes .wyse-recipe-card .text-accent-blue,
+#screen-recipes .wyse-recipe-card .fa-arrow-right {
+  color: #7c3aed !important;
+}
+
+#screen-recipes .wyse-recipe-card:hover {
+  border-color: #8b5cf6 !important;
+}
+
+#screen-recipes .wyse-recipe-card:focus {
+  --tw-ring-color: #c4b5fd !important;
+}
+
+/* Handwritten recipe checkbox */
+#screen-recipes #recipe-handwriting-mode {
+  accent-color: #7c3aed !important;
+}
+
+/* Typed ingredients box when selected */
+#screen-recipes #recipe-text:focus {
+  border-color: #8b5cf6 !important;
+  --tw-ring-color: #ddd6fe !important;
+  box-shadow: 0 0 0 2px #ddd6fe !important;
+  outline: none !important;
+}
+
+
+/* WYSE RECIPES: Final purple fixes for Saved Recipes */
+
+/* Change blue text and icons inside Saved Recipes to purple */
+#wyse-recipes-view .text-accent-blue {
+  color: #7c3aed !important;
+}
+
+/* Change the checkboxes when a saved recipe is opened */
+#wyse-recipe-detail input[type="checkbox"] {
+  accent-color: #7c3aed !important;
+  --tw-ring-color: #c4b5fd !important;
+}
+
+/* Change the focus outline on ingredient checkboxes */
+#wyse-recipe-detail input[type="checkbox"]:focus {
+  outline-color: #8b5cf6 !important;
+  box-shadow: 0 0 0 2px #ddd6fe !important;
 }
 
   </style>
@@ -271,14 +457,19 @@ body.wyse-modal-open {
 <header class="sticky top-0 z-40 bg-white border-b border-brand-200 shadow-sm">
   <div class="max-w-full mx-auto px-4 py-3 flex items-center justify-between gap-4">
     <!-- App Brand -->
-    <div class="flex items-center gap-3 shrink-0">
+    <button
+      type="button"
+      onclick="closeMobileMenu(); navigateTo('search')"
+      aria-label="ShopWyse - Go to Search"
+      class="flex items-center gap-3 shrink-0 text-left cursor-pointer"
+    >
       <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-brand-500 text-white flex items-center justify-center text-lg sm:text-xl font-bold shadow-sm">
         <i class="fa-solid fa-basket-shopping"></i>
       </div>
       <div>
         <span class="text-xl sm:text-2xl font-black tracking-tight text-brand-600">Shop<span class="text-accent-blue">Wyse</span></span>
       </div>
-    </div>
+    </button>
 
     
     <!-- Mobile Header Buttons -->
@@ -324,24 +515,15 @@ body.wyse-modal-open {
         <span id="cart-counter-badge" class="bg-accent-blue text-white text-xs font-bold px-2 py-0.5 rounded-full ml-1">0</span>
       </button>
 
+      <button onclick="guardNav('recipes')" id="nav-recipes"
+        class="px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
+        <i class="fa-solid fa-book-open text-violet-600"></i>
+        <span>Wyse Recipes</span>
+      </button>
+
       <button onclick="guardNav('account')" id="nav-account" class="px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
         <i class="fa-regular fa-circle-user text-slate-600 text-lg"></i>
         <span id="account-nav-label" class="hidden md:inline">Account</span>
-      </button>
-
-      <button onclick="openWyseAssistant()" id="nav-wyse" class="px-2.5 py-1.5 rounded-xl font-bold text-slate-700 hover:text-accent-blue hover:bg-blue-50 flex items-center gap-2 transition" aria-label="Open Wyse AI Assistant">
-        <span class="wyse-avatar w-8 h-8" aria-hidden="true">
-          <svg viewBox="0 0 48 48" role="img">
-            <circle cx="24" cy="24" r="22" fill="#2563EB"/>
-            <path d="M15 19h18l-1.7 17H16.7L15 19Z" fill="white"/>
-            <path d="M19 19v-2.2a5 5 0 0 1 10 0V19" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-            <circle cx="21" cy="26" r="1.4" fill="#2563EB"/>
-            <circle cx="27" cy="26" r="1.4" fill="#2563EB"/>
-            <path d="M20.5 30c1.8 2 5.2 2 7 0" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round"/>
-          </svg>
-        </span>
-        <span class="hidden lg:inline whitespace-nowrap">Wyse AI Assistant</span>
-        <span class="lg:hidden whitespace-nowrap">Wyse AI</span>
       </button>
     </nav>
   </div>
@@ -357,21 +539,13 @@ body.wyse-modal-open {
     <button onclick="closeMobileMenu(); guardNav('list')" class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 border-b border-slate-100 touch-btn">
       <i class="fa-solid fa-cart-shopping text-accent-blue w-5"></i> Grocery List
     </button>
+    <button onclick="closeMobileMenu(); guardNav('recipes')"
+      class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 border-b border-slate-100 touch-btn">
+      <i class="fa-solid fa-book-open text-violet-600 w-5"></i>
+      Wyse Recipes
+    </button>
     <button onclick="closeMobileMenu(); guardNav('account')" class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 touch-btn">
       <i class="fa-regular fa-circle-user text-slate-600 w-5"></i> Account
-    </button>
-    <button onclick="closeMobileMenu(); openWyseAssistant()" class="w-full py-3 flex items-center gap-3 text-left font-bold text-slate-700 border-t border-slate-100 touch-btn">
-      <span class="wyse-avatar w-7 h-7" aria-hidden="true">
-        <svg viewBox="0 0 48 48" role="img">
-          <circle cx="24" cy="24" r="22" fill="#2563EB"/>
-          <path d="M15 19h18l-1.7 17H16.7L15 19Z" fill="white"/>
-          <path d="M19 19v-2.2a5 5 0 0 1 10 0V19" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-          <circle cx="21" cy="26" r="1.4" fill="#2563EB"/>
-          <circle cx="27" cy="26" r="1.4" fill="#2563EB"/>
-          <path d="M20.5 30c1.8 2 5.2 2 7 0" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round"/>
-        </svg>
-      </span>
-      Wyse AI Assistant
     </button>
   </div>
 
@@ -423,7 +597,9 @@ body.wyse-modal-open {
             <label for="input-zip-code" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">ZIP Code</label>
             <div class="relative">
               <i class="fa-solid fa-location-dot absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-              <input type="text" id="input-zip-code" value="84604" maxlength="5" inputmode="numeric"
+              <input type="text" id="input-zip-code" value="84601" 
+                maxlength="5" inputmode="numeric"
+                oninput="saveZipPreference(this.value)"
                 class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-semibold text-slate-900" />
             </div>
           </div>
@@ -499,7 +675,7 @@ body.wyse-modal-open {
           <h2 class="text-2xl font-black text-slate-900">
             Results for: <span id="results-query-label" class="text-accent-blue font-semibold"></span>
           </h2>
-          <p class="text-sm text-slate-600">Comparing prices within <span id="results-radius-label" class="font-bold">5 miles</span> of <span id="results-zip-label" class="font-bold">84604</span></p>
+          <p class="text-sm text-slate-600">Comparing prices within <span id="results-radius-label" class="font-bold">5 miles</span> of <span id="results-zip-label" class="font-bold">84601</span></p>
         </div>
 
         <!-- Toggle Preview of Grocery List Button (desktop only; phones use the bottom bar) -->
@@ -584,11 +760,14 @@ body.wyse-modal-open {
           <h2 class="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
             <i class="fa-solid fa-fire text-amber-500 shrink-0"></i> Hot Deals Nearby
           </h2>
-          <p class="text-sm text-slate-600">Recent price drops and weekly specials in the Provo/Orem area.</p>
+          <p class="text-sm text-slate-600">Sample deals based on your selected ZIP code.</p>
         </div>
         <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
           <label for="deals-zip-input" class="text-xs font-bold uppercase text-slate-600">ZIP:</label>
-          <input type="text" id="deals-zip-input" value="84604" maxlength="5" inputmode="numeric" class="min-w-0 flex-1 sm:flex-none sm:w-24 px-3 py-3 sm:py-2 bg-slate-50 border border-slate-300 rounded-lg text-base font-bold text-center" />
+          <input type="text" id="deals-zip-input" value="84601" 
+                maxlength="5" inputmode="numeric"
+                oninput="saveZipPreference(this.value)"
+                class="min-w-0 flex-1 sm:flex-none sm:w-24 px-3 py-3 sm:py-2 bg-slate-50 border border-slate-300 rounded-lg text-base font-bold text-center" />
           <button onclick="refreshDeals()" class="shrink-0 px-5 py-3 sm:py-2 min-h-[44px] bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold rounded-lg text-sm transition">Update</button>
         </div>
       </div>
@@ -639,16 +818,6 @@ body.wyse-modal-open {
                 Back to My Current List
               </button>
 
-              <!-- Start New List -->
-              <button
-                id="start-new-list-button"
-                onclick="requestStartNewGroceryList()"
-                title="Start a new grocery list"
-                aria-label="Start a new grocery list"
-                class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-accent-blue flex items-center justify-center transition">
-                <i class="fa-solid fa-plus text-lg"></i>
-              </button>
-
               <!-- Save Grocery List -->
               <button
                 id="save-grocery-list-button"
@@ -686,24 +855,6 @@ body.wyse-modal-open {
               <!-- Dynamically populated -->
             </div>
 
-            <div class="pt-4 border-t border-slate-200">
-              <div class="totals-summary">
-                <div class="totals-summary__line">
-                  <span class="totals-summary__label">
-                    Estimated subtotal
-                  </span>
-
-                  <span class="totals-summary__tax-note">
-                    (Taxes not included)
-                  </span>
-                </div>
-
-                <span id="cart-grand-total" class="totals-summary__amount">
-                  $0.00
-                </span>
-              </div>
-            </div>
-
             <div class="pt-4 border-t border-slate-200 flex justify-between items-center">
               <div>
                 <div class="flex items-center gap-1.5">
@@ -725,6 +876,32 @@ body.wyse-modal-open {
               </div>
             </div>
             
+
+            <!-- Savings compared with buying everything at the cheapest single store -->
+            <div class="pt-4 border-t border-slate-200">
+              <span class="block text-xs uppercase font-bold text-slate-600">Estimated Money Saved</span>
+              <span id="cart-estimated-savings" class="block mt-1 text-2xl font-black text-emerald-700">$0.00</span>
+              <p class="mt-1 text-xs text-slate-600">Compared with buying your entire list at the cheapest single store.</p>
+            </div>
+
+            <div class="pt-4 border-t border-slate-200">
+              <div class="totals-summary">
+                <div class="totals-summary__line">
+                  <span class="totals-summary__label">
+                    Estimated Total (Before Tax)
+                  </span>
+
+                  <span class="totals-summary__tax-note">
+                    (Tax not included)
+                  </span>
+                </div>
+
+                <span id="cart-grand-total" class="totals-summary__amount">
+                  $0.00
+                </span>
+              </div>
+            </div>
+
 
             <!-- Desktop only; phones use the bottom bar instead -->
             <button onclick="guardNav('map')" class="hidden lg:flex w-full py-3.5 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold rounded-xl shadow transition items-center justify-center gap-2 touch-btn">
@@ -759,7 +936,10 @@ body.wyse-modal-open {
         <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <div class="flex items-center gap-2 w-full sm:w-auto">
             <label for="map-zip-input" class="text-xs font-bold uppercase text-slate-600 whitespace-nowrap">ZIP Code:</label>
-            <input type="text" id="map-zip-input" value="84604" maxlength="5" inputmode="numeric" class="flex-1 min-w-0 sm:flex-none sm:w-24 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-base sm:text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-accent-blue" />
+            <input type="text" id="map-zip-input" aria-label="Map ZIP code" value="84601"
+              maxlength="5" inputmode="numeric"
+              oninput="saveZipPreference(this.value)"
+              class="flex-1 min-w-0 sm:flex-none sm:w-24 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-base sm:text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-accent-blue" />
             <button onclick="updateMapLocation()" class="px-5 py-2 min-h-[44px] bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold text-sm rounded-lg shadow transition">
               GO
             </button>
@@ -767,7 +947,7 @@ body.wyse-modal-open {
 
           <div class="flex items-center gap-2">
             <label for="map-radius-select" class="text-xs font-bold uppercase text-slate-600">Radius:</label>
-            <select id="map-radius-select" onchange="updateMapLocation()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-base sm:text-sm font-bold text-slate-700">
+            <select id="map-radius-select" aria-label="Map search radius" onchange="updateMapLocation()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-base sm:text-sm font-bold text-slate-700">
               <option value="5" selected>5 miles</option>
               <option value="10">10 miles</option>
               <option value="15">15 miles</option>
@@ -1036,210 +1216,208 @@ body.wyse-modal-open {
       </div>
     </section>
 
-  </main>
-
   <!-- ========================================================= -->
-  <!-- WYSE AI ASSISTANT MODAL                                  -->
-  <!-- ========================================================= -->
-  <div id="wyse-assistant-modal"
-    class="hidden fixed inset-0 z-[70] bg-slate-950/55 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="wyse-assistant-title"
-    onclick="if (event.target === this) closeWyseAssistant()">
+    <!-- WYSE AI ASSISTANT MODAL                                  -->
+    <!-- ========================================================= -->
+    <section id="screen-recipes"
+      class="hidden w-full space-y-5"
+      aria-label="Wyse Recipes">
 
-    <div class="wyse-modal-card bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-brand-200">
-      <div class="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-slate-100 px-5 sm:px-6 py-4 rounded-t-3xl flex items-center justify-between gap-4">
-        <div class="flex items-center gap-3 min-w-0">
-          <span class="wyse-avatar w-11 h-11 sm:w-12 sm:h-12" aria-hidden="true">
-            <svg viewBox="0 0 48 48" role="img">
-              <circle cx="24" cy="24" r="22" fill="#2563EB"/>
-              <path d="M15 19h18l-1.7 17H16.7L15 19Z" fill="white"/>
-              <path d="M19 19v-2.2a5 5 0 0 1 10 0V19" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-              <circle cx="21" cy="26" r="1.4" fill="#2563EB"/>
-              <circle cx="27" cy="26" r="1.4" fill="#2563EB"/>
-              <path d="M20.5 30c1.8 2 5.2 2 7 0" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-          </span>
-          <div class="min-w-0">
-            <h2 id="wyse-assistant-title" class="text-lg sm:text-xl font-black text-slate-900 leading-tight">Wyse AI Assistant</h2>
+      <div class="wyse-section-tabs grid grid-cols-2 gap-2 p-2 rounded-2xl"
+        role="tablist" aria-label="Wyse Recipes sections">
+
+      <button id="wyse-tab-scan" type="button" role="tab"
+        aria-selected="true" aria-controls="wyse-scan-view"
+        onclick="showWyseTab('scan')"
+        class="wyse-tab-button min-h-[48px] rounded-xl text-sm sm:text-base font-black flex items-center justify-center gap-2 transition">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        Wyse AI
+      </button>
+
+      <button id="wyse-tab-recipes" type="button" role="tab"
+        aria-selected="false" aria-controls="wyse-recipes-view"
+        onclick="showWyseTab('recipes')"
+        class="wyse-tab-button min-h-[48px] rounded-xl text-sm sm:text-base font-black flex items-center justify-center gap-2 transition">
+        <i class="fa-solid fa-book-open text-violet-600"></i>
+        Saved Recipes
+      </button>
+
+    </div>
+
+      <div class="wyse-modal-card w-full bg-white rounded-2xl shadow-sm border border-brand-200 overflow-hidden">
+
+        <div class="space-y-5">
+
+          <!-- My recipes (filled in by the Saved Recipes script) -->
+          <div id="wyse-recipes-view"
+            class="hidden wyse-saved-page rounded-2xl p-4 sm:p-6 space-y-4"
+            role="tabpanel" aria-labelledby="wyse-tab-recipes">
+            <p id="wyse-recipes-status" class="text-sm font-bold text-slate-700" aria-live="polite"></p>
+            <div id="wyse-recipes-list-view" class="space-y-3">
+              <h2 class="text-2xl font-black text-slate-900">
+                Saved Recipes
+              </h2>
+              <ul id="wyse-recipes-list" class="space-y-2"></ul>
+            </div>
+            <div id="wyse-recipe-detail" class="hidden space-y-4"></div>
           </div>
-        </div>
 
-        <div class="flex items-center gap-1.5 shrink-0">
-          <button id="wyse-header-start-over" type="button" class="min-h-[44px] px-3 rounded-xl text-sm font-bold text-accent-blue hover:bg-blue-50 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i>
-            <span class="hidden sm:inline">Start over</span>
-          </button>
-          <button id="wyse-close-button" type="button" onclick="closeWyseAssistant()" aria-label="Close Wyse AI Assistant"
-            class="w-11 h-11 shrink-0 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-600 flex items-center justify-center transition">
-            <i class="fa-solid fa-xmark text-lg"></i>
-          </button>
-        </div>
-      </div>
-
-      <div class="p-5 sm:p-6 space-y-5">
-        <!-- Tabs: scan a new recipe, or use a saved one -->
-        <div class="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl" role="tablist" aria-label="Wyse sections">
-          <button id="wyse-tab-scan" type="button" role="tab" aria-selected="true" aria-controls="wyse-scan-view" onclick="showWyseTab('scan')"
-            class="min-h-[44px] rounded-lg text-sm font-black text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm transition flex items-center justify-center gap-2">
-            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Scan a recipe
-          </button>
-          <button id="wyse-tab-recipes" type="button" role="tab" aria-selected="false" aria-controls="wyse-recipes-view" onclick="showWyseTab('recipes')"
-            class="min-h-[44px] rounded-lg text-sm font-black text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm transition flex items-center justify-center gap-2">
-            <i class="fa-solid fa-book-open" aria-hidden="true"></i> My recipes
-          </button>
-        </div>
-
-        <!-- My recipes (filled in by the Saved Recipes script) -->
-        <div id="wyse-recipes-view" class="hidden space-y-4" role="tabpanel" aria-labelledby="wyse-tab-recipes">
-          <p id="wyse-recipes-status" class="text-sm font-bold text-slate-700" aria-live="polite"></p>
-          <div id="wyse-recipes-list-view" class="space-y-3">
-            <h3 class="text-lg font-black text-slate-900">My recipes</h3>
-            <ul id="wyse-recipes-list" class="space-y-2"></ul>
-          </div>
-          <div id="wyse-recipe-detail" class="hidden space-y-4"></div>
-        </div>
-
-        <div id="wyse-scan-view" class="space-y-5" role="tabpanel" aria-labelledby="wyse-tab-scan">
-        <div id="wyse-welcome" class="hidden">
-          <div class="flex items-start gap-3">
-            <span class="wyse-avatar w-9 h-9 sm:w-10 sm:h-10" aria-hidden="true">
-              <svg viewBox="0 0 48 48" role="img">
-                <circle cx="24" cy="24" r="22" fill="#2563EB"/>
-                <path d="M15 19h18l-1.7 17H16.7L15 19Z" fill="white"/>
-                <path d="M19 19v-2.2a5 5 0 0 1 10 0V19" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-                <circle cx="21" cy="26" r="1.4" fill="#2563EB"/>
-                <circle cx="27" cy="26" r="1.4" fill="#2563EB"/>
-                <path d="M20.5 30c1.8 2 5.2 2 7 0" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round"/>
-              </svg>
-            </span>
-            <div class="min-w-0 flex-1 bg-brand-50 border border-brand-200 rounded-2xl rounded-bl-md px-4 py-3 sm:px-5 sm:py-4">
-              <p class="text-sm sm:text-base text-slate-700 font-semibold leading-relaxed">
-                Hello, I’m Wyse, your recipe and shopping assistant! Show me one of your recipe cards or type in some ingredients, and I’ll add them to your grocery list.
+          <div id="wyse-scan-view" class="space-y-5 px-4 sm:px-6" role="tabpanel" aria-labelledby="wyse-tab-scan">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 class="text-2xl sm:text-3xl font-black text-slate-900">
+                Wyse Recipes
+              </h2>
+              <p class="text-sm text-slate-600 mt-1">
+                Scan a recipe or enter ingredients to build your grocery list.
               </p>
             </div>
+
+            <button id="wyse-header-start-over" type="button"
+              class="min-h-[44px] px-4 py-2 rounded-xl text-sm font-bold text-accent-blue hover:bg-blue-50 transition flex items-center gap-2">
+              <i class="fa-solid fa-arrow-rotate-left"></i>
+              Start Over
+            </button>
           </div>
-        </div>
-
-        <div id="wyse-dropzone" class="wyse-dropzone rounded-2xl p-6 sm:p-8 text-center outline-none" tabindex="0" role="button" aria-label="Choose a recipe photo or drop it here">
-          <input id="recipe-image" type="file" accept="image/png,image/jpeg,image/webp,image/heic" class="hidden">
-          <input id="recipe-camera" type="file" accept="image/*" capture="environment" class="hidden">
-
-          <div id="wyse-upload-prompt" class="space-y-4">
-            <div class="w-16 h-16 rounded-2xl bg-white border border-brand-200 shadow-sm text-accent-blue flex items-center justify-center mx-auto">
-              <i class="fa-solid fa-arrow-up-from-bracket text-2xl"></i>
-            </div>
-            <div>
-              <h3 class="text-lg font-black text-slate-900">Add a recipe photo</h3>
-            </div>
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2">
-              <button id="choose-recipe-photo" type="button" class="min-h-[48px] px-5 py-3 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2">
-                <i class="fa-regular fa-image"></i>
-                Choose photo
-              </button>
-              <button id="take-recipe-photo" type="button" class="min-h-[48px] px-5 py-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold rounded-xl transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-camera"></i>
-                Take photo
-              </button>
-            </div>
-          </div>
-
-          <div id="wyse-photo-preview" class="hidden">
-            <img id="wyse-preview-image" alt="Selected recipe preview" class="max-h-56 w-auto mx-auto rounded-xl border border-slate-200 shadow-sm object-contain">
-            <div class="mt-3 flex items-center justify-center gap-3">
-              <p id="wyse-photo-name" class="text-sm font-bold text-slate-700 truncate max-w-[70%]"></p>
-              <button id="remove-recipe-photo" type="button" class="text-sm font-bold text-red-600 hover:text-red-700">Remove</button>
-            </div>
-          </div>
-
-          <label class="mt-4 inline-flex items-center justify-center gap-2 text-sm font-bold text-slate-700 cursor-pointer">
-            <input id="recipe-handwriting-mode" type="checkbox" class="w-5 h-5 rounded border-slate-300 text-accent-blue focus:ring-accent-blue">
-            Handwritten or cursive recipe
-          </label>
-        </div>
-
-        <div class="flex items-center gap-3" aria-hidden="true">
-          <span class="h-px bg-slate-200 flex-1"></span>
-          <span class="text-xs font-black uppercase tracking-widest text-slate-600">or type ingredients</span>
-          <span class="h-px bg-slate-200 flex-1"></span>
-        </div>
-
-        <div>
-          <label for="recipe-text" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Ingredients</label>
-          <textarea id="recipe-text" rows="5" placeholder="Example:&#10;2 cups flour&#10;1 teaspoon salt&#10;3 eggs"
-            class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:border-accent-blue focus:outline-none font-medium text-slate-900 resize-y"></textarea>
-        </div>
-
-        <button id="extract-recipe" type="button" class="w-full min-h-[52px] px-6 py-3.5 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-black text-base rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait">
-          <i class="fa-solid fa-wand-magic-sparkles"></i>
-          Find my ingredients
-        </button>
-
-        <div id="wyse-progress" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-3.5 flex items-center gap-3">
-          <span class="w-5 h-5 border-2 border-blue-200 border-t-accent-blue rounded-full animate-spin shrink-0" aria-hidden="true"></span>
-          <p id="ai-status" class="text-sm font-bold text-blue-900" aria-live="polite">Getting ready…</p>
-        </div>
-
-        <div id="wyse-results-panel" class="hidden border-t border-slate-200 pt-5 space-y-4">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <h3 class="text-lg font-black text-slate-900">Ingredients found</h3>
-              <p id="wyse-results-summary" class="hidden"></p>
-            </div>
-            <button id="wyse-start-over" type="button" class="text-sm font-bold text-accent-blue hover:underline whitespace-nowrap">Start over</button>
-          </div>
-
-          <ul id="ingredient-results" class="space-y-2"></ul>
-
-          <div id="wyse-read-warning" class="hidden rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
+            <div id="wyse-welcome" class="hidden">
             <div class="flex items-start gap-3">
-              <i class="fa-solid fa-triangle-exclamation mt-0.5 text-amber-600" aria-hidden="true"></i>
-              <div class="min-w-0">
-                <p class="font-black">I couldn’t confidently identify ingredient lines.</p>
-                <p class="mt-1 text-sm">Here’s what I was able to read:</p>
-                <p id="wyse-readback-text" class="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white/70 p-3 text-xs font-medium text-slate-700"></p>
+              <span class="wyse-avatar w-9 h-9 sm:w-10 sm:h-10" aria-hidden="true">
+                <svg viewBox="0 0 48 48" role="img">
+                  <circle cx="24" cy="24" r="22" fill="#2563EB"/>
+                  <path d="M15 19h18l-1.7 17H16.7L15 19Z" fill="white"/>
+                  <path d="M19 19v-2.2a5 5 0 0 1 10 0V19" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                  <circle cx="21" cy="26" r="1.4" fill="#2563EB"/>
+                  <circle cx="27" cy="26" r="1.4" fill="#2563EB"/>
+                  <path d="M20.5 30c1.8 2 5.2 2 7 0" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <div class="min-w-0 flex-1 bg-brand-50 border border-brand-200 rounded-2xl rounded-bl-md px-4 py-3 sm:px-5 sm:py-4">
+                <p class="text-sm sm:text-base text-slate-700 font-semibold leading-relaxed">
+                  Hello, I’m Wyse, your recipe and shopping assistant! Show me one of your recipe cards or type in some ingredients, and I’ll add them to your grocery list.
+                </p>
               </div>
             </div>
           </div>
 
-          <div id="wyse-total-card" class="border-t border-slate-200 pt-4">
-            <div class="flex items-center justify-between gap-4">
-              <p class="text-base font-black text-slate-900">Estimated total</p>
-              <p id="wyse-selected-count" class="sr-only">0 items selected</p>
-              <p id="wyse-estimated-total" class="text-2xl font-black text-accent-blue">$0.00</p>
+          <div id="wyse-dropzone" class="wyse-dropzone rounded-2xl p-6 sm:p-8 text-center outline-none" tabindex="0" role="button" aria-label="Choose a recipe photo or drop it here">
+            <input id="recipe-image" type="file" accept="image/png,image/jpeg,image/webp,image/heic" class="hidden">
+            <input id="recipe-camera" type="file" accept="image/*" capture="environment" class="hidden">
+
+            <div id="wyse-upload-prompt" class="space-y-4">
+              <div class="w-16 h-16 rounded-2xl bg-white border border-brand-200 shadow-sm text-accent-blue flex items-center justify-center mx-auto">
+                <i class="fa-solid fa-arrow-up-from-bracket text-2xl"></i>
+              </div>
+              <div>
+                <h3 class="text-lg font-black text-slate-900">Add a recipe photo</h3>
+              </div>
+              <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2">
+                <button id="choose-recipe-photo" type="button" class="min-h-[48px] px-5 py-3 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2">
+                  <i class="fa-regular fa-image"></i>
+                  Choose photo
+                </button>
+                <button id="take-recipe-photo" type="button" class="min-h-[48px] px-5 py-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold rounded-xl transition flex items-center justify-center gap-2">
+                  <i class="fa-solid fa-camera"></i>
+                  Take photo
+                </button>
+              </div>
             </div>
+
+            <div id="wyse-photo-preview" class="hidden">
+              <img id="wyse-preview-image" alt="Selected recipe preview" class="max-h-56 w-auto mx-auto rounded-xl border border-slate-200 shadow-sm object-contain">
+              <div class="mt-3 flex items-center justify-center gap-3">
+                <p id="wyse-photo-name" class="text-sm font-bold text-slate-700 truncate max-w-[70%]"></p>
+                <button id="remove-recipe-photo" type="button" class="text-sm font-bold text-red-600 hover:text-red-700">Remove</button>
+              </div>
+            </div>
+
+            <label class="mt-4 inline-flex items-center justify-center gap-2 text-sm font-bold text-slate-700 cursor-pointer">
+              <input id="recipe-handwriting-mode" type="checkbox" class="w-5 h-5 rounded border-slate-300 text-accent-blue focus:ring-accent-blue">
+              Handwritten or cursive recipe
+            </label>
           </div>
 
-          <button id="add-wyse-to-list" type="button" class="w-full min-h-[50px] px-5 py-3 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-black rounded-xl shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-            <i class="fa-solid fa-cart-plus"></i>
-            <span id="add-wyse-to-list-label">Select items to add</span>
+          <div class="flex items-center gap-3" aria-hidden="true">
+            <span class="h-px bg-slate-200 flex-1"></span>
+            <span class="text-xs font-black uppercase tracking-widest text-slate-600">or type ingredients</span>
+            <span class="h-px bg-slate-200 flex-1"></span>
+          </div>
+
+          <div>
+            <label for="recipe-text" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Ingredients</label>
+            <textarea id="recipe-text" rows="5" placeholder="Example:&#10;2 cups flour&#10;1 teaspoon salt&#10;3 eggs"
+              class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:border-accent-blue focus:outline-none font-medium text-slate-900 resize-y"></textarea>
+          </div>
+
+          <button id="extract-recipe" type="button" class="w-full min-h-[52px] px-6 py-3.5 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-black text-base rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            Find my ingredients
           </button>
-          <p id="wyse-catalog-note" class="hidden"></p>
 
-          <!-- Save the recipe (all lines, including ones ShopWyse doesn't sell) -->
-          <div class="border-t border-slate-200 pt-4 space-y-2">
-            <label for="wyse-recipe-name" class="block text-xs font-bold uppercase tracking-wider text-slate-600">Save this recipe for later</label>
-            <div class="flex flex-col sm:flex-row gap-2">
-              <input id="wyse-recipe-name" type="text" maxlength="80" placeholder="Recipe name, e.g. Sunday pancakes"
-                class="min-w-0 flex-1 min-h-[48px] px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:border-accent-blue focus:outline-none font-semibold text-slate-900">
-              <button id="wyse-save-recipe-button" type="button" onclick="saveScannedRecipe()"
-                class="min-h-[48px] px-5 py-2.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-black rounded-xl transition flex items-center justify-center gap-2">
-                <i class="fa-regular fa-bookmark" aria-hidden="true"></i> Save recipe
-              </button>
+          <div id="wyse-progress" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-3.5 flex items-center gap-3">
+            <span class="w-5 h-5 border-2 border-blue-200 border-t-accent-blue rounded-full animate-spin shrink-0" aria-hidden="true"></span>
+            <p id="ai-status" class="text-sm font-bold text-blue-900" aria-live="polite">Getting ready…</p>
+          </div>
+
+          <div id="wyse-results-panel" class="hidden border-t border-slate-200 pt-5 space-y-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h3 class="text-lg font-black text-slate-900">Ingredients found</h3>
+                <p id="wyse-results-summary" class="hidden"></p>
+              </div>
+              <button id="wyse-start-over" type="button" class="text-sm font-bold text-accent-blue hover:underline whitespace-nowrap">Start over</button>
             </div>
-            <p id="wyse-save-status" class="text-sm font-bold" aria-live="polite"></p>
-          </div>
 
-          <div class="hidden" aria-hidden="true">
-            <pre id="recognized-text"></pre>
-            <pre id="recipe-json"></pre>
+            <ul id="ingredient-results" class="space-y-2"></ul>
+
+            <div id="wyse-read-warning" class="hidden rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
+              <div class="flex items-start gap-3">
+                <i class="fa-solid fa-triangle-exclamation mt-0.5 text-amber-600" aria-hidden="true"></i>
+                <div class="min-w-0">
+                  <p class="font-black">I couldn’t confidently identify ingredient lines.</p>
+                  <p class="mt-1 text-sm">Here’s what I was able to read:</p>
+                  <p id="wyse-readback-text" class="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white/70 p-3 text-xs font-medium text-slate-700"></p>
+                </div>
+              </div>
+            </div>
+
+            <div id="wyse-total-card" class="border-t border-slate-200 pt-4">
+              <div class="flex items-center justify-between gap-4">
+                <p class="text-base font-black text-slate-900">Estimated total</p>
+                <p id="wyse-selected-count" class="sr-only">0 items selected</p>
+                <p id="wyse-estimated-total" class="text-2xl font-black text-accent-blue">$0.00</p>
+              </div>
+            </div>
+
+            <button id="add-wyse-to-list" type="button" class="w-full min-h-[50px] px-5 py-3 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-black rounded-xl shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              <i class="fa-solid fa-cart-plus"></i>
+              <span id="add-wyse-to-list-label">Select items to add</span>
+            </button>
+            <p id="wyse-catalog-note" class="hidden"></p>
+
+            <!-- Save the recipe (all lines, including ones ShopWyse doesn't sell) -->
+            <div class="border-t border-slate-200 pt-4 space-y-2">
+              <label for="wyse-recipe-name" class="block text-xs font-bold uppercase tracking-wider text-slate-600">Save this recipe for later</label>
+              <div class="flex flex-col sm:flex-row gap-2">
+                <input id="wyse-recipe-name" type="text" maxlength="80" placeholder="Recipe name, e.g. Sunday pancakes"
+                  class="min-w-0 flex-1 min-h-[48px] px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:border-accent-blue focus:outline-none font-semibold text-slate-900">
+                <button id="wyse-save-recipe-button" type="button" onclick="saveScannedRecipe()"
+                  class="min-h-[48px] px-5 py-2.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-black rounded-xl transition flex items-center justify-center gap-2">
+                  <i class="fa-regular fa-bookmark" aria-hidden="true"></i> Save recipe
+                </button>
+              </div>
+              <p id="wyse-save-status" class="text-sm font-bold" aria-live="polite"></p>
+            </div>
+
+            <div class="hidden" aria-hidden="true">
+              <pre id="recognized-text"></pre>
+              <pre id="recipe-json"></pre>
+            </div>
           </div>
+          </div><!-- /wyse-scan-view -->
         </div>
-        </div><!-- /wyse-scan-view -->
       </div>
-    </div>
-  </div>
+    </section>
+  </main>
 
   <!-- ========================================================= -->
   <!-- MODAL: LOGIN REQUIRED POPUP                               -->
@@ -1390,28 +1568,87 @@ body.wyse-modal-open {
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // --- Global Application State ---
+
     const state = {
-      user_id: null, // !tentatively add this. check with teammates!
+      user_id: null,
       isLoggedIn: false,
       userEmail: '',
       userFirstName: '',
-      zipCode: '84604',
+      zipCode: '84601',
       radius: 5,
-      searchTerm: null, // null until the user runs a search
-      claimedDeals: [], // Hot Deal ids already added to the cart
+      searchTerm: null,
+      claimedDeals: [],
       currentScreen: 'search',
       weeklyShoppingMinutes: null,
-      shoppingTimeSummary: null, // added these two but i don't knwo how that data would be stored
-      shoppingTimeBreakdown: [], // have to check with group
+      shoppingTimeSummary: null,
+      shoppingTimeBreakdown: [],
       savedLists: [],
       activeSavedList: null,
       viewingSavedList: false,
-      cart: [
-        { id: 'item_milk', name: 'Gallon Whole Milk', quantity: 2 },
-        { id: 'item_eggs', name: 'Large Grade A Eggs (18pk)', quantity: 2 },
-        { id: 'item_bread', name: 'Honey Wheat Bread', quantity: 3 }
-      ]
+      cart: []
     };
+
+    // Update the header using the selected ZIP code  
+    let locationLookupRequest = 0;
+
+    async function updateLocationDisplay(zip) {
+      const display = document.getElementById('location-display');
+      const requestNumber = ++locationLookupRequest;
+
+      if (!display) return;
+
+      // Show the known default immediately instead of a loading message.
+      if (zip === '84601') {
+        display.textContent = 'Provo, UT, USA';
+        return;
+      }
+
+      if (!/^\d{5}$/.test(zip)) {
+        display.textContent = 'Provo, UT, USA';
+        return;
+      }
+
+      // Show the ZIP code while looking up other locations.
+      display.textContent = `ZIP ${zip}`;
+
+      try {
+        const response = await fetch(`https://api.zippopotam.us/us/${zip}`);
+
+        if (requestNumber !== locationLookupRequest) return;
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        if (requestNumber !== locationLookupRequest) return;
+
+        const place = data.places && data.places[0];
+
+        if (place) {
+          display.textContent =
+            `${place['place name']}, ${place['state abbreviation']}, USA`;
+        }
+      } catch (error) {
+        console.error('ZIP location lookup failed:', error);
+      }
+    }
+
+
+        // Save and synchronize a selected ZIP code
+        function saveZipPreference(value) {
+          const zip = String(value).trim();
+
+          if (!/^\d{5}$/.test(zip)) return;
+
+          state.zipCode = zip;
+
+          document.getElementById('input-zip-code').value = zip;
+          document.getElementById('deals-zip-input').value = zip;
+          document.getElementById('map-zip-input').value = zip;
+
+          persistAppState();
+          updateLocationDisplay(zip);
+        }
 
     let hasStartedNewList = false;
 
@@ -1591,16 +1828,54 @@ function closeGroceryListPrompt(value = false) {
     // productId links each deal to PRODUCTS so it can be added to the cart.
     // The first DEALS_SHOWN unclaimed deals are shown; the rest replace them as they're added.
     const DEALS_SHOWN = 6;
-    const HOT_DEALS = [
-      { id: 'deal_1', productId: 'item_milk', name: 'Gallon Whole Milk', storeId: 'costco_orem', oldPrice: 3.99, dealPrice: 2.95, discount: '26% off', icon: '🥛' },
-      { id: 'deal_2', productId: 'item_bananas', name: 'Bananas (Fresh Bunch)', storeId: 'traderjoes_orem', oldPrice: 1.69, dealPrice: 0.99, discount: '41% off', icon: '🍌' },
-      { id: 'deal_3', productId: 'item_eggs', name: 'Large Grade A Eggs (18pk)', storeId: 'walmart_provo', oldPrice: 4.49, dealPrice: 2.88, discount: '36% off', icon: '🥚' },
-      { id: 'deal_4', productId: 'item_beef', name: 'Ground Beef 80/20 (3 lb)', storeId: 'costco_orem', oldPrice: 16.99, dealPrice: 11.99, discount: '30% off', icon: '🥩' },
-      { id: 'deal_5', productId: 'item_cereal', name: 'Cereal Family Size', storeId: 'smiths_provo', oldPrice: 5.99, dealPrice: 2.99, discount: '50% off', icon: '🥣' },
-      { id: 'deal_6', productId: 'item_oj', name: 'Orange Juice 52oz', storeId: 'target_provo', oldPrice: 4.29, dealPrice: 2.49, discount: '42% off', icon: '🍊' },
-      { id: 'deal_7', productId: 'item_bread', name: 'Honey Wheat Bread', storeId: 'walmart_provo', oldPrice: 2.49, dealPrice: 1.84, discount: '26% off', icon: '🍞' },
-      { id: 'deal_8', productId: 'item_apples', name: 'Honeycrisp Apples (3 lb bag)', storeId: 'traderjoes_orem', oldPrice: 5.99, dealPrice: 4.49, discount: '25% off', icon: '🍎' }
-    ];
+    const HOT_DEALS_BY_REGION = {
+      provo: [
+        { id: 'provo_deal_1', productId: 'item_milk', name: 'Gallon Whole Milk', storeName: 'Costco Wholesale', oldPrice: 3.99, dealPrice: 2.95, discount: '26% off', icon: '🥛' },
+        { id: 'provo_deal_2', productId: 'item_bananas', name: 'Bananas (Fresh Bunch)', storeName: "Trader Joe's", oldPrice: 1.69, dealPrice: 0.99, discount: '41% off', icon: '🍌' },
+        { id: 'provo_deal_3', productId: 'item_eggs', name: 'Large Grade A Eggs (18pk)', storeName: 'Walmart Supercenter', oldPrice: 4.49, dealPrice: 2.88, discount: '36% off', icon: '🥚' },
+        { id: 'provo_deal_4', productId: 'item_beef', name: 'Ground Beef 80/20 (3 lb)', storeName: 'Costco Wholesale', oldPrice: 16.99, dealPrice: 11.99, discount: '30% off', icon: '🥩' },
+        { id: 'provo_deal_5', productId: 'item_cereal', name: 'Cereal Family Size', storeName: "Smith's Food & Drug", oldPrice: 5.99, dealPrice: 2.99, discount: '50% off', icon: '🥣' },
+        { id: 'provo_deal_6', productId: 'item_oj', name: 'Orange Juice 52oz', storeName: 'Target', oldPrice: 4.29, dealPrice: 2.49, discount: '42% off', icon: '🍊' },
+        { id: 'provo_deal_7', productId: 'item_bread', name: 'Honey Wheat Bread', storeName: 'Walmart Supercenter', oldPrice: 2.49, dealPrice: 1.84, discount: '26% off', icon: '🍞' },
+        { id: 'provo_deal_8', productId: 'item_apples', name: 'Honeycrisp Apples (3 lb bag)', storeName: "Trader Joe's", oldPrice: 5.99, dealPrice: 4.49, discount: '25% off', icon: '🍎' }
+      ],
+
+      gilbert: [
+        { id: 'gilbert_deal_1', productId: 'item_milk', name: 'Gallon Whole Milk', storeName: 'Fry’s Food Stores', oldPrice: 3.99, dealPrice: 2.79, discount: '30% off', icon: '🥛' },
+        { id: 'gilbert_deal_2', productId: 'item_bananas', name: 'Bananas (Fresh Bunch)', storeName: 'Walmart Supercenter', oldPrice: 1.69, dealPrice: 0.89, discount: '47% off', icon: '🍌' },
+        { id: 'gilbert_deal_3', productId: 'item_eggs', name: 'Large Grade A Eggs (18pk)', storeName: 'Target', oldPrice: 4.49, dealPrice: 2.99, discount: '33% off', icon: '🥚' },
+        { id: 'gilbert_deal_4', productId: 'item_beef', name: 'Ground Beef 80/20 (3 lb)', storeName: 'Costco Wholesale', oldPrice: 16.99, dealPrice: 12.49, discount: '26% off', icon: '🥩' },
+        { id: 'gilbert_deal_5', productId: 'item_cereal', name: 'Cereal Family Size', storeName: 'Fry’s Food Stores', oldPrice: 5.99, dealPrice: 3.49, discount: '42% off', icon: '🥣' },
+        { id: 'gilbert_deal_6', productId: 'item_oj', name: 'Orange Juice 52oz', storeName: 'Walmart Supercenter', oldPrice: 4.29, dealPrice: 2.69, discount: '37% off', icon: '🍊' },
+        { id: 'gilbert_deal_7', productId: 'item_bread', name: 'Honey Wheat Bread', storeName: 'Target', oldPrice: 2.49, dealPrice: 1.79, discount: '28% off', icon: '🍞' },
+        { id: 'gilbert_deal_8', productId: 'item_apples', name: 'Honeycrisp Apples (3 lb bag)', storeName: 'Costco Wholesale', oldPrice: 5.99, dealPrice: 4.29, discount: '28% off', icon: '🍎' }
+      ],
+
+      nyc: [
+        { id: 'nyc_deal_1', productId: 'item_milk', name: 'Gallon Whole Milk', storeName: 'Target', oldPrice: 5.49, dealPrice: 3.99, discount: '27% off', icon: '🥛' },
+        { id: 'nyc_deal_2', productId: 'item_bananas', name: 'Bananas (Fresh Bunch)', storeName: 'Trader Joe’s', oldPrice: 1.99, dealPrice: 1.29, discount: '35% off', icon: '🍌' },
+        { id: 'nyc_deal_3', productId: 'item_eggs', name: 'Large Grade A Eggs (18pk)', storeName: 'Costco Wholesale', oldPrice: 5.49, dealPrice: 3.99, discount: '27% off', icon: '🥚' },
+        { id: 'nyc_deal_4', productId: 'item_beef', name: 'Ground Beef 80/20 (3 lb)', storeName: 'Target', oldPrice: 18.99, dealPrice: 14.99, discount: '21% off', icon: '🥩' },
+        { id: 'nyc_deal_5', productId: 'item_cereal', name: 'Cereal Family Size', storeName: 'Trader Joe’s', oldPrice: 6.49, dealPrice: 3.99, discount: '39% off', icon: '🥣' },
+        { id: 'nyc_deal_6', productId: 'item_oj', name: 'Orange Juice 52oz', storeName: 'Target', oldPrice: 4.99, dealPrice: 3.49, discount: '30% off', icon: '🍊' },
+        { id: 'nyc_deal_7', productId: 'item_bread', name: 'Honey Wheat Bread', storeName: 'Trader Joe’s', oldPrice: 3.49, dealPrice: 2.49, discount: '29% off', icon: '🍞' },
+        { id: 'nyc_deal_8', productId: 'item_apples', name: 'Honeycrisp Apples (3 lb bag)', storeName: 'Target', oldPrice: 6.99, dealPrice: 5.49, discount: '21% off', icon: '🍎' }
+      ]
+    };
+
+    function getActiveDeals() {
+      const zip = String(state.zipCode || '84601');
+
+      if (zip.startsWith('85')) {
+        return HOT_DEALS_BY_REGION.gilbert;
+      }
+
+      if (zip.startsWith('10')) {
+        return HOT_DEALS_BY_REGION.nyc;
+      }
+
+      return HOT_DEALS_BY_REGION.provo;
+    }
 
     // Leaflet map instance
     let leafletMap = null;
@@ -1821,12 +2096,13 @@ function closeGroceryListPrompt(value = false) {
       document.getElementById('modal-auth-interceptor').classList.add('hidden');
     }
 
-    const SCREENS = ['search', 'results', 'deals', 'list', 'map', 'login', 'register', 'account'];
+    const SCREENS = ['search', 'results', 'deals', 'list', 'map', 'login', 'register', 'account', 'recipes'];
     const PROTECTED_SCREENS = ['deals', 'map', 'list', 'account'];
 
     // replace: true updates the URL without adding a Back-button entry
     function navigateTo(screenId, { replace = false } = {}) {
       const screens = SCREENS;
+
       screens.forEach(s => {
         const el = document.getElementById(`screen-${s}`);
         if (el) el.classList.add('hidden');
@@ -1834,17 +2110,30 @@ function closeGroceryListPrompt(value = false) {
 
       const target = document.getElementById(`screen-${screenId}`);
       if (target) target.classList.remove('hidden');
+
       state.currentScreen = screenId;
+
+      // Let the page use its own full-width layout when Wyse Recipes is open
+      document.body.classList.toggle(
+        'recipes-screen-active',
+        screenId === 'recipes'
+      );
+
       window.scrollTo(0, 0);
 
-      // Keep the screen in the URL (#list, #map, ...) so a refresh returns here
+      // Keep the screen in the URL so refreshing returns to the same page
       if (location.hash !== `#${screenId}`) {
         if (replace) location.replace(`#${screenId}`);
         else location.hash = screenId;
       }
+
       persistAppState();
 
       // Trigger screen-specific rendering
+      if (screenId === 'recipes') {
+        showWyseTab('scan');
+      }
+
       if (screenId === 'deals') renderDeals();
 
       if (screenId === 'list') {
@@ -1923,6 +2212,7 @@ function closeGroceryListPrompt(value = false) {
       if (query.length < KROGER_MIN_TERM) {
         container.removeAttribute('aria-busy');
         renderResultCards(rankSampleProducts(term), {
+          term,
           notice: query
             ? { tone: 'info', text: "Type at least 3 letters to see live Smith's prices. Showing sample prices for now." }
             : null
@@ -1949,6 +2239,7 @@ function closeGroceryListPrompt(value = false) {
           if (seq !== searchRequestSeq) return;
           console.warn('Live Kroger search failed:', error);
           renderResultCards(rankSampleProducts(term), {
+            term,
             notice: {
               tone: 'warn',
               text: `Live Smith's prices aren't available right now (${error.message}). Showing sample prices instead.`
@@ -1960,22 +2251,24 @@ function closeGroceryListPrompt(value = false) {
         });
     }
 
-    // Sample catalog search: rank useful matches rather than relying on one exact substring
-    function rankSampleProducts(term) {
-      const normalizeSearch = value => String(value || '')
+    function normalizeSearch(value) {
+      return String(value || '')
         .toLowerCase()
         .normalize('NFKD')
         .replace(/[̀-ͯ]/g, '')
         .replace(/[^a-z0-9]+/g, ' ')
         .trim();
+    }
 
-      const singularSearchWord = word => {
-        if (word.endsWith('ies') && word.length > 4) return word.slice(0, -3) + 'y';
-        if (word.endsWith('oes') && word.length > 4) return word.slice(0, -2);
-        if (word.endsWith('s') && !word.endsWith('ss') && word.length > 3) return word.slice(0, -1);
-        return word;
-      };
+    function singularSearchWord(word) {
+      if (word.endsWith('ies') && word.length > 4) return word.slice(0, -3) + 'y';
+      if (word.endsWith('oes') && word.length > 4) return word.slice(0, -2);
+      if (word.endsWith('s') && !word.endsWith('ss') && word.length > 3) return word.slice(0, -1);
+      return word;
+    }
 
+    // Sample catalog search: rank useful matches rather than relying on one exact substring
+    function rankSampleProducts(term) {
       const query = normalizeSearch(term);
       const queryWords = query.split(' ').filter(Boolean).map(singularSearchWord);
       return PRODUCTS.filter(product => !product.live).map(product => {
@@ -2015,7 +2308,7 @@ function closeGroceryListPrompt(value = false) {
         </div>`;
     }
 
-    function renderResultCards(products, { live = null, notice = null, emptyText = null } = {}) {
+    function renderResultCards(products, { live = null, notice = null, emptyText = null, term = null } = {}) {
       const container = document.getElementById('results-container');
       let html = '';
 
@@ -2031,7 +2324,7 @@ function closeGroceryListPrompt(value = false) {
 
       if (products.length === 0) {
         html += `
-          <div class="bg-white rounded-2xl p-8 border border-brand-200 shadow-sm text-center">
+          <div id="results-empty-state" class="bg-white rounded-2xl p-8 border border-brand-200 shadow-sm text-center">
             <h3 class="text-lg font-black text-slate-900">No matching groceries found</h3>
             <p class="text-sm text-slate-600 mt-2">${escapeHtml(emptyText || 'Try a shorter search, a different spelling, or a category such as Dairy or Produce. Our current sample catalog is limited.')}</p>
           </div>`;
@@ -2039,7 +2332,78 @@ function closeGroceryListPrompt(value = false) {
 
       products.forEach(product => { html += productCardHtml(product); });
       container.innerHTML = html;
+      if (products.length === 0 && !live && term) appendRelatedSuggestions(term);
       renderCartDrawer();
+    }
+
+    // Recommend only products that really exist in the sample catalog.
+    // For a multi-word request, keep the core food (bread in "gluten free bread")
+    // and use related pantry categories as a secondary fallback.
+    function relatedSampleProducts(term) {
+      const queryWords = normalizeSearch(term).split(' ').filter(Boolean).map(singularSearchWord);
+      const commonModifiers = new Set([
+        'gluten', 'free', 'organic', 'low', 'no', 'sugar', 'reduced',
+        'fat', 'vegan', 'dairy', 'fresh', 'large', 'small', 'whole',
+        'unsalted', 'salted', 'non', 'lactose', 'brand', 'pack'
+      ]);
+      const relatedFoodWords = {
+        bread: ['bread', 'flour', 'baking', 'cereal'],
+        flour: ['flour', 'bread', 'baking', 'cereal'],
+        milk: ['milk', 'dairy', 'cheese', 'yogurt'],
+        cheese: ['cheese', 'dairy', 'milk'],
+        egg: ['egg', 'dairy'],
+        pasta: ['pasta', 'noodle', 'rice', 'pantry'],
+        rice: ['rice', 'pasta', 'pantry'],
+        apple: ['apple', 'fruit', 'produce'],
+        banana: ['banana', 'fruit', 'produce'],
+        chicken: ['chicken', 'meat', 'beef'],
+        beef: ['beef', 'meat', 'chicken']
+      };
+      const coreWords = [...new Set(queryWords.filter(word => !commonModifiers.has(word)))];
+      const candidateWords = coreWords.length ? coreWords : queryWords;
+      return PRODUCTS.filter(product => !product.live).map(product => {
+        const productWords = normalizeSearch(product.name + ' ' + product.category)
+          .split(' ').map(singularSearchWord);
+        let relevance = 0;
+        for (const word of candidateWords) {
+          if (productWords.includes(word)) relevance += 10;
+          else if (productWords.some(pw => pw.startsWith(word) || word.startsWith(pw) && pw.length >= 4)) relevance += 5;
+          const related = relatedFoodWords[word] || [];
+          if (related.some(relatedWord => productWords.includes(relatedWord))) relevance += 2;
+        }
+        return { product, relevance };
+      }).filter(item => item.relevance > 0)
+        .sort((a, b) => b.relevance - a.relevance || a.product.name.localeCompare(b.product.name))
+        .slice(0, 5)
+        .map(item => item.product);
+    }
+
+    function appendRelatedSuggestions(term) {
+      const emptyState = document.getElementById('results-empty-state');
+      const suggestions = relatedSampleProducts(term);
+      if (!emptyState || !suggestions.length) return;
+
+      const suggestionHeading = document.createElement('h4');
+      suggestionHeading.className = 'mt-6 text-base font-black text-slate-900';
+      suggestionHeading.textContent = 'Related options available';
+      const note = document.createElement('p');
+      note.className = 'text-xs text-slate-600 mt-1 mb-3';
+      note.textContent = 'These are alternatives, not guaranteed substitutes. Check ingredients and dietary requirements before purchasing.';
+      const suggestionList = document.createElement('div');
+      suggestionList.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2 text-left';
+      suggestions.forEach(product => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'w-full text-left rounded-xl border border-brand-200 bg-brand-50 hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-accent-blue p-3 font-semibold text-brand-600';
+        button.textContent = `${product.icon || '🛒'} ${product.name}`;
+        button.setAttribute('aria-label', `Search for ${product.name}`);
+        button.addEventListener('click', () => {
+          document.getElementById('input-search-term').value = product.name;
+          applySearch(product.name, state.zipCode, state.radius);
+        });
+        suggestionList.appendChild(button);
+      });
+      emptyState.append(suggestionHeading, note, suggestionList);
     }
 
     function productCardHtml(product) {
@@ -2607,16 +2971,18 @@ function openShoppingTimeBreakdown(event) {
       countLabel.textContent = totalItemsCount;
 
       if (listItems.length === 0) {
-        container.innerHTML = hasStartedNewList
-          ? '<p class="py-8 text-center text-slate-400">No items in your grocery list. Search items or browse hot deals to add them!</p>'
-          : `<div class="py-8 text-center">
-              <p class="font-semibold text-slate-700 mb-2">Ready to start your grocery list?</p>
-              <p class="text-sm text-slate-600">
-                Click the blue
-                <i class="fa-solid fa-plus text-accent-blue mx-1" aria-hidden="true"></i>
-                button above to create a new list!
-              </p>
-            </div>`;
+        container.innerHTML = `
+          <div class="py-8 text-center">
+            <p class="font-semibold text-slate-700">
+              Nothing is in your cart yet! Click
+              <a
+                href="#search"
+                onclick="navigateTo('search'); return false;"
+                class="text-brand-600 font-bold underline hover:text-brand-700"
+              >here</a>
+              to begin adding items.
+            </p>
+          </div>`;
 
         storeTotalsContainer.innerHTML = '<p class="text-xs text-slate-400">No active store estimates.</p>';
         grandTotalLabel.textContent = '$0.00';
@@ -2796,6 +3162,12 @@ function openShoppingTimeBreakdown(event) {
         ? sortedStores[0].total
         : 0;
 
+      const estimatedSavings = Math.max(0, cheapestTotal - bestSplitTotal);
+      const savingsLabel = document.getElementById('cart-estimated-savings');
+      if (savingsLabel) {
+        savingsLabel.textContent = `$${estimatedSavings.toFixed(2)}`;
+      }
+
       let storeListHtml = '';
 
       sortedStores.forEach(sb => {
@@ -2890,7 +3262,7 @@ function openShoppingTimeBreakdown(event) {
     }
 
     // --- Saved Grocery Lists ---
-    async function saveGroceryListImpl(startNewAfterSave = false) {
+    async function saveGroceryListImpl() {
       if (!state.isLoggedIn || !state.user_id) {
         showToast('Please log in before saving a grocery list.');
         return;
@@ -2937,16 +3309,11 @@ function openShoppingTimeBreakdown(event) {
 
       state.savedLists.unshift(data);
 
-      // Clear the current list after saving
+      // Automatically start a fresh grocery list after saving
       state.cart = [];
       state.activeSavedList = null;
       state.viewingSavedList = false;
-      hasStartedNewList = false;
-
-      // If the user clicked + to start a new list, update the empty-list message
-      if (startNewAfterSave) {
-        hasStartedNewList = true;
-      }
+      hasStartedNewList = true;
 
       renderGroceryList();
       renderCartDrawer();
@@ -2959,7 +3326,6 @@ function openShoppingTimeBreakdown(event) {
         10000
       );
     }
-
 
     async function loadSavedGroceryLists() {
       if (!state.user_id) return;
@@ -3173,7 +3539,7 @@ function openShoppingTimeBreakdown(event) {
       state.cart = [];
       state.activeSavedList = null;
       state.viewingSavedList = false;
-      hasStartedNewList = false;
+      hasStartedNewList = true;
 
       renderGroceryList();
       renderCartDrawer();
@@ -3186,31 +3552,42 @@ function openShoppingTimeBreakdown(event) {
     // A deal stays hidden only while its item is still in the list, so removing
     // the item (or clearing, starting a new, or saving the list) brings the deal back.
     function pruneClaimedDeals() {
+      const allDeals = Object.values(HOT_DEALS_BY_REGION).flat();
+
       state.claimedDeals = state.claimedDeals.filter(id => {
-        const deal = HOT_DEALS.find(d => d.id === id);
+        const deal = allDeals.find(d => d.id === id);
         return deal && state.cart.some(item => item.id === deal.productId);
       });
     }
 
     function renderDeals() {
       const container = document.getElementById('deals-container');
+      const activeDeals = getActiveDeals();
+
       pruneClaimedDeals();
 
       // Keep quantities the user already picked on cards that stay on screen
       const pickedQty = {};
-      container.querySelectorAll('[id^="qty-"]').forEach(el => { pickedQty[el.id] = el.textContent; });
+      container.querySelectorAll('[id^="qty-"]').forEach(el => {
+        pickedQty[el.id] = el.textContent;
+      });
+
       container.innerHTML = '';
 
-      const available = HOT_DEALS.filter(d => !state.claimedDeals.includes(d.id)).slice(0, DEALS_SHOWN);
+      const available = activeDeals
+        .filter(d => !state.claimedDeals.includes(d.id))
+        .slice(0, DEALS_SHOWN);
+
       if (available.length === 0) {
         container.innerHTML = '<p class="col-span-full py-8 text-center text-slate-600">You\'ve added every Hot Deal to your list. Check back soon for new ones.</p>';
         return;
       }
 
       available.forEach(deal => {
-        const store = STORES.find(s => s.id === deal.storeId);
         const card = document.createElement('div');
+
         card.className = 'min-w-0 w-full bg-white rounded-2xl p-4 sm:p-5 border border-brand-200 shadow-sm flex flex-col justify-between gap-3';
+
         card.innerHTML = `
           <div>
             <div class="flex items-center justify-between mb-3">
@@ -3219,7 +3596,7 @@ function openShoppingTimeBreakdown(event) {
             </div>
             <h3 class="font-black text-slate-900 text-base sm:text-lg break-words">${deal.name}</h3>
             <p class="text-sm text-slate-600 font-medium flex items-start gap-2 mt-2 break-words">
-              <i class="fa-solid fa-location-dot text-brand-500"></i> ${store.name} (${store.distance} mi)
+              <i class="fa-solid fa-location-dot text-brand-500"></i> ${deal.storeName}
             </p>
             <div class="mt-3 flex flex-wrap items-baseline gap-2">
               <span class="text-2xl font-black text-brand-600">$${deal.dealPrice.toFixed(2)}</span>
@@ -3231,6 +3608,7 @@ function openShoppingTimeBreakdown(event) {
             <i class="fa-solid fa-cart-plus"></i> Add Deal to Cart
           </button>
         `;
+
         container.appendChild(card);
       });
 
@@ -3241,9 +3619,12 @@ function openShoppingTimeBreakdown(event) {
     }
 
     function addDealToCart(dealId) {
-      const deal = HOT_DEALS.find(d => d.id === dealId);
+      const deal = getActiveDeals().find(d => d.id === dealId);
+
       pruneClaimedDeals();
-      if (!deal || state.claimedDeals.includes(dealId)) return; // ignore repeat clicks
+
+      if (!deal || state.claimedDeals.includes(dealId)) return;
+
       const quantity = readQty(dealId);
 
       // Remove the card and show the next deal only once the item is really in the cart
@@ -3254,9 +3635,17 @@ function openShoppingTimeBreakdown(event) {
     }
 
     function refreshDeals() {
-      const zip = document.getElementById('deals-zip-input').value;
-      state.zipCode = zip;
-      showToast(`Updated Hot Deals for ZIP ${zip}`);
+      const zip = document.getElementById('deals-zip-input').value.trim();
+
+      if (!/^\d{5}$/.test(zip)) {
+        alert('Please enter a valid 5-digit ZIP code.');
+        return;
+      }
+
+      saveZipPreference(zip);
+      renderDeals();
+
+      showToast(`Updated sample Hot Deals for ZIP ${zip}`);
     }
 
     // --- MAP VIEW (Sticky 6 & Option A Logic) ---
@@ -3509,6 +3898,8 @@ function openShoppingTimeBreakdown(event) {
         viewingSavedList: state.viewingSavedList,
         activeSavedList: state.activeSavedList,
         claimedDeals: state.claimedDeals,
+        zipCode: state.zipCode,
+        radius: state.radius,
         search: state.searchTerm === null ? null
           : { term: state.searchTerm, zip: state.zipCode, radius: state.radius }
       };
@@ -3524,8 +3915,7 @@ function openShoppingTimeBreakdown(event) {
       loadKrogerProductCache(); // live products must be known before the saved list is checked
       let saved = null;
       try { saved = JSON.parse(localStorage.getItem(APP_STATE_KEY)); } catch (e) {}
-      if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return; // first visit: keep the sample list
-
+      if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return; // first visit: start with an empty list
       if (Array.isArray(saved.cart)) {
         state.cart = saved.cart
           .filter(item => item && typeof item === 'object' &&
@@ -3541,6 +3931,19 @@ function openShoppingTimeBreakdown(event) {
         list.items.every(item => item && typeof item === 'object' && isValidQuantity(Number(item.quantity)));
       state.viewingSavedList = saved.viewingSavedList === true && !!listUsable;
       state.activeSavedList = state.viewingSavedList ? list : null;
+
+      // Restore the last selected ZIP code, even if no search was completed
+      const savedZip = /^\d{5}$/.test(String(saved.zipCode))
+        ? String(saved.zipCode)
+        : saved.search && /^\d{5}$/.test(String(saved.search.zip))
+          ? String(saved.search.zip)
+          : '84601';
+
+      state.zipCode = savedZip;
+
+      document.getElementById('input-zip-code').value = savedZip;
+      document.getElementById('deals-zip-input').value = savedZip;
+      document.getElementById('map-zip-input').value = savedZip;
 
       const search = saved.search;
       if (search && typeof search === 'object' && typeof search.term === 'string' && /^\d{5}$/.test(String(search.zip))) {
@@ -3760,6 +4163,7 @@ async function handleLoginImpl(e) {
     window.addEventListener('DOMContentLoaded', async () => {
       try {
         loadAppState();
+        updateLocationDisplay(state.zipCode || '84601');
         renderCartDrawer();
       } catch (e) {
         // Last line of defense: never let saved data stop the app from starting
@@ -3783,7 +4187,7 @@ async function handleLoginImpl(e) {
     const WYSE_WELCOME_KEY = 'shopwyse_wyse_welcome_seen';
     const WYSE_MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
-    const wyseModal = document.querySelector('#wyse-assistant-modal');
+    const wysePage = document.querySelector('#screen-recipes');
     const wyseWelcome = document.querySelector('#wyse-welcome');
     const imageInput = document.querySelector('#recipe-image');
     const cameraInput = document.querySelector('#recipe-camera');
@@ -3836,11 +4240,10 @@ async function handleLoginImpl(e) {
     ];
 
     function openWyseAssistant() {
-      lastFocusedElement = document.activeElement;
-      wyseModal.classList.remove('hidden');
-      document.body.classList.add('wyse-modal-open');
+      navigateTo('recipes');
 
       let hasSeenWelcome = false;
+
       try {
         hasSeenWelcome = localStorage.getItem(WYSE_WELCOME_KEY) === 'true';
       } catch (error) {}
@@ -3848,30 +4251,18 @@ async function handleLoginImpl(e) {
       wyseWelcome.classList.toggle('hidden', hasSeenWelcome);
 
       if (!hasSeenWelcome) {
-        try { localStorage.setItem(WYSE_WELCOME_KEY, 'true'); } catch (error) {}
-      }
-
-      requestAnimationFrame(() => {
-        document.querySelector('#wyse-close-button').focus();
-      });
-    }
-
-    function closeWyseAssistant() {
-      wyseModal.classList.add('hidden');
-      document.body.classList.remove('wyse-modal-open');
-      if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
-        lastFocusedElement.focus();
+        try {
+          localStorage.setItem(WYSE_WELCOME_KEY, 'true');
+        } catch (error) {}
       }
     }
+
+    // Kept so existing recipe actions that call this function still work.
+    // Wyse Recipes is now a regular page, not a popup.
+    function closeWyseAssistant() {}
 
     window.openWyseAssistant = openWyseAssistant;
     window.closeWyseAssistant = closeWyseAssistant;
-
-    document.addEventListener('keydown', event => {
-      if (event.key === 'Escape' && !wyseModal.classList.contains('hidden')) {
-        closeWyseAssistant();
-      }
-    });
 
     function updateProgress(message) {
       statusElement.textContent = message;
@@ -3932,6 +4323,28 @@ async function handleLoginImpl(e) {
         };
         image.src = url;
       });
+    }
+
+    async function prepareRecipeImage(file) {
+      if (!file) return null;
+
+      const image = await loadBrowserImage(file);
+      const canvas = document.createElement('canvas');
+
+      const maxSize = 720;
+      const scale = Math.min(
+        1,
+        maxSize / Math.max(image.width, image.height)
+      );
+
+      canvas.width = Math.round(image.width * scale);
+      canvas.height = Math.round(image.height * scale);
+
+      const context = canvas.getContext('2d');
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+      // Compress the photo so it takes up less database space
+      return canvas.toDataURL('image/jpeg', 0.72);
     }
 
     function flattenTesseractLines(blocks = []) {
@@ -4701,19 +5114,32 @@ async function handleLoginImpl(e) {
       recipesStatus.className = `text-sm font-bold ${isError ? 'text-red-700' : 'text-emerald-700'}`;
     }
 
+    
     function showWyseTab(tab) {
       const onRecipes = tab === 'recipes';
-      document.getElementById('wyse-tab-scan').setAttribute('aria-selected', String(!onRecipes));
-      document.getElementById('wyse-tab-recipes').setAttribute('aria-selected', String(onRecipes));
-      document.getElementById('wyse-scan-view').classList.toggle('hidden', onRecipes);
-      document.getElementById('wyse-recipes-view').classList.toggle('hidden', !onRecipes);
-      document.getElementById('wyse-header-start-over').classList.toggle('hidden', onRecipes); // scanning only
-      // A recipe left open (even with unsaved edits) is still there when you come back
+
+      document.getElementById('wyse-tab-scan')
+        .setAttribute('aria-selected', String(!onRecipes));
+
+      document.getElementById('wyse-tab-recipes')
+        .setAttribute('aria-selected', String(onRecipes));
+
+      document.getElementById('wyse-scan-view')
+        .classList.toggle('hidden', onRecipes);
+
+      document.getElementById('wyse-recipes-view')
+        .classList.toggle('hidden', !onRecipes);
+
+      // Start Over belongs only to the Wyse AI tab
+      document.getElementById('wyse-header-start-over')
+        .classList.toggle('hidden', onRecipes);
+
       if (onRecipes && !openRecipe) {
         setRecipesStatus('');
         showRecipeList();
       }
     }
+
 
     // ---------- List of saved recipes ----------
     let recipesBootTimer = null;
@@ -4780,36 +5206,67 @@ async function handleLoginImpl(e) {
 
     function renderRecipeList() {
       if (!state.savedRecipes.length) {
-        recipesList.replaceChildren(emptyMessage('No saved recipes yet. Scan or type a recipe, then tap Save recipe.', 'Scan a recipe', () => showWyseTab('scan')));
+        recipesList.replaceChildren(
+          emptyMessage(
+            'No saved recipes yet. Scan or type a recipe, then tap Save recipe.',
+            'Scan a recipe',
+            () => showWyseTab('scan')
+          )
+        );
         return;
       }
-      recipesList.replaceChildren(...state.savedRecipes.map(recipe => {
-        const lines = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
-        const sold = lines.filter(line => recipeLineMatch(line)).length;
 
-        const li = document.createElement('li');
+      recipesList.className =
+        'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5';
+
+      recipesList.replaceChildren(...state.savedRecipes.map(recipe => {
+        const lines = Array.isArray(recipe.ingredients)
+          ? recipe.ingredients
+          : [];
+
+        const card = document.createElement('li');
+        card.className = 'wyse-recipe-card rounded-2xl border shadow-sm';
+
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = 'w-full text-left rounded-xl border border-slate-200 bg-white hover:border-accent-blue hover:bg-blue-50 p-4 flex items-center justify-between gap-3 transition';
+        button.className =
+          'w-full aspect-[4/3] flex flex-col text-left rounded-2xl overflow-hidden hover:shadow-md transition focus:outline-none focus:ring-2 focus:ring-blue-600';
+
         button.addEventListener('click', () => openRecipeDetail(recipe));
 
-        const text = document.createElement('div');
-        text.className = 'min-w-0';
-        const name = document.createElement('p');
-        name.className = 'font-black text-slate-900 break-words';
+        const image = document.createElement('img');
+        image.className = 'w-full flex-[3_1_0%] min-h-0 object-cover bg-brand-100';
+        image.alt = `${recipe.name} recipe preview`;
+
+        if (recipe.image_data) {
+          image.src = recipe.image_data;
+        } else {
+          image.src =
+            'https://placehold.co/600x400/e1f3ea/1b4332?text=Saved+Recipe';
+        }
+
+        const content = document.createElement('div');
+        content.className =
+          'flex-[1_1_0%] min-h-0 p-3 flex flex-col justify-center gap-1 overflow-hidden';
+
+        const name = document.createElement('h3');
+        name.className = 'font-black text-lg text-slate-900 break-words';
         name.textContent = recipe.name;
+
         const meta = document.createElement('p');
-        meta.className = 'text-xs font-semibold text-slate-600 mt-0.5';
-        meta.textContent = `${lines.length} ${lines.length === 1 ? 'ingredient' : 'ingredients'} · ${sold} sold at ShopWyse`;
-        text.append(name, meta);
+        meta.className = 'text-sm font-semibold text-slate-600';
+        meta.textContent =
+          `${lines.length} ${lines.length === 1 ? 'ingredient' : 'ingredients'}`;
 
-        const chevron = document.createElement('i');
-        chevron.className = 'fa-solid fa-chevron-right text-slate-500 shrink-0';
-        chevron.setAttribute('aria-hidden', 'true');
+        const openLabel = document.createElement('p');
+        openLabel.className = 'text-sm font-bold text-violet-600 pt-1';
+        openLabel.textContent = 'View recipe →';
 
-        button.append(text, chevron);
-        li.append(button);
-        return li;
+        content.append(name, meta, openLabel);
+        button.append(image, content);
+        card.append(button);
+
+        return card;
       }));
     }
 
@@ -4962,7 +5419,7 @@ async function handleLoginImpl(e) {
       const back = el('button', 'text-sm font-bold text-accent-blue hover:underline flex items-center gap-1.5');
       back.type = 'button';
       back.innerHTML = '<i class="fa-solid fa-arrow-left" aria-hidden="true"></i> ';
-      back.append('My recipes');
+      back.append('Back to saved recipes');
       back.addEventListener('click', () => {
         if (recipe.dirty && !confirm('You have unsaved changes to this recipe. Leave without saving?')) return;
         showRecipeList();
@@ -5178,22 +5635,41 @@ async function handleLoginImpl(e) {
         return;
       }
 
-      button.disabled = true; // no double saves
-      const { data, error } = await db
-        .from(RECIPES_TABLE)
-        .insert({ user_id: state.user_id, name, ingredients })
-        .select()
-        .single();
-      button.disabled = false;
+      button.disabled = true;
 
-      if (error) {
-        console.error('Error saving recipe:', error);
-        say('Could not save your recipe. Please try again.', true);
-        return;
+      try {
+        // Save a compressed copy of the selected recipe photo
+        const imageData = await prepareRecipeImage(selectedRecipeImage);
+
+        const { data, error } = await db
+          .from(RECIPES_TABLE)
+          .insert({
+            user_id: state.user_id,
+            name,
+            ingredients,
+            image_data: imageData
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error saving recipe:', error);
+          say('Could not save your recipe. Please try again.', true);
+          return;
+        }
+
+        if (state.savedRecipes) {
+          state.savedRecipes.unshift(data);
+        }
+
+        nameInput.value = '';
+        say(`Saved “${name}” to Saved Recipes.`);
+      } catch (error) {
+        console.error('Error preparing recipe photo:', error);
+        say('Could not prepare the recipe photo. Please try again.', true);
+      } finally {
+        button.disabled = false;
       }
-      if (state.savedRecipes) state.savedRecipes.unshift(data);
-      nameInput.value = '';
-      say(`Saved “${name}” to My recipes.`);
     }
 
     // Clear the save message when a new scan starts over or runs again
