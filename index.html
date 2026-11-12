@@ -2581,8 +2581,8 @@ function closeGroceryListPrompt(value = false) {
         const prod = PRODUCTS.find(p => p.id === cartItem.id);
         if (!prod) return;
 
-        // Find lowest price
-        let minPrice = Math.min(...Object.values(prod.prices));
+        // Find lowest price (a claimed deal counts at its store)
+        let minPrice = Math.min(...Object.values(cartItemPrices(cartItem)));
         let itemTotal = minPrice * cartItem.quantity;
         grandTotal += itemTotal;
 
@@ -2715,18 +2715,23 @@ async function promptAddSavedItemToCart(productId, savedQuantity) {
 
     // Keep the saved list visible after adding the item
     const savedList = state.activeSavedList;
+    // Bring along a deal the item was saved with
+    const savedItem = savedList && Array.isArray(savedList.items)
+        ? savedList.items.find(item => item.id === productId)
+        : null;
+    const dealId = savedItem && findDeal(savedItem.dealId) ? savedItem.dealId : null;
 
     addToCart(productId, quantity, () => {
         state.activeSavedList = savedList;
         state.viewingSavedList = true;
 
         renderGroceryList();
-    });
+    }, dealId);
 }
 
 // Returns true if the item was added now. onAdded runs once it's added,
 // including later if the shopping-time question has to be answered first.
-function addToCart(productId, quantity = 1, onAdded = null) {
+function addToCart(productId, quantity = 1, onAdded = null, dealId = null) {
 
     if (!state.isLoggedIn) {
         showToast('Please log in to add items.');
@@ -2738,7 +2743,7 @@ function addToCart(productId, quantity = 1, onAdded = null) {
     if (state.weeklyShoppingMinutes === null ||
         state.weeklyShoppingMinutes === undefined) {
 
-        pendingCartProduct = { productId, quantity, onAdded };
+        pendingCartProduct = { productId, quantity, onAdded, dealId };
 
         document.getElementById('shopping-time-modal')
             .classList.remove('hidden');
@@ -2752,13 +2757,14 @@ function addToCart(productId, quantity = 1, onAdded = null) {
     // Normal cart functionality
     const existing = state.cart.find(item => item.id === productId);
 
+    // A claimed deal applies to every unit of that item on the list
     if (existing) {
         existing.quantity += quantity;
+        if (dealId) existing.dealId = dealId;
     } else {
-        state.cart.push({
-            id: productId,
-            quantity
-        });
+        state.cart.push(dealId
+            ? { id: productId, quantity, dealId }
+            : { id: productId, quantity });
     }
 
     if (onAdded) onAdded();
@@ -2813,11 +2819,11 @@ async function saveShoppingTime(minutes) {
     // Automatically add the item they originally clicked
     if (pendingCartProduct !== null) {
 
-        const { productId, quantity, onAdded } = pendingCartProduct;
+        const { productId, quantity, onAdded, dealId } = pendingCartProduct;
 
         pendingCartProduct = null;
 
-        addToCart(productId, quantity, onAdded);
+        addToCart(productId, quantity, onAdded, dealId);
     }
 } 
 function openShoppingTimeBreakdown(event) {
@@ -3036,12 +3042,13 @@ function openShoppingTimeBreakdown(event) {
         const prod = PRODUCTS.find(p => p.id === cartItem.id);
         if (!prod) return;
 
-        // Determine which store is cheapest
+        // Determine which store is cheapest (a claimed deal counts at its store)
+        const prices = cartItemPrices(cartItem);
         let cheapestStoreId = null;
         let lowestPrice = Infinity;
 
         STORES.forEach(s => {
-          const p = prod.prices[s.id];
+          const p = prices[s.id];
           if (p < lowestPrice) {
             lowestPrice = p;
             cheapestStoreId = s.id;
@@ -3070,11 +3077,13 @@ function openShoppingTimeBreakdown(event) {
           };
         }
 
+        const applied = itemDeal(cartItem);
         itemGroups[cheapestStoreId].items.push({
           cartItem,
           prod,
           lowestPrice,
-          itemLineTotal
+          itemLineTotal,
+          isDeal: Boolean(applied) && applied.storeId === cheapestStoreId
         });
         
       });
@@ -3100,7 +3109,7 @@ function openShoppingTimeBreakdown(event) {
             </span>
           </div>
 
-          ${group.items.map(({ cartItem, prod, lowestPrice, itemLineTotal }) => `
+          ${group.items.map(({ cartItem, prod, lowestPrice, itemLineTotal, isDeal }) => `
             <div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div class="flex items-center gap-3">
                 <span class="text-3xl">${prod.icon}</span>
@@ -3113,6 +3122,7 @@ function openShoppingTimeBreakdown(event) {
                   <span class="text-xs text-slate-600 font-medium">
                     ($${lowestPrice.toFixed(2)} each)
                   </span>
+                  ${isDeal ? '<span class="ml-1 text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-black px-2 py-0.5 rounded-full">HOT DEAL</span>' : ''}
                 </div>
               </div>
 
@@ -3304,7 +3314,8 @@ function openShoppingTimeBreakdown(event) {
         return {
           id: item.id,
           name: product ? product.name : item.name || item.id,
-          quantity: item.quantity
+          quantity: item.quantity,
+          ...(item.dealId ? { dealId: item.dealId } : {})
         };
       });
 
@@ -3577,12 +3588,46 @@ function openShoppingTimeBreakdown(event) {
     // A deal stays hidden only while its item is still in the list, so removing
     // the item (or clearing, starting a new, or saving the list) brings the deal back.
     function pruneClaimedDeals() {
-      const allDeals = Object.values(HOT_DEALS_BY_REGION).flat();
-
       state.claimedDeals = state.claimedDeals.filter(id => {
-        const deal = allDeals.find(d => d.id === id);
+        const deal = findDeal(id);
         return deal && state.cart.some(item => item.id === deal.productId);
       });
+    }
+
+    // --- Deal pricing ---
+    // A claimed deal is stored on its cart item ({ id, quantity, dealId }) so the deal
+    // price is what the list, totals and map charge at the deal's store.
+    function findDeal(dealId) {
+      if (!dealId) return null;
+      return Object.values(HOT_DEALS_BY_REGION).flat().find(d => d.id === dealId) || null;
+    }
+
+    // Matches a deal's store name to one of the app's stores. Fry's is Kroger's Arizona
+    // banner, so it uses the Kroger-family (Smith's) slot.
+    function dealStoreId(deal) {
+      const name = String(deal.storeName || '').replace(/[’‘]/g, "'").toLowerCase();
+      if (/fry'?s/.test(name)) return KROGER_STORE_ID;
+      const store = STORES.find(s => s.name.toLowerCase() === name);
+      return store ? store.id : null;
+    }
+
+    // The deal on a cart item, if it's real, for this product, and at a known store
+    function itemDeal(item) {
+      const deal = findDeal(item && item.dealId);
+      if (!deal || deal.productId !== item.id) return null;
+      const storeId = dealStoreId(deal);
+      return storeId ? { deal, storeId } : null;
+    }
+
+    // Per-store prices for one cart (or saved-list) item, with its deal price applied.
+    // A deal only ever lowers a price (NYC deals can be above the Provo sample catalog).
+    function cartItemPrices(item) {
+      const prod = PRODUCTS.find(p => p.id === item.id);
+      if (!prod) return null;
+      const applied = itemDeal(item);
+      if (!applied) return prod.prices;
+      const regular = prod.prices[applied.storeId];
+      return { ...prod.prices, [applied.storeId]: Math.min(applied.deal.dealPrice, regular ?? Infinity) };
     }
 
     function renderDeals() {
@@ -3656,7 +3701,7 @@ function openShoppingTimeBreakdown(event) {
       addToCart(deal.productId, quantity, () => {
         state.claimedDeals.push(dealId);
         renderDeals();
-      });
+      }, dealId);
     }
 
     function refreshDeals() {
@@ -3724,10 +3769,11 @@ function openShoppingTimeBreakdown(event) {
         const prod = PRODUCTS.find(p => p.id === cartItem.id);
         if (!prod) return;
 
+        const prices = cartItemPrices(cartItem);
         let bestStoreId = null;
         let lowestPrice = Infinity;
         STORES.forEach(s => {
-          const price = prod.prices[s.id];
+          const price = prices[s.id];
           if (price < lowestPrice) {
             lowestPrice = price;
             bestStoreId = s.id;
@@ -3782,15 +3828,16 @@ function openShoppingTimeBreakdown(event) {
         const prod = PRODUCTS.find(p => p.id === cartItem.id);
         if (!prod) return;
 
-        const thisStorePrice = prod.prices[store.id];
+        const prices = cartItemPrices(cartItem);
+        const thisStorePrice = prices[store.id];
         storeEstimatedTotal += thisStorePrice * cartItem.quantity;
 
         // Find absolute cheapest store for this item
         let absoluteBestStoreId = null;
         let lowestPrice = Infinity;
         STORES.forEach(s => {
-          if (prod.prices[s.id] < lowestPrice) {
-            lowestPrice = prod.prices[s.id];
+          if (prices[s.id] < lowestPrice) {
+            lowestPrice = prices[s.id];
             absoluteBestStoreId = s.id;
           }
         });
@@ -3945,10 +3992,12 @@ function openShoppingTimeBreakdown(event) {
         state.cart = saved.cart
           .filter(item => item && typeof item === 'object' &&
             (PRODUCTS.some(p => p.id === item.id) || isKrogerProductKey(item.id)) && isValidQuantity(item.quantity))
-          .map(item => ({ id: item.id, quantity: item.quantity }));
+          .map(item => findDeal(item.dealId)
+            ? { id: item.id, quantity: item.quantity, dealId: item.dealId }
+            : { id: item.id, quantity: item.quantity });
       }
       if (Array.isArray(saved.claimedDeals)) {
-        state.claimedDeals = saved.claimedDeals.filter(id => HOT_DEALS.some(d => d.id === id));
+        state.claimedDeals = saved.claimedDeals.filter(id => findDeal(id));
       }
 
       const list = saved.activeSavedList;
