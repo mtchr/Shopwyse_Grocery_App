@@ -279,21 +279,19 @@ body.wyse-modal-open {
   height: 100%;
 }
 
-
 .wyse-dropzone {
-  background: linear-gradient(135deg, #e5f3e9 0%, #edf4ff 52%, #f7f4e9 100%);
+  background: #f2f9f5;
   border: 2px dashed #94a3b8;
-  transition: border-color 160ms ease, background 160ms ease,
+  transition: border-color 160ms ease, background-color 160ms ease,
     transform 160ms ease;
 }
 
 .wyse-dropzone:hover,
 .wyse-dropzone:focus-within,
 .wyse-dropzone.is-dragging {
-  background: linear-gradient(135deg, #e5f3e9 0%, #edf4ff 52%, #f7f4e9 100%);
-  border-color: #8b5cf6;
+  background: #e1f3ea;
+  border-color: #2563eb;
 }
-
 
 .wyse-dropzone.is-dragging {
   transform: scale(1.01);
@@ -343,108 +341,6 @@ body.wyse-modal-open {
     color: #475569 !important;
 }
 
-/* WYSE RECIPES: Change blue accents to purple */
-#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).text-accent-blue {
-  color: #7c3aed !important;
-}
-
-#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).bg-accent-blue {
-  background-color: #7c3aed !important;
-}
-
-#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).hover\:bg-accent-blueHover:hover {
-  background-color: #6d28d9 !important;
-}
-
-#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).border-blue-800,
-#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).border-blue-200,
-#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).border-blue-400 {
-  border-color: #c4b5fd !important;
-}
-
-#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).bg-blue-50 {
-  background-color: #f5f3ff !important;
-}
-
-#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).text-blue-900 {
-  color: #4c1d95 !important;
-}
-
-#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).border-t-accent-blue {
-  border-top-color: #7c3aed !important;
-}
-
-#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).hover\:border-blue-500:hover {
-  border-color: #8b5cf6 !important;
-}
-
-#screen-recipes :not(.wyse-section-tabs, .wyse-section-tabs *).focus\:ring-blue-100:focus {
-  --tw-ring-color: #ede9fe !important;
-}
-
-#screen-recipes .wyse-dropzone:hover,
-#screen-recipes .wyse-dropzone:focus-within,
-#screen-recipes .wyse-dropzone.is-dragging {
-  border-color: #7c3aed !important;
-}
-
-#screen-recipes svg [fill="#2563EB"] {
-  fill: #7c3aed !important;
-}
-
-#screen-recipes svg [stroke="#2563EB"] {
-  stroke: #7c3aed !important;
-}
-
-/* WYSE RECIPES: Additional purple styling fixes */
-
-/* WYSE RECIPES: Make saved recipe preview links purple */
-#screen-recipes .wyse-recipe-card .text-accent-blue,
-#screen-recipes .wyse-recipe-card .fa-arrow-right {
-  color: #7c3aed !important;
-}
-
-#screen-recipes .wyse-recipe-card:hover {
-  border-color: #8b5cf6 !important;
-}
-
-#screen-recipes .wyse-recipe-card:focus {
-  --tw-ring-color: #c4b5fd !important;
-}
-
-/* Handwritten recipe checkbox */
-#screen-recipes #recipe-handwriting-mode {
-  accent-color: #7c3aed !important;
-}
-
-/* Typed ingredients box when selected */
-#screen-recipes #recipe-text:focus {
-  border-color: #8b5cf6 !important;
-  --tw-ring-color: #ddd6fe !important;
-  box-shadow: 0 0 0 2px #ddd6fe !important;
-  outline: none !important;
-}
-
-
-/* WYSE RECIPES: Final purple fixes for Saved Recipes */
-
-/* Change blue text and icons inside Saved Recipes to purple */
-#wyse-recipes-view .text-accent-blue {
-  color: #7c3aed !important;
-}
-
-/* Change the checkboxes when a saved recipe is opened */
-#wyse-recipe-detail input[type="checkbox"] {
-  accent-color: #7c3aed !important;
-  --tw-ring-color: #c4b5fd !important;
-}
-
-/* Change the focus outline on ingredient checkboxes */
-#wyse-recipe-detail input[type="checkbox"]:focus {
-  outline-color: #8b5cf6 !important;
-  box-shadow: 0 0 0 2px #ddd6fe !important;
-}
-
   </style>
 </head>
 
@@ -468,6 +364,10 @@ body.wyse-modal-open {
       </div>
       <div>
         <span class="text-xl sm:text-2xl font-black tracking-tight text-brand-600">Shop<span class="text-accent-blue">Wyse</span></span>
+        <span id="location-display"
+          class="hidden sm:inline-block ml-2 text-xs bg-brand-100 text-brand-600 px-2 py-0.5 rounded-full font-semibold">
+          Loading location...
+        </span>
       </div>
     </button>
 
@@ -517,7 +417,7 @@ body.wyse-modal-open {
 
       <button onclick="guardNav('recipes')" id="nav-recipes"
         class="px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
-        <i class="fa-solid fa-book-open text-violet-600"></i>
+        <i class="fa-solid fa-book-open text-accent-blue"></i>
         <span>Wyse Recipes</span>
       </button>
 
@@ -541,7 +441,7 @@ body.wyse-modal-open {
     </button>
     <button onclick="closeMobileMenu(); guardNav('recipes')"
       class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 border-b border-slate-100 touch-btn">
-      <i class="fa-solid fa-book-open text-violet-600 w-5"></i>
+      <i class="fa-solid fa-book-open text-accent-blue w-5"></i>
       Wyse Recipes
     </button>
     <button onclick="closeMobileMenu(); guardNav('account')" class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 touch-btn">
@@ -587,8 +487,7 @@ body.wyse-modal-open {
             <label for="input-search-term" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Item Search</label>
             <div class="relative">
               <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-              <input type="text" id="input-search-term" placeholder="e.g. Gallon Milk, Eggs, Bread..."
-                onkeydown="if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); executeSearch(); }"
+              <input type="text" id="input-search-term" placeholder="e.g. Gallon Milk, Eggs, Bread..." 
                 class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-medium text-slate-900" />
             </div>
           </div>
@@ -774,6 +673,7 @@ body.wyse-modal-open {
       </div>
 
       <!-- Deals Grid -->
+      <p class="text-xs text-slate-600">Demonstration deals only. Prices and availability are not verified with local stores.</p>
       <div id="deals-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <!-- Rendered from JS -->
       </div>
@@ -957,7 +857,7 @@ body.wyse-modal-open {
         </div>
 
         <div class="text-sm font-medium text-slate-600 bg-brand-50 px-3 py-1.5 rounded-lg border border-brand-200">
-          <i class="fa-solid fa-road text-brand-500 mr-1"></i> Total driving loop: <strong class="text-slate-900">4.8 miles</strong>
+          <i class="fa-solid fa-road text-brand-500 mr-1"></i> Store route: <strong class="text-slate-900">Demo only</strong>
         </div>
       </div>
 
@@ -1239,7 +1139,7 @@ body.wyse-modal-open {
         aria-selected="false" aria-controls="wyse-recipes-view"
         onclick="showWyseTab('recipes')"
         class="wyse-tab-button min-h-[48px] rounded-xl text-sm sm:text-base font-black flex items-center justify-center gap-2 transition">
-        <i class="fa-solid fa-book-open text-violet-600"></i>
+        <i class="fa-solid fa-book-open"></i>
         Saved Recipes
       </button>
 
@@ -1589,67 +1489,75 @@ body.wyse-modal-open {
       cart: []
     };
 
-    // Update the header using the selected ZIP code  
+    // ZIP is the shared location source for Search, Deals, Map and header.
+    const zipLookupCache = new Map();
     let locationLookupRequest = 0;
+    let activeZipLocation = null;
+
+    function syncZipInputs(zip) {
+      ['input-zip-code', 'deals-zip-input', 'map-zip-input'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.value !== zip) el.value = zip;
+      });
+    }
 
     async function updateLocationDisplay(zip) {
       const display = document.getElementById('location-display');
       const requestNumber = ++locationLookupRequest;
-
       if (!display) return;
-
-      // Show the known default immediately instead of a loading message.
-      if (zip === '84601') {
-        display.textContent = 'Provo, UT, USA';
-        return;
-      }
-
       if (!/^\d{5}$/.test(zip)) {
-        display.textContent = 'Provo, UT, USA';
+        display.textContent = 'Enter a U.S. ZIP code';
+        activeZipLocation = null;
         return;
       }
-
-      // Show the ZIP code while looking up other locations.
-      display.textContent = `ZIP ${zip}`;
-
+      display.textContent = `ZIP ${zip} · Looking up location…`;
       try {
-        const response = await fetch(`https://api.zippopotam.us/us/${zip}`);
-
-        if (requestNumber !== locationLookupRequest) return;
-
-        if (!response.ok) return;
-
-        const data = await response.json();
-
-        if (requestNumber !== locationLookupRequest) return;
-
-        const place = data.places && data.places[0];
-
-        if (place) {
-          display.textContent =
-            `${place['place name']}, ${place['state abbreviation']}, USA`;
+        let place = zipLookupCache.get(zip);
+        if (!place) {
+          const response = await fetch(`https://api.zippopotam.us/us/${encodeURIComponent(zip)}`);
+          if (!response.ok) throw new Error('ZIP code not found');
+          const data = await response.json();
+          const first = data.places?.[0];
+          if (!first) throw new Error('ZIP code not found');
+          place = {
+            zip,
+            city: first['place name'],
+            state: first['state abbreviation'],
+            latitude: Number(first.latitude),
+            longitude: Number(first.longitude)
+          };
+          zipLookupCache.set(zip, place);
+        }
+        if (requestNumber !== locationLookupRequest || state.zipCode !== zip) return;
+        activeZipLocation = place;
+        display.textContent = `${place.city}, ${place.state}, USA`;
+        if (state.currentScreen === 'deals') renderDeals();
+        if (state.currentScreen === 'map' && leafletMap) {
+          if (Number.isFinite(place.latitude) && Number.isFinite(place.longitude))
+            leafletMap.setView([place.latitude, place.longitude], 12);
+          renderMapStoreMarkers();
         }
       } catch (error) {
-        console.error('ZIP location lookup failed:', error);
+        if (requestNumber !== locationLookupRequest || state.zipCode !== zip) return;
+        activeZipLocation = null;
+        display.textContent = `ZIP ${zip} · Location unavailable`;
+        if (state.currentScreen === 'deals') renderDeals();
+        console.warn('ZIP lookup unavailable:', error);
       }
     }
 
-
-        // Save and synchronize a selected ZIP code
-        function saveZipPreference(value) {
-          const zip = String(value).trim();
-
-          if (!/^\d{5}$/.test(zip)) return;
-
-          state.zipCode = zip;
-
-          document.getElementById('input-zip-code').value = zip;
-          document.getElementById('deals-zip-input').value = zip;
-          document.getElementById('map-zip-input').value = zip;
-
-          persistAppState();
-          updateLocationDisplay(zip);
-        }
+    function saveZipPreference(value) {
+      const zip = String(value).trim();
+      if (!/^\d{5}$/.test(zip)) return false;
+      const changed = state.zipCode !== zip;
+      state.zipCode = zip;
+      syncZipInputs(zip);
+      if (changed) activeZipLocation = null;
+      persistAppState();
+      updateLocationDisplay(zip);
+      if (state.currentScreen === 'deals') renderDeals();
+      return true;
+    }
 
     let hasStartedNewList = false;
 
@@ -1864,245 +1772,23 @@ function closeGroceryListPrompt(value = false) {
       ]
     };
 
+    // Demo coverage is intentionally limited. Never pass Provo prices off as local elsewhere.
+    function getDemoDealsRegion() {
+      const zip = String(state.zipCode || '');
+      if (/^846\d{2}$/.test(zip)) return 'provo';
+      if (/^852\d{2}$/.test(zip)) return 'gilbert';
+      if (/^100\d{2}$/.test(zip)) return 'nyc';
+      return null;
+    }
+
     function getActiveDeals() {
-      const zip = String(state.zipCode || '84601');
-
-      if (zip.startsWith('85')) {
-        return HOT_DEALS_BY_REGION.gilbert;
-      }
-
-      if (zip.startsWith('10')) {
-        return HOT_DEALS_BY_REGION.nyc;
-      }
-
-      return HOT_DEALS_BY_REGION.provo;
+      const region = getDemoDealsRegion();
+      return region ? HOT_DEALS_BY_REGION[region] : [];
     }
 
     // Leaflet map instance
     let leafletMap = null;
     let mapMarkers = [];
-
-    // --- Live Kroger (Smith's) prices ---
-    // The kroger-search Supabase Edge Function (supabase/functions/kroger-search) holds the
-    // Kroger API secret and returns real Smith's prices. Walmart, Target, Costco and Trader
-    // Joe's have no API here, so their prices are ESTIMATES derived from the Smith's regular
-    // price. Each estimate is stable per product, so totals don't jump around between visits.
-    // Internal team demo only: Kroger's terms don't allow comparing their prices with other retailers.
-    const KROGER_STORE_ID = 'smiths_provo';
-    const KROGER_MIN_TERM = 3; // Kroger rejects shorter search terms
-    const KROGER_PRODUCTS_KEY = 'shopwyse_kroger_products';
-    const KROGER_SEARCH_CACHE_KEY = 'shopwyse_kroger_search_cache';
-    const KROGER_SEARCH_CACHE_MS = 15 * 60 * 1000;
-    const KROGER_MAX_CACHED_PRODUCTS = 300;
-    // Local testing: localStorage.setItem('shopwyse_kroger_url', 'http://127.0.0.1:8787')
-    const KROGER_SEARCH_URL = (() => {
-      try {
-        const override = localStorage.getItem('shopwyse_kroger_url');
-        if (override) return override;
-      } catch (e) {}
-      return `${SUPABASE_URL}/functions/v1/kroger-search`;
-    })();
-    // Typical price level compared with Smith's, before a per-product wobble of up to ±8%
-    const ESTIMATED_STORE_LEVELS = {
-      walmart_provo: 0.93,
-      costco_orem: 0.88,
-      traderjoes_orem: 0.98,
-      target_provo: 1.04
-    };
-
-    // Kroger product text goes into innerHTML templates, so escape it first
-    function escapeHtml(value) {
-      return String(value ?? '').replace(/[&<>"']/g, char => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      })[char]);
-    }
-
-    // FNV-1a hash of the text, mapped to [0, 1)
-    function stableUnit(text) {
-      let hash = 0x811c9dc5;
-      for (let i = 0; i < text.length; i++) {
-        hash ^= text.charCodeAt(i);
-        hash = Math.imul(hash, 0x01000193);
-      }
-      return (hash >>> 0) / 4294967296;
-    }
-
-    function estimatedStorePrice(smithsRegular, krogerProductId, storeId) {
-      const wobble = (stableUnit(`${krogerProductId}|${storeId}`) - 0.5) * 0.16;
-      const raw = smithsRegular * (ESTIMATED_STORE_LEVELS[storeId] + wobble);
-      // Shelf-style price ending in 9 (e.g. $3.49), never below $0.29
-      return Number(Math.max(0.29, Math.round(raw * 10) / 10 - 0.01).toFixed(2));
-    }
-
-    // Kroger departments that aren't groceries or household items; any product tagged
-    // with one of these is left out of search results (clothing, medicine, etc.)
-    const NON_GROCERY_CATEGORIES = new Set([
-      'Apparel',
-      'Health',          // medicine, vitamins, first aid, pharmacy
-      'Electronics',
-      'Gift Cards',
-      'Automotive',
-      'Sporting Goods'
-    ]);
-
-    // Backstop for medicine Kroger files under another department (e.g. pain relievers in Personal Care)
-    const MEDICINE_NAME_PATTERN = /\b(ibuprofen|acetaminophen|naproxen|aspirin|pain relie(f|ver)|caplets?|antacid|antihistamine|allergy relief|decongestant|cough|cold (and|&) flu|laxative|sleep aid|nicotine)\b/i;
-
-    function isGroceryProduct(p) {
-      const categories = Array.isArray(p && p.categories) ? p.categories : [];
-      if (categories.some(category => NON_GROCERY_CATEGORIES.has(category))) return false;
-      return !MEDICINE_NAME_PATTERN.test(String((p && p.description) || ''));
-    }
-
-    function isKrogerProductKey(id) {
-      return /^kr_\d{13}$/.test(String(id));
-    }
-
-    function isUsableKrogerProduct(p) {
-      return p && typeof p === 'object' && /^\d{13}$/.test(String(p.productId)) &&
-        typeof p.description === 'string' && p.description.trim() !== '' &&
-        Number.isFinite(Number(p.regular)) && Number(p.regular) > 0;
-    }
-
-    // Turns one kroger-search product into a PRODUCTS entry the rest of the app understands
-    function krogerCatalogEntry(p, locationName, fetchedAt) {
-      const regular = Number(p.regular);
-      const promo = Number(p.promo) > 0 && Number(p.promo) < regular ? Number(p.promo) : null;
-      const prices = { [KROGER_STORE_ID]: promo ?? regular };
-      Object.keys(ESTIMATED_STORE_LEVELS).forEach(storeId => {
-        prices[storeId] = estimatedStorePrice(regular, p.productId, storeId);
-      });
-      const image = typeof p.image === 'string' && p.image.startsWith('https://www.kroger.com/') ? p.image : null;
-
-      return {
-        id: `kr_${p.productId}`,
-        name: p.description,
-        category: (Array.isArray(p.categories) && p.categories[0]) || 'Grocery',
-        icon: image
-          ? `<img src="${escapeHtml(image)}" alt="" loading="lazy" class="inline-block w-[1.6em] h-[1.6em] object-contain align-middle">`
-          : '🛒',
-        prices,
-        live: {
-          raw: p,
-          brand: p.brand || null,
-          size: p.size || null,
-          regular,
-          promo,
-          stockLevel: p.stockLevel || null,
-          aisle: p.aisle || null,
-          locationName: locationName || null,
-          fetchedAt: fetchedAt || Date.now()
-        }
-      };
-    }
-
-    function upsertProduct(entry) {
-      const index = PRODUCTS.findIndex(p => p.id === entry.id);
-      if (index >= 0) PRODUCTS[index] = entry;
-      else PRODUCTS.push(entry);
-    }
-
-    function registerKrogerProducts(rawProducts, location) {
-      const fetchedAt = Date.now();
-      const entries = (Array.isArray(rawProducts) ? rawProducts : [])
-        .filter(isUsableKrogerProduct)
-        .map(p => krogerCatalogEntry(p, location && location.name, fetchedAt));
-      entries.forEach(upsertProduct);
-      saveKrogerProductCache();
-      return entries;
-    }
-
-    function listedProductIds() {
-      return [
-        ...state.cart,
-        ...((state.activeSavedList && state.activeSavedList.items) || []),
-        ...state.savedLists.flatMap(list => Array.isArray(list.items) ? list.items : [])
-      ].map(item => item && item.id);
-    }
-
-    // Keep live products on this device so lists still price them after a refresh.
-    // Products on the current list or a saved list are always kept.
-    function saveKrogerProductCache() {
-      const referenced = new Set(listedProductIds());
-      const live = PRODUCTS.filter(p => p.live).sort((a, b) => a.live.fetchedAt - b.live.fetchedAt);
-      const keep = [
-        ...live.filter(p => referenced.has(p.id)),
-        ...live.filter(p => !referenced.has(p.id)).slice(-KROGER_MAX_CACHED_PRODUCTS)
-      ];
-      const snapshot = keep.map(p => ({ p: p.live.raw, locationName: p.live.locationName, fetchedAt: p.live.fetchedAt }));
-      try { localStorage.setItem(KROGER_PRODUCTS_KEY, JSON.stringify(snapshot)); } catch (e) {}
-    }
-
-    function loadKrogerProductCache() {
-      let saved = null;
-      try { saved = JSON.parse(localStorage.getItem(KROGER_PRODUCTS_KEY)); } catch (e) {}
-      if (!Array.isArray(saved)) return;
-      saved
-        .filter(entry => entry && isUsableKrogerProduct(entry.p))
-        .forEach(entry => upsertProduct(krogerCatalogEntry(entry.p, entry.locationName, Number(entry.fetchedAt) || Date.now())));
-    }
-
-    async function callKrogerFunction(body) {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 20000);
-      try {
-        const response = await fetch(KROGER_SEARCH_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            apikey: SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${SUPABASE_ANON_KEY}`
-          },
-          body: JSON.stringify(body),
-          signal: controller.signal
-        });
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(result.error || `price service returned ${response.status}`);
-        if (!result.location || !Array.isArray(result.products)) throw new Error('unexpected response from the price service');
-        return result;
-      } catch (error) {
-        if (error.name === 'AbortError') throw new Error('the price service took too long to answer');
-        if (error instanceof TypeError) throw new Error('could not reach the price service');
-        throw error;
-      } finally {
-        clearTimeout(timer);
-      }
-    }
-
-    // Searches are cached for 15 minutes per browser tab to stay inside Kroger's daily limit
-    async function fetchKrogerSearch(term, zip, radius) {
-      const key = `${term.toLowerCase()}|${zip}|${radius}`;
-      let cacheStore = {};
-      try { cacheStore = JSON.parse(sessionStorage.getItem(KROGER_SEARCH_CACHE_KEY)) || {}; } catch (e) {}
-      const hit = cacheStore[key];
-      if (hit && Date.now() - hit.at < KROGER_SEARCH_CACHE_MS && hit.result) return hit.result;
-
-      const result = await callKrogerFunction({ term, zip, radius });
-      cacheStore[key] = { at: Date.now(), result };
-      Object.keys(cacheStore).forEach(k => {
-        if (!cacheStore[k] || Date.now() - cacheStore[k].at >= KROGER_SEARCH_CACHE_MS) delete cacheStore[k];
-      });
-      try { sessionStorage.setItem(KROGER_SEARCH_CACHE_KEY, JSON.stringify(cacheStore)); } catch (e) {}
-      return result;
-    }
-
-    // A list can hold live products this device has never priced (a saved list from another
-    // computer, or cleared storage). Look those up once so they show up with prices.
-    async function refreshMissingKrogerProducts() {
-      const missing = [...new Set(listedProductIds().filter(id => isKrogerProductKey(id) && !PRODUCTS.some(p => p.id === id)))]
-        .map(id => id.slice(3))
-        .slice(0, 50);
-      if (!missing.length || !/^\d{5}$/.test(String(state.zipCode))) return;
-
-      try {
-        const result = await callKrogerFunction({ productIds: missing, zip: state.zipCode, radius: state.radius });
-        registerKrogerProducts(result.products, result.location);
-        renderCartDrawer();
-        if (state.currentScreen === 'list') renderGroceryList();
-      } catch (error) {
-        console.warn('Could not look up live prices for saved items:', error);
-      }
-    }
 
     // --- Navigation Guard & Switching ---
     function guardNav(screenId) {
@@ -2204,7 +1890,7 @@ function closeGroceryListPrompt(value = false) {
     // Shared by executeSearch and page-load restore
     function applySearch(term, zip, radius) {
       state.searchTerm = term;
-      state.zipCode = zip;
+      saveZipPreference(zip);
       state.radius = radius;
 
       // Update label displays
@@ -2221,82 +1907,29 @@ function closeGroceryListPrompt(value = false) {
     }
 
     // --- Render Search Results Screen (Sticky 4) ---
-    // Searches of 3+ characters use live Smith's prices (Kroger API) plus estimated prices
-    // for the other stores. Shorter searches, or a failed live lookup, use the sample catalog.
-    let searchRequestSeq = 0;
-
     function renderSearchResults(term) {
-      const query = String(term || '').trim();
-      const seq = ++searchRequestSeq;
       const container = document.getElementById('results-container');
+      container.innerHTML = '';
 
-      if (query.length < KROGER_MIN_TERM) {
-        container.removeAttribute('aria-busy');
-        renderResultCards(rankSampleProducts(term), {
-          term,
-          notice: query
-            ? { tone: 'info', text: "Type at least 3 letters to see live Smith's prices. Showing sample prices for now." }
-            : null
-        });
-        return;
-      }
-
-      container.setAttribute('aria-busy', 'true');
-      container.innerHTML = `
-        <div class="bg-white rounded-2xl p-8 border border-brand-200 shadow-sm text-center text-slate-700 font-semibold" role="status">
-          <i class="fa-solid fa-spinner fa-spin mr-2" aria-hidden="true"></i>Checking live Smith's prices…
-        </div>`;
-
-      fetchKrogerSearch(query, state.zipCode, state.radius)
-        .then(result => {
-          if (seq !== searchRequestSeq) return; // a newer search has started
-          const groceryResults = result.products.filter(isGroceryProduct);
-          const hiddenCount = result.products.length - groceryResults.length;
-          const products = registerKrogerProducts(groceryResults, result.location);
-          renderResultCards(products, {
-            live: result,
-            emptyText: hiddenCount
-              ? "ShopWyse compares groceries and household items, so clothing, medicine and similar products aren't shown. Try a grocery search."
-              : "Smith's doesn't carry anything matching that search. Try a different word or spelling."
-          });
-        })
-        .catch(error => {
-          if (seq !== searchRequestSeq) return;
-          console.warn('Live Kroger search failed:', error);
-          renderResultCards(rankSampleProducts(term), {
-            term,
-            notice: {
-              tone: 'warn',
-              text: `Live Smith's prices aren't available right now (${error.message}). Showing sample prices instead.`
-            }
-          });
-        })
-        .finally(() => {
-          if (seq === searchRequestSeq) container.removeAttribute('aria-busy');
-        });
-    }
-
-    function normalizeSearch(value) {
-      return String(value || '')
+      // Rank useful matches rather than relying on one exact substring.
+      // Search uses the existing sample PRODUCTS only; it does not fetch live prices.
+      const normalizeSearch = value => String(value || '')
         .toLowerCase()
         .normalize('NFKD')
-        .replace(/[̀-ͯ]/g, '')
+        .replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-z0-9]+/g, ' ')
         .trim();
-    }
 
-    function singularSearchWord(word) {
-      if (word.endsWith('ies') && word.length > 4) return word.slice(0, -3) + 'y';
-      if (word.endsWith('oes') && word.length > 4) return word.slice(0, -2);
-      if (word.endsWith('s') && !word.endsWith('ss') && word.length > 3) return word.slice(0, -1);
-      return word;
-    }
+      const singularSearchWord = word => {
+        if (word.endsWith('ies') && word.length > 4) return word.slice(0, -3) + 'y';
+        if (word.endsWith('oes') && word.length > 4) return word.slice(0, -2);
+        if (word.endsWith('s') && !word.endsWith('ss') && word.length > 3) return word.slice(0, -1);
+        return word;
+      };
 
-    // Sample catalog search: rank useful matches rather than relying on one exact substring
-    function rankSampleProducts(term) {
       const query = normalizeSearch(term);
       const queryWords = query.split(' ').filter(Boolean).map(singularSearchWord);
-      return PRODUCTS.filter(product => !product.live).map(product => {
+      const rankedMatches = PRODUCTS.map(product => {
         const name = normalizeSearch(product.name);
         const category = normalizeSearch(product.category);
         const nameWords = name.split(' ').map(singularSearchWord);
@@ -2313,204 +1946,151 @@ function closeGroceryListPrompt(value = false) {
 
         return { product, score };
       }).filter(result => result.score > 0)
-        .sort((a, b) => b.score - a.score || a.product.name.localeCompare(b.product.name))
-        .map(result => result.product);
-    }
+        .sort((a, b) => b.score - a.score || a.product.name.localeCompare(b.product.name));
 
-    const STOCK_LABELS = { HIGH: 'In stock', LOW: 'Low stock', TEMPORARILY_OUT_OF_STOCK: 'Temporarily out of stock' };
+      if (rankedMatches.length === 0) {
+        const emptyState = document.createElement('div');
+        emptyState.className = 'bg-white rounded-2xl p-8 border border-brand-200 shadow-sm text-center';
+        const heading = document.createElement('h3');
+        heading.className = 'text-lg font-black text-slate-900';
+        heading.textContent = 'No matching groceries found';
+        const description = document.createElement('p');
+        description.className = 'text-sm text-slate-600 mt-2';
+        description.textContent = 'Try a shorter search, a different spelling, or a category such as Dairy or Produce. Our current sample catalog is limited.';
+        emptyState.append(heading, description);
 
-    function resultsNoticeHtml(tone, html) {
-      const styles = {
-        live: 'bg-blue-50 border-blue-200 text-blue-900',
-        info: 'bg-slate-50 border-slate-200 text-slate-700',
-        warn: 'bg-amber-50 border-amber-300 text-amber-900'
-      };
-      const icons = { live: 'fa-bolt', info: 'fa-circle-info', warn: 'fa-triangle-exclamation' };
-      return `
-        <div class="rounded-2xl border p-4 text-sm font-medium flex items-start gap-3 ${styles[tone]}" role="status">
-          <i class="fa-solid ${icons[tone]} mt-0.5" aria-hidden="true"></i>
-          <div>${html}</div>
-        </div>`;
-    }
+        // Recommend only products that really exist in the current catalog.
+        // For a multi-word request, keep the core food (bread in "gluten free bread")
+        // and use related pantry categories as a secondary fallback.
+        const commonModifiers = new Set([
+          'gluten', 'free', 'organic', 'low', 'no', 'sugar', 'reduced',
+          'fat', 'vegan', 'dairy', 'fresh', 'large', 'small', 'whole',
+          'unsalted', 'salted', 'non', 'lactose', 'brand', 'pack'
+        ]);
+        const relatedFoodWords = {
+          bread: ['bread', 'flour', 'baking', 'cereal'],
+          flour: ['flour', 'bread', 'baking', 'cereal'],
+          milk: ['milk', 'dairy', 'cheese', 'yogurt'],
+          cheese: ['cheese', 'dairy', 'milk'],
+          egg: ['egg', 'dairy'],
+          pasta: ['pasta', 'noodle', 'rice', 'pantry'],
+          rice: ['rice', 'pasta', 'pantry'],
+          apple: ['apple', 'fruit', 'produce'],
+          banana: ['banana', 'fruit', 'produce'],
+          chicken: ['chicken', 'meat', 'beef'],
+          beef: ['beef', 'meat', 'chicken']
+        };
+        const coreWords = [...new Set(queryWords.filter(word => !commonModifiers.has(word)))];
+        const candidateWords = coreWords.length ? coreWords : queryWords;
+        const suggestions = PRODUCTS.map(product => {
+          const productWords = normalizeSearch(product.name + ' ' + product.category)
+            .split(' ').map(singularSearchWord);
+          let relevance = 0;
+          for (const word of candidateWords) {
+            if (productWords.includes(word)) relevance += 10;
+            else if (productWords.some(pw => pw.startsWith(word) || word.startsWith(pw) && pw.length >= 4)) relevance += 5;
+            const related = relatedFoodWords[word] || [];
+            if (related.some(relatedWord => productWords.includes(relatedWord))) relevance += 2;
+          }
+          return { product, relevance };
+        }).filter(item => item.relevance > 0)
+          .sort((a, b) => b.relevance - a.relevance || a.product.name.localeCompare(b.product.name))
+          .slice(0, 5);
 
-    function renderResultCards(products, { live = null, notice = null, emptyText = null, term = null } = {}) {
-      const container = document.getElementById('results-container');
-      let html = '';
-
-      if (live) {
-        const radiusNote = live.outsideRadius
-          ? ` This is the closest one, outside your ${state.radius}-mile radius.`
-          : '';
-        html += resultsNoticeHtml('live', `
-          <strong>Live prices from ${escapeHtml(live.location.name)}</strong>.${escapeHtml(radiusNote)}
-          <span class="block mt-1">Walmart, Target, Costco and Trader Joe's prices are <strong>estimates</strong> based on the Smith's price.</span>`);
-      }
-      if (notice) html += resultsNoticeHtml(notice.tone, escapeHtml(notice.text));
-
-      if (products.length === 0) {
-        html += `
-          <div id="results-empty-state" class="bg-white rounded-2xl p-8 border border-brand-200 shadow-sm text-center">
-            <h3 class="text-lg font-black text-slate-900">No matching groceries found</h3>
-            <p class="text-sm text-slate-600 mt-2">${escapeHtml(emptyText || 'Try a shorter search, a different spelling, or a category such as Dairy or Produce. Our current sample catalog is limited.')}</p>
-          </div>`;
-      }
-
-      products.forEach(product => { html += productCardHtml(product); });
-      container.innerHTML = html;
-      if (products.length === 0 && !live && term) appendRelatedSuggestions(term);
-      renderCartDrawer();
-    }
-
-    // Recommend only products that really exist in the sample catalog.
-    // For a multi-word request, keep the core food (bread in "gluten free bread")
-    // and use related pantry categories as a secondary fallback.
-    function relatedSampleProducts(term) {
-      const queryWords = normalizeSearch(term).split(' ').filter(Boolean).map(singularSearchWord);
-      const commonModifiers = new Set([
-        'gluten', 'free', 'organic', 'low', 'no', 'sugar', 'reduced',
-        'fat', 'vegan', 'dairy', 'fresh', 'large', 'small', 'whole',
-        'unsalted', 'salted', 'non', 'lactose', 'brand', 'pack'
-      ]);
-      const relatedFoodWords = {
-        bread: ['bread', 'flour', 'baking', 'cereal'],
-        flour: ['flour', 'bread', 'baking', 'cereal'],
-        milk: ['milk', 'dairy', 'cheese', 'yogurt'],
-        cheese: ['cheese', 'dairy', 'milk'],
-        egg: ['egg', 'dairy'],
-        pasta: ['pasta', 'noodle', 'rice', 'pantry'],
-        rice: ['rice', 'pasta', 'pantry'],
-        apple: ['apple', 'fruit', 'produce'],
-        banana: ['banana', 'fruit', 'produce'],
-        chicken: ['chicken', 'meat', 'beef'],
-        beef: ['beef', 'meat', 'chicken']
-      };
-      const coreWords = [...new Set(queryWords.filter(word => !commonModifiers.has(word)))];
-      const candidateWords = coreWords.length ? coreWords : queryWords;
-      return PRODUCTS.filter(product => !product.live).map(product => {
-        const productWords = normalizeSearch(product.name + ' ' + product.category)
-          .split(' ').map(singularSearchWord);
-        let relevance = 0;
-        for (const word of candidateWords) {
-          if (productWords.includes(word)) relevance += 10;
-          else if (productWords.some(pw => pw.startsWith(word) || word.startsWith(pw) && pw.length >= 4)) relevance += 5;
-          const related = relatedFoodWords[word] || [];
-          if (related.some(relatedWord => productWords.includes(relatedWord))) relevance += 2;
+        if (suggestions.length) {
+          const suggestionHeading = document.createElement('h4');
+          suggestionHeading.className = 'mt-6 text-base font-black text-slate-900';
+          suggestionHeading.textContent = 'Related options available';
+          const note = document.createElement('p');
+          note.className = 'text-xs text-slate-600 mt-1 mb-3';
+          note.textContent = 'These are alternatives, not guaranteed substitutes. Check ingredients and dietary requirements before purchasing.';
+          const suggestionList = document.createElement('div');
+          suggestionList.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2 text-left';
+          suggestions.forEach(({ product }) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'w-full text-left rounded-xl border border-brand-200 bg-brand-50 hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-accent-blue p-3 font-semibold text-brand-600';
+            button.textContent = `${product.icon || '🛒'} ${product.name}`;
+            button.setAttribute('aria-label', `Search for ${product.name}`);
+            button.addEventListener('click', () => {
+              document.getElementById('input-search-term').value = product.name;
+              applySearch(product.name, state.zipCode, state.radius);
+            });
+            suggestionList.appendChild(button);
+          });
+          emptyState.append(suggestionHeading, note, suggestionList);
         }
-        return { product, relevance };
-      }).filter(item => item.relevance > 0)
-        .sort((a, b) => b.relevance - a.relevance || a.product.name.localeCompare(b.product.name))
-        .slice(0, 5)
-        .map(item => item.product);
-    }
+        container.appendChild(emptyState);
+      }
 
-    function appendRelatedSuggestions(term) {
-      const emptyState = document.getElementById('results-empty-state');
-      const suggestions = relatedSampleProducts(term);
-      if (!emptyState || !suggestions.length) return;
-
-      const suggestionHeading = document.createElement('h4');
-      suggestionHeading.className = 'mt-6 text-base font-black text-slate-900';
-      suggestionHeading.textContent = 'Related options available';
-      const note = document.createElement('p');
-      note.className = 'text-xs text-slate-600 mt-1 mb-3';
-      note.textContent = 'These are alternatives, not guaranteed substitutes. Check ingredients and dietary requirements before purchasing.';
-      const suggestionList = document.createElement('div');
-      suggestionList.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2 text-left';
-      suggestions.forEach(product => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'w-full text-left rounded-xl border border-brand-200 bg-brand-50 hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-accent-blue p-3 font-semibold text-brand-600';
-        button.textContent = `${product.icon || '🛒'} ${product.name}`;
-        button.setAttribute('aria-label', `Search for ${product.name}`);
-        button.addEventListener('click', () => {
-          document.getElementById('input-search-term').value = product.name;
-          applySearch(product.name, state.zipCode, state.radius);
+      rankedMatches.forEach(({ product }) => {
+        // Calculate cheapest store for this product
+        let cheapestStoreId = null;
+        let lowestPrice = Infinity;
+        Object.entries(product.prices).forEach(([sId, price]) => {
+          if (price < lowestPrice) {
+            lowestPrice = price;
+            cheapestStoreId = sId;
+          }
         });
-        suggestionList.appendChild(button);
-      });
-      emptyState.append(suggestionHeading, note, suggestionList);
-    }
 
-    function productCardHtml(product) {
-      const name = escapeHtml(product.name);
-      let cheapestStoreId = null;
-      let lowestPrice = Infinity;
-      Object.entries(product.prices).forEach(([storeId, price]) => {
-        if (price < lowestPrice) {
-          lowestPrice = price;
-          cheapestStoreId = storeId;
-        }
-      });
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-2xl p-5 border border-brand-200 shadow-sm space-y-4';
 
-      const storeOptionsHtml = STORES.map(store => {
-        const price = product.prices[store.id] || 0;
-        const isCheapest = store.id === cheapestStoreId;
-        const isLivePrice = Boolean(product.live) && store.id === KROGER_STORE_ID;
-
-        let sourceTag = '';
-        if (isLivePrice) sourceTag = '<span class="text-[10px] bg-blue-700 text-white font-black px-2 py-0.5 rounded-full">LIVE PRICE</span>';
-        else if (product.live) sourceTag = '<span class="text-[10px] bg-slate-200 text-slate-800 font-black px-2 py-0.5 rounded-full">ESTIMATE</span>';
-
-        const liveDetails = isLivePrice
-          ? [STOCK_LABELS[product.live.stockLevel], product.live.aisle].filter(Boolean).map(escapeHtml).join(' · ')
-          : '';
-        const wasPrice = isLivePrice && product.live.promo
-          ? `<span class="text-xs text-slate-600 line-through mr-1">$${product.live.regular.toFixed(2)}</span><span class="sr-only">now</span>`
-          : '';
-
-        return `
-          <div class="flex items-center justify-between gap-3 p-3 rounded-xl ${isCheapest ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-100'}">
-            <!-- Left side: store name on top, distance and badges underneath -->
-            <div class="min-w-0">
-              <div class="flex items-center gap-2">
-                <i class="fa-solid fa-store text-slate-400 text-sm" aria-hidden="true"></i>
-                <span class="font-bold text-slate-800 text-sm">${store.name}</span>
+        let storeOptionsHtml = '';
+        STORES.forEach(store => {
+          const price = product.prices[store.id] || 0;
+          const isCheapest = store.id === cheapestStoreId;
+          storeOptionsHtml += `
+            <div class="flex items-center justify-between gap-3 p-3 rounded-xl ${isCheapest ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-100'}">
+              <!-- Left side: store name on top, distance and badge underneath -->
+              <div>
+                <div class="flex items-center gap-2">
+                  <i class="fa-solid fa-store text-slate-400 text-sm"></i>
+                  <span class="font-bold text-slate-800 text-sm">${store.name}</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 mt-0.5">
+                  <span class="text-xs text-slate-600 font-medium">${store.distance} mi</span>
+                  ${isCheapest ? '<span class="text-[10px] bg-emerald-600 text-white font-black px-2 py-0.5 rounded-full">BEST PRICE</span>' : ''}
+                </div>
               </div>
-              <div class="flex flex-wrap items-center gap-2 mt-0.5">
-                <span class="text-xs text-slate-600 font-medium">${store.distance} mi</span>
-                ${sourceTag}
-                ${isCheapest ? '<span class="text-[10px] bg-emerald-700 text-white font-black px-2 py-0.5 rounded-full">BEST PRICE</span>' : ''}
-              </div>
-              ${liveDetails ? `<p class="text-[11px] text-slate-600 mt-0.5">${liveDetails}</p>` : ''}
-            </div>
-            <!-- Right side: price and button (stacked on phones, side by side on bigger screens) -->
-            <div class="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 shrink-0">
-              <span class="font-extrabold text-base ${isCheapest ? 'text-emerald-700' : 'text-slate-700'}">${wasPrice}$${price.toFixed(2)}</span>
-              <button onclick="addProductToCart('${product.id}')" aria-label="Add ${name} to list" class="px-3 py-2 min-h-[40px] bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white text-xs font-bold rounded-lg shadow-sm transition">
-                + Add<span class="hidden sm:inline"> to List</span>
-              </button>
-            </div>
-          </div>`;
-      }).join('');
-
-      const subtitle = product.live
-        ? [product.live.brand, product.live.size].filter(Boolean).map(escapeHtml).join(' · ')
-        : '';
-
-      return `
-        <div class="bg-white rounded-2xl p-5 border border-brand-200 shadow-sm space-y-4">
-          <div class="flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3 min-w-0">
-              <span class="text-3xl shrink-0">${product.icon}</span>
-              <div class="min-w-0">
-                <h3 class="text-lg font-black text-slate-900 break-words">${name}</h3>
-                ${subtitle ? `<span class="block text-xs text-slate-700 font-semibold">${subtitle}</span>` : ''}
-                <span class="text-xs text-slate-600 font-medium">Category: ${escapeHtml(product.category)}</span>
+              <!-- Right side: price and button (stacked on phones, side by side on bigger screens) -->
+              <div class="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 shrink-0">
+                <span class="font-extrabold text-base ${isCheapest ? 'text-emerald-700' : 'text-slate-700'}">$${price.toFixed(2)}</span>
+                <button onclick="addProductToCart('${product.id}')" class="px-3 py-2 min-h-[40px] bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white text-xs font-bold rounded-lg shadow-sm transition">
+                  + Add<span class="hidden sm:inline"> to List</span>
+                </button>
               </div>
             </div>
-            <button onclick="addProductToCart('${product.id}')" class="hidden sm:inline-flex shrink-0 items-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold rounded-xl text-xs shadow transition">
-              <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Best Deal to List
+          `;
+        });
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-3xl">${product.icon}</span>
+              <div>
+                <h3 class="text-lg font-black text-slate-900">${product.name}</h3>
+                <span class="text-xs text-slate-600 font-medium">Category: ${product.category}</span>
+              </div>
+            </div>
+            <button onclick="addProductToCart('${product.id}')" class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold rounded-xl text-xs shadow transition">
+              <i class="fa-solid fa-plus"></i> Add Best Deal to List
             </button>
           </div>
-          ${qtyPickerHtml(product.id, name)}
+          ${qtyPickerHtml(product.id, product.name)}
           <div class="space-y-2">
             ${storeOptionsHtml}
           </div>
           <!-- Phones only: the "best deal" button goes full width at the bottom of the card -->
           <button onclick="addProductToCart('${product.id}')" class="sm:hidden w-full py-3 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold rounded-xl text-sm shadow transition flex items-center justify-center gap-2 touch-btn">
-            <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Best Deal to List
+            <i class="fa-solid fa-plus"></i> Add Best Deal to List
           </button>
-        </div>`;
+        `;
+        container.appendChild(card);
+      });
+
+      renderCartDrawer();
     }
 
     // --- Collapsible Cart Drawer (Sticky 4) ---
@@ -2581,8 +2161,8 @@ function closeGroceryListPrompt(value = false) {
         const prod = PRODUCTS.find(p => p.id === cartItem.id);
         if (!prod) return;
 
-        // Find lowest price (a claimed deal counts at its store)
-        let minPrice = Math.min(...Object.values(cartItemPrices(cartItem)));
+        // Find lowest price
+        let minPrice = Math.min(...Object.values(prod.prices));
         let itemTotal = minPrice * cartItem.quantity;
         grandTotal += itemTotal;
 
@@ -2591,13 +2171,13 @@ function closeGroceryListPrompt(value = false) {
             <div class="flex items-center gap-2">
               <span class="text-lg">${prod.icon}</span>
               <div>
-                <p class="font-bold text-slate-800 text-xs">${escapeHtml(prod.name)}</p>
+                <p class="font-bold text-slate-800 text-xs">${prod.name}</p>
                 <p class="text-[11px] text-slate-600">Qty: ${cartItem.quantity} × $${minPrice.toFixed(2)}</p>
               </div>
             </div>
             <div class="flex items-center gap-2">
               <span class="font-black text-xs text-brand-600">$${itemTotal.toFixed(2)}</span>
-              <button onclick="removeFromCart('${cartItem.id}')" aria-label="Remove ${escapeHtml(prod.name)} from list" class="w-10 h-10 flex items-center justify-center border border-red-300 rounded-lg text-red-500 hover:text-red-700 hover:border-red-600 text-sm">✕</button>
+              <button onclick="removeFromCart('${cartItem.id}')" aria-label="Remove ${prod.name} from list" class="w-10 h-10 flex items-center justify-center border border-red-300 rounded-lg text-red-500 hover:text-red-700 hover:border-red-600 text-sm">✕</button>
             </div>
           </div>
         `;
@@ -2660,7 +2240,7 @@ async function promptAddSavedItemToCart(productId, savedQuantity) {
         'Add Item to Cart',
         `
           <p class="mb-3">
-            How many ${escapeHtml(product.name)} would you like to add to your current cart?
+            How many ${product.name} would you like to add to your current cart?
           </p>
 
           <input
@@ -2715,23 +2295,18 @@ async function promptAddSavedItemToCart(productId, savedQuantity) {
 
     // Keep the saved list visible after adding the item
     const savedList = state.activeSavedList;
-    // Bring along a deal the item was saved with
-    const savedItem = savedList && Array.isArray(savedList.items)
-        ? savedList.items.find(item => item.id === productId)
-        : null;
-    const dealId = savedItem && findDeal(savedItem.dealId) ? savedItem.dealId : null;
 
     addToCart(productId, quantity, () => {
         state.activeSavedList = savedList;
         state.viewingSavedList = true;
 
         renderGroceryList();
-    }, dealId);
+    });
 }
 
 // Returns true if the item was added now. onAdded runs once it's added,
 // including later if the shopping-time question has to be answered first.
-function addToCart(productId, quantity = 1, onAdded = null, dealId = null) {
+function addToCart(productId, quantity = 1, onAdded = null) {
 
     if (!state.isLoggedIn) {
         showToast('Please log in to add items.');
@@ -2743,7 +2318,7 @@ function addToCart(productId, quantity = 1, onAdded = null, dealId = null) {
     if (state.weeklyShoppingMinutes === null ||
         state.weeklyShoppingMinutes === undefined) {
 
-        pendingCartProduct = { productId, quantity, onAdded, dealId };
+        pendingCartProduct = { productId, quantity, onAdded };
 
         document.getElementById('shopping-time-modal')
             .classList.remove('hidden');
@@ -2757,14 +2332,13 @@ function addToCart(productId, quantity = 1, onAdded = null, dealId = null) {
     // Normal cart functionality
     const existing = state.cart.find(item => item.id === productId);
 
-    // A claimed deal applies to every unit of that item on the list
     if (existing) {
         existing.quantity += quantity;
-        if (dealId) existing.dealId = dealId;
     } else {
-        state.cart.push(dealId
-            ? { id: productId, quantity, dealId }
-            : { id: productId, quantity });
+        state.cart.push({
+            id: productId,
+            quantity
+        });
     }
 
     if (onAdded) onAdded();
@@ -2819,11 +2393,11 @@ async function saveShoppingTime(minutes) {
     // Automatically add the item they originally clicked
     if (pendingCartProduct !== null) {
 
-        const { productId, quantity, onAdded, dealId } = pendingCartProduct;
+        const { productId, quantity, onAdded } = pendingCartProduct;
 
         pendingCartProduct = null;
 
-        addToCart(productId, quantity, onAdded, dealId);
+        addToCart(productId, quantity, onAdded);
     }
 } 
 function openShoppingTimeBreakdown(event) {
@@ -3042,13 +2616,12 @@ function openShoppingTimeBreakdown(event) {
         const prod = PRODUCTS.find(p => p.id === cartItem.id);
         if (!prod) return;
 
-        // Determine which store is cheapest (a claimed deal counts at its store)
-        const prices = cartItemPrices(cartItem);
+        // Determine which store is cheapest
         let cheapestStoreId = null;
         let lowestPrice = Infinity;
 
         STORES.forEach(s => {
-          const p = prices[s.id];
+          const p = prod.prices[s.id];
           if (p < lowestPrice) {
             lowestPrice = p;
             cheapestStoreId = s.id;
@@ -3077,13 +2650,11 @@ function openShoppingTimeBreakdown(event) {
           };
         }
 
-        const applied = itemDeal(cartItem);
         itemGroups[cheapestStoreId].items.push({
           cartItem,
           prod,
           lowestPrice,
-          itemLineTotal,
-          isDeal: Boolean(applied) && applied.storeId === cheapestStoreId
+          itemLineTotal
         });
         
       });
@@ -3109,20 +2680,19 @@ function openShoppingTimeBreakdown(event) {
             </span>
           </div>
 
-          ${group.items.map(({ cartItem, prod, lowestPrice, itemLineTotal, isDeal }) => `
+          ${group.items.map(({ cartItem, prod, lowestPrice, itemLineTotal }) => `
             <div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div class="flex items-center gap-3">
                 <span class="text-3xl">${prod.icon}</span>
 
                 <div>
                   <h5 class="font-black text-slate-900 text-base">
-                    ${escapeHtml(prod.name)}
+                    ${prod.name}
                   </h5>
 
                   <span class="text-xs text-slate-600 font-medium">
                     ($${lowestPrice.toFixed(2)} each)
                   </span>
-                  ${isDeal ? '<span class="ml-1 text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-black px-2 py-0.5 rounded-full">HOT DEAL</span>' : ''}
                 </div>
               </div>
 
@@ -3147,7 +2717,7 @@ function openShoppingTimeBreakdown(event) {
                     <div class="flex items-center border border-slate-200 rounded-xl bg-slate-50">
                       <button
                         onclick="updateCartQuantity('${cartItem.id}', -1)"
-                        aria-label="Decrease quantity of ${escapeHtml(prod.name)}"
+                        aria-label="Decrease quantity of ${prod.name}"
                         class="w-11 h-11 flex items-center justify-center text-slate-600 text-lg font-bold hover:bg-slate-200 rounded-l-xl">
                         -
                       </button>
@@ -3158,7 +2728,7 @@ function openShoppingTimeBreakdown(event) {
 
                       <button
                         onclick="updateCartQuantity('${cartItem.id}', 1)"
-                        aria-label="Increase quantity of ${escapeHtml(prod.name)}"
+                        aria-label="Increase quantity of ${prod.name}"
                         class="w-11 h-11 flex items-center justify-center text-slate-600 text-lg font-bold hover:bg-slate-200 rounded-r-xl">
                         +
                       </button>
@@ -3166,7 +2736,7 @@ function openShoppingTimeBreakdown(event) {
 
                     <button
                       onclick="removeFromCart('${cartItem.id}')"
-                      aria-label="Remove ${escapeHtml(prod.name)} from list"
+                      aria-label="Remove ${prod.name} from list"
                       class="w-11 h-11 flex items-center justify-center border border-red-300 rounded-lg text-red-500 hover:text-red-700 hover:border-red-600">
                       <i class="fa-solid fa-trash-can text-sm" aria-hidden="true"></i>
                     </button>
@@ -3314,8 +2884,7 @@ function openShoppingTimeBreakdown(event) {
         return {
           id: item.id,
           name: product ? product.name : item.name || item.id,
-          quantity: item.quantity,
-          ...(item.dealId ? { dealId: item.dealId } : {})
+          quantity: item.quantity
         };
       });
 
@@ -3380,7 +2949,6 @@ function openShoppingTimeBreakdown(event) {
 
       state.savedLists = data || [];
       renderSavedListHistory();
-      refreshMissingKrogerProducts();
 
       if (state.currentScreen === 'list') {
         renderGroceryList();
@@ -3588,46 +3156,12 @@ function openShoppingTimeBreakdown(event) {
     // A deal stays hidden only while its item is still in the list, so removing
     // the item (or clearing, starting a new, or saving the list) brings the deal back.
     function pruneClaimedDeals() {
+      const allDeals = Object.values(HOT_DEALS_BY_REGION).flat();
+
       state.claimedDeals = state.claimedDeals.filter(id => {
-        const deal = findDeal(id);
+        const deal = allDeals.find(d => d.id === id);
         return deal && state.cart.some(item => item.id === deal.productId);
       });
-    }
-
-    // --- Deal pricing ---
-    // A claimed deal is stored on its cart item ({ id, quantity, dealId }) so the deal
-    // price is what the list, totals and map charge at the deal's store.
-    function findDeal(dealId) {
-      if (!dealId) return null;
-      return Object.values(HOT_DEALS_BY_REGION).flat().find(d => d.id === dealId) || null;
-    }
-
-    // Matches a deal's store name to one of the app's stores. Fry's is Kroger's Arizona
-    // banner, so it uses the Kroger-family (Smith's) slot.
-    function dealStoreId(deal) {
-      const name = String(deal.storeName || '').replace(/[’‘]/g, "'").toLowerCase();
-      if (/fry'?s/.test(name)) return KROGER_STORE_ID;
-      const store = STORES.find(s => s.name.toLowerCase() === name);
-      return store ? store.id : null;
-    }
-
-    // The deal on a cart item, if it's real, for this product, and at a known store
-    function itemDeal(item) {
-      const deal = findDeal(item && item.dealId);
-      if (!deal || deal.productId !== item.id) return null;
-      const storeId = dealStoreId(deal);
-      return storeId ? { deal, storeId } : null;
-    }
-
-    // Per-store prices for one cart (or saved-list) item, with its deal price applied.
-    // A deal only ever lowers a price (NYC deals can be above the Provo sample catalog).
-    function cartItemPrices(item) {
-      const prod = PRODUCTS.find(p => p.id === item.id);
-      if (!prod) return null;
-      const applied = itemDeal(item);
-      if (!applied) return prod.prices;
-      const regular = prod.prices[applied.storeId];
-      return { ...prod.prices, [applied.storeId]: Math.min(applied.deal.dealPrice, regular ?? Infinity) };
     }
 
     function renderDeals() {
@@ -3649,6 +3183,10 @@ function openShoppingTimeBreakdown(event) {
         .slice(0, DEALS_SHOWN);
 
       if (available.length === 0) {
+        if (!getDemoDealsRegion()) {
+          container.innerHTML = `<div class="col-span-full bg-white border border-brand-200 rounded-xl p-5 text-slate-700"><p class="font-bold">No sample deals for ZIP ${state.zipCode} yet.</p><p class="text-sm mt-2">Your location is updated, but ShopWyse does not have verified local deals for this area. Demo deal coverage currently includes Provo, UT; Gilbert, AZ; and New York, NY.</p></div>`;
+          return;
+        }
         container.innerHTML = '<p class="col-span-full py-8 text-center text-slate-600">You\'ve added every Hot Deal to your list. Check back soon for new ones.</p>';
         return;
       }
@@ -3701,7 +3239,7 @@ function openShoppingTimeBreakdown(event) {
       addToCart(deal.productId, quantity, () => {
         state.claimedDeals.push(dealId);
         renderDeals();
-      }, dealId);
+      });
     }
 
     function refreshDeals() {
@@ -3715,7 +3253,7 @@ function openShoppingTimeBreakdown(event) {
       saveZipPreference(zip);
       renderDeals();
 
-      showToast(`Updated sample Hot Deals for ZIP ${zip}`);
+      showToast(`Updated location and sample deal availability for ZIP ${zip}`);
     }
 
     // --- MAP VIEW (Sticky 6 & Option A Logic) ---
@@ -3732,6 +3270,9 @@ function openShoppingTimeBreakdown(event) {
           leafletMap.invalidateSize();
         }
 
+        if (activeZipLocation && Number.isFinite(activeZipLocation.latitude) && Number.isFinite(activeZipLocation.longitude)) {
+          leafletMap.setView([activeZipLocation.latitude, activeZipLocation.longitude], 12);
+        }
         renderMapStoreMarkers();
       }, 100);
     }
@@ -3743,7 +3284,7 @@ function openShoppingTimeBreakdown(event) {
         alert('Please enter a valid 5-digit ZIP code.');
         return;
       }
-      state.zipCode = zip;
+      saveZipPreference(zip);
       state.radius = radius;
       showToast(`Map updated for ZIP ${zip} within ${radius} miles`);
       renderMapStoreMarkers();
@@ -3761,6 +3302,9 @@ function openShoppingTimeBreakdown(event) {
       mapMarkers.forEach(m => leafletMap.removeLayer(m));
       mapMarkers = [];
 
+      // Demo store coordinates only cover Provo/Orem. Don't plot them as nearby elsewhere.
+      if (getDemoDealsRegion() !== 'provo') return;
+
       // Calculate for each store: how many items in cart are CHEAPEST at that store (Option A)
       const cheapestCounts = {};
       STORES.forEach(s => cheapestCounts[s.id] = 0);
@@ -3769,11 +3313,10 @@ function openShoppingTimeBreakdown(event) {
         const prod = PRODUCTS.find(p => p.id === cartItem.id);
         if (!prod) return;
 
-        const prices = cartItemPrices(cartItem);
         let bestStoreId = null;
         let lowestPrice = Infinity;
         STORES.forEach(s => {
-          const price = prices[s.id];
+          const price = prod.prices[s.id];
           if (price < lowestPrice) {
             lowestPrice = price;
             bestStoreId = s.id;
@@ -3828,16 +3371,15 @@ function openShoppingTimeBreakdown(event) {
         const prod = PRODUCTS.find(p => p.id === cartItem.id);
         if (!prod) return;
 
-        const prices = cartItemPrices(cartItem);
-        const thisStorePrice = prices[store.id];
+        const thisStorePrice = prod.prices[store.id];
         storeEstimatedTotal += thisStorePrice * cartItem.quantity;
 
         // Find absolute cheapest store for this item
         let absoluteBestStoreId = null;
         let lowestPrice = Infinity;
         STORES.forEach(s => {
-          if (prices[s.id] < lowestPrice) {
-            lowestPrice = prices[s.id];
+          if (prod.prices[s.id] < lowestPrice) {
+            lowestPrice = prod.prices[s.id];
             absoluteBestStoreId = s.id;
           }
         });
@@ -3852,7 +3394,7 @@ function openShoppingTimeBreakdown(event) {
             <div class="flex items-center gap-2">
               <span class="text-xl">${prod.icon}</span>
               <div>
-                <span class="font-black text-slate-800">${escapeHtml(prod.name)} (Qty: ${cartItem.quantity})</span>
+                <span class="font-black text-slate-800">${prod.name} (Qty: ${cartItem.quantity})</span>
                 <span class="block text-[11px] text-emerald-700 font-bold">Lowest price in Provo!</span>
               </div>
             </div>
@@ -3873,7 +3415,7 @@ function openShoppingTimeBreakdown(event) {
             <div class="flex items-center gap-2">
               <span class="text-xl">${prod.icon}</span>
               <div>
-                <span class="font-black text-slate-800">${escapeHtml(prod.name)} (Qty: ${cartItem.quantity})</span>
+                <span class="font-black text-slate-800">${prod.name} (Qty: ${cartItem.quantity})</span>
                 <span class="block text-[11px] text-amber-700 font-medium">
                   Cheaper at <strong class="text-slate-800">${bestStoreObj.name}</strong> ($${lowestPrice.toFixed(2)} ea)
                 </span>
@@ -3984,20 +3526,17 @@ function openShoppingTimeBreakdown(event) {
     // Reads saved state back, keeping only values the app can use. Anything
     // unexpected is dropped instead of crashing the page on every load.
     function loadAppState() {
-      loadKrogerProductCache(); // live products must be known before the saved list is checked
       let saved = null;
       try { saved = JSON.parse(localStorage.getItem(APP_STATE_KEY)); } catch (e) {}
       if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return; // first visit: start with an empty list
       if (Array.isArray(saved.cart)) {
         state.cart = saved.cart
           .filter(item => item && typeof item === 'object' &&
-            (PRODUCTS.some(p => p.id === item.id) || isKrogerProductKey(item.id)) && isValidQuantity(item.quantity))
-          .map(item => findDeal(item.dealId)
-            ? { id: item.id, quantity: item.quantity, dealId: item.dealId }
-            : { id: item.id, quantity: item.quantity });
+            PRODUCTS.some(p => p.id === item.id) && isValidQuantity(item.quantity))
+          .map(item => ({ id: item.id, quantity: item.quantity }));
       }
       if (Array.isArray(saved.claimedDeals)) {
-        state.claimedDeals = saved.claimedDeals.filter(id => findDeal(id));
+        state.claimedDeals = saved.claimedDeals.filter(id => HOT_DEALS.some(d => d.id === id));
       }
 
       const list = saved.activeSavedList;
@@ -4251,7 +3790,6 @@ async function handleLoginImpl(e) {
       try { await restoreSession(); } catch (e) { console.error('Session restore failed:', e); }
       appBooted = true;
       navigateTo(resolveScreen(location.hash), { replace: true });
-      refreshMissingKrogerProducts();
     });
   </script>
   <!-- Browser-based recipe recognition for Wyse AI -->
@@ -5333,7 +4871,7 @@ async function handleLoginImpl(e) {
           `${lines.length} ${lines.length === 1 ? 'ingredient' : 'ingredients'}`;
 
         const openLabel = document.createElement('p');
-        openLabel.className = 'text-sm font-bold text-violet-600 pt-1';
+        openLabel.className = 'text-sm font-bold text-blue-700 pt-1';
         openLabel.textContent = 'View recipe →';
 
         content.append(name, meta, openLabel);
