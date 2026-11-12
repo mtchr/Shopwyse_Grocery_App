@@ -468,6 +468,7 @@ body.wyse-modal-open {
       </div>
       <div>
         <span class="text-xl sm:text-2xl font-black tracking-tight text-brand-600">Shop<span class="text-accent-blue">Wyse</span></span>
+        <span id="location-display" class="block text-xs font-semibold text-slate-600" aria-live="polite">Provo, UT, USA</span>
       </div>
     </button>
 
@@ -961,6 +962,7 @@ body.wyse-modal-open {
         </div>
       </div>
 
+      <p id="map-region-note" class="text-xs text-slate-600" role="status">Map pins are demonstration locations, not verified store addresses.</p>
       <!-- Map Display Container -->
       <!-- Map is 60% of the screen height on phones, 540px on bigger screens -->
       <div class="relative bg-white rounded-2xl border border-brand-200 shadow-sm overflow-hidden h-[60vh] min-h-[360px] sm:h-[540px]">
@@ -1605,7 +1607,7 @@ body.wyse-modal-open {
       }
 
       if (!/^\d{5}$/.test(zip)) {
-        display.textContent = 'Provo, UT, USA';
+        display.textContent = 'Enter a 5-digit ZIP';
         return;
       }
 
@@ -1649,6 +1651,7 @@ body.wyse-modal-open {
 
           persistAppState();
           updateLocationDisplay(zip);
+          applyRegionalCatalog();
         }
 
     let hasStartedNewList = false;
@@ -1716,6 +1719,64 @@ function closeGroceryListPrompt(value = false) {
       { id: 'costco_orem', name: 'Costco Wholesale', address: '648 E 800 S, Orem', lat: 40.2831, lng: -111.6782, distance: 2.8 },
       { id: 'target_provo', name: 'Target', address: '1290 N State St, Provo', lat: 40.2505, lng: -111.6644, distance: 1.6 }
     ];
+
+    // ZIP vertical slice: sample regions, with separate stores and prices.
+    // Other ZIP codes have no local sample inventory. Never imply Provo data is local.
+    const ORIGINAL_STORES = STORES.map(store => ({ ...store }));
+    const REGION_STORES = {
+      provo: ORIGINAL_STORES,
+      gilbert: [
+        {id:'walmart_provo',name:'Walmart Supercenter',address:'Gilbert, AZ (sample location)',lat:33.3528,lng:-111.7890,distance:2.1},
+        {id:'smiths_provo',name:"Fry's Food Stores",address:'Gilbert, AZ (sample location)',lat:33.3612,lng:-111.7762,distance:1.5},
+        {id:'traderjoes_orem',name:"Trader Joe's",address:'Gilbert, AZ (sample location)',lat:33.3417,lng:-111.8002,distance:2.8},
+        {id:'costco_orem',name:'Costco Wholesale',address:'Gilbert, AZ (sample location)',lat:33.3655,lng:-111.8072,distance:3.1},
+        {id:'target_provo',name:'Target',address:'Gilbert, AZ (sample location)',lat:33.3465,lng:-111.7744,distance:1.9}
+      ],
+      nyc: [
+        {id:'walmart_provo',name:'Walmart (demo only)',address:'New York, NY (sample location)',lat:40.746,lng:-73.994,distance:2.1},
+        {id:'smiths_provo',name:'Grocery Market (demo only)',address:'New York, NY (sample location)',lat:40.752,lng:-73.985,distance:1.6},
+        {id:'traderjoes_orem',name:"Trader Joe's",address:'New York, NY (sample location)',lat:40.742,lng:-73.992,distance:1.4},
+        {id:'costco_orem',name:'Costco Wholesale',address:'New York, NY (sample location)',lat:40.755,lng:-73.999,distance:3.2},
+        {id:'target_provo',name:'Target',address:'New York, NY (sample location)',lat:40.750,lng:-73.990,distance:1.1}
+      ]
+    };
+    const REGION_CENTERS = {provo:[40.2672,-111.6911],gilbert:[33.3528,-111.7890],nyc:[40.7506,-73.9972]};
+    function regionForZip(zip) {
+      const value = String(zip || '');
+      if (/^8460[0-6]$/.test(value)) return 'provo';
+      if (value === '85234') return 'gilbert';
+      if (value === '10001') return 'nyc';
+      return null;
+    }
+    function isRegionAvailable() { return Boolean(regionForZip(state.zipCode)); }
+    function showRegionUnavailable(container, subject='prices') {
+      container.innerHTML = `<div class="col-span-full bg-white rounded-2xl border border-amber-200 p-6 text-center" role="status"><h3 class="font-black text-slate-900">No local ${subject} available yet</h3><p class="mt-2 text-slate-600">We don't have verified or sample ${subject} for ZIP ${state.zipCode}. Try demo ZIP 84601 (Provo), 85234 (Gilbert), or 10001 (New York). We won't show another city's prices as local.</p></div>`;
+    }
+    let regionCatalog = null;
+    function applyRegionalCatalog() {
+      const region = regionForZip(state.zipCode);
+      if (region === regionCatalog) return;
+      regionCatalog = region;
+      STORES.splice(0, STORES.length, ...(REGION_STORES[region] || []).map(x=>({...x})));
+      if (typeof ORIGINAL_PRODUCT_PRICES !== 'undefined') {
+        PRODUCTS.forEach(product => {
+          if (!ORIGINAL_PRODUCT_PRICES[product.id]) return;
+          const base = ORIGINAL_PRODUCT_PRICES[product.id];
+          if (!region) { product.prices = {}; return; }
+          if (region === 'provo') { product.prices = {...base}; return; }
+          const factor = region === 'gilbert' ? 1.07 : 1.34;
+          const variation = {walmart_provo:1.01,smiths_provo:0.98,traderjoes_orem:1.03,costco_orem:0.96,target_provo:1.05};
+          product.prices = Object.fromEntries(Object.entries(base).map(([id,price]) =>
+            [id, Math.round(price * factor * variation[id] * 100)/100]));
+        });
+      }
+      // Previously claimed deals are tied to a different region.
+      state.claimedDeals = state.claimedDeals.filter(id => (HOT_DEALS_BY_REGION[region] || []).some(d=>d.id===id));
+      if (state.currentScreen === 'deals') renderDeals();
+      if (state.currentScreen === 'results' && state.searchTerm !== null) renderSearchResults(state.searchTerm);
+      if (state.currentScreen === 'list') renderGroceryList();
+      if (state.currentScreen === 'map') initOrUpdateMap();
+    }
 
     // --- Products & Store Price Matrix (Simulated Data) ---
     const PRODUCTS = [
@@ -1825,6 +1886,8 @@ function closeGroceryListPrompt(value = false) {
       }
     ];
 
+    const ORIGINAL_PRODUCT_PRICES = Object.fromEntries(PRODUCTS.map(p => [p.id, {...p.prices}]));
+
     // --- Hot Deals Mock Data (Sticky 3) ---
     // productId links each deal to PRODUCTS so it can be added to the cart.
     // The first DEALS_SHOWN unclaimed deals are shown; the rest replace them as they're added.
@@ -1865,17 +1928,7 @@ function closeGroceryListPrompt(value = false) {
     };
 
     function getActiveDeals() {
-      const zip = String(state.zipCode || '84601');
-
-      if (zip.startsWith('85')) {
-        return HOT_DEALS_BY_REGION.gilbert;
-      }
-
-      if (zip.startsWith('10')) {
-        return HOT_DEALS_BY_REGION.nyc;
-      }
-
-      return HOT_DEALS_BY_REGION.provo;
+      return HOT_DEALS_BY_REGION[regionForZip(state.zipCode)] || [];
     }
 
     // Leaflet map instance
@@ -2190,7 +2243,7 @@ function closeGroceryListPrompt(value = false) {
       const radius = parseInt(document.getElementById('select-radius').value, 10);
       const errorMsg = document.getElementById('search-error-msg');
 
-      if (!zip || zip.length < 5) {
+      if (!/^\d{5}$/.test(zip)) {
         errorMsg.textContent = 'Please enter a valid 5-digit ZIP code.';
         errorMsg.classList.remove('hidden');
         return;
@@ -2204,7 +2257,7 @@ function closeGroceryListPrompt(value = false) {
     // Shared by executeSearch and page-load restore
     function applySearch(term, zip, radius) {
       state.searchTerm = term;
-      state.zipCode = zip;
+      saveZipPreference(zip);
       state.radius = radius;
 
       // Update label displays
@@ -2230,11 +2283,17 @@ function closeGroceryListPrompt(value = false) {
       const seq = ++searchRequestSeq;
       const container = document.getElementById('results-container');
 
-      if (query.length < KROGER_MIN_TERM) {
+      if (!isRegionAvailable()) {
+        container.removeAttribute('aria-busy');
+        showRegionUnavailable(container, 'grocery prices');
+        return;
+      }
+
+      if (regionForZip(state.zipCode) !== 'provo' || query.length < KROGER_MIN_TERM) {
         container.removeAttribute('aria-busy');
         renderResultCards(rankSampleProducts(term), {
           term,
-          notice: query
+          notice: regionForZip(state.zipCode) !== 'provo' ? {tone:'info',text:'Regional demonstration prices only. Not real store quotes.'} : query
             ? { tone: 'info', text: "Type at least 3 letters to see live Smith's prices. Showing sample prices for now." }
             : null
         });
@@ -3614,7 +3673,7 @@ function openShoppingTimeBreakdown(event) {
     // The deal on a cart item, if it's real, for this product, and at a known store
     function itemDeal(item) {
       const deal = findDeal(item && item.dealId);
-      if (!deal || deal.productId !== item.id) return null;
+      if (!deal || deal.productId !== item.id || !getActiveDeals().some(d=>d.id===deal.id)) return null;
       const storeId = dealStoreId(deal);
       return storeId ? { deal, storeId } : null;
     }
@@ -3634,6 +3693,7 @@ function openShoppingTimeBreakdown(event) {
       const container = document.getElementById('deals-container');
       const activeDeals = getActiveDeals();
 
+      if (!isRegionAvailable()) { showRegionUnavailable(container, 'Hot Deals'); return; }
       pruneClaimedDeals();
 
       // Keep quantities the user already picked on cards that stay on screen
@@ -3715,7 +3775,7 @@ function openShoppingTimeBreakdown(event) {
       saveZipPreference(zip);
       renderDeals();
 
-      showToast(`Updated sample Hot Deals for ZIP ${zip}`);
+      showToast(isRegionAvailable() ? `Updated regional demo deals for ZIP ${zip}` : `No local deals available for ZIP ${zip}`);
     }
 
     // --- MAP VIEW (Sticky 6 & Option A Logic) ---
@@ -3732,6 +3792,8 @@ function openShoppingTimeBreakdown(event) {
           leafletMap.invalidateSize();
         }
 
+        const region = regionForZip(state.zipCode);
+        if (region) leafletMap.setView(REGION_CENTERS[region], 12);
         renderMapStoreMarkers();
       }, 100);
     }
@@ -3739,11 +3801,11 @@ function openShoppingTimeBreakdown(event) {
     function updateMapLocation() {
       const zip = document.getElementById('map-zip-input').value.trim();
       const radius = parseInt(document.getElementById('map-radius-select').value, 10);
-      if (!zip || zip.length < 5) {
+      if (!/^\d{5}$/.test(zip)) {
         alert('Please enter a valid 5-digit ZIP code.');
         return;
       }
-      state.zipCode = zip;
+      saveZipPreference(zip);
       state.radius = radius;
       showToast(`Map updated for ZIP ${zip} within ${radius} miles`);
       renderMapStoreMarkers();
@@ -3760,6 +3822,9 @@ function openShoppingTimeBreakdown(event) {
       // Clear existing markers
       mapMarkers.forEach(m => leafletMap.removeLayer(m));
       mapMarkers = [];
+      const mapNote = document.getElementById('map-region-note');
+      if (mapNote) mapNote.textContent = isRegionAvailable() ? 'Map pins are demonstration locations, not verified store addresses.' : 'No local store data available for this ZIP.';
+      if (!isRegionAvailable()) return;
 
       // Calculate for each store: how many items in cart are CHEAPEST at that store (Option A)
       const cheapestCounts = {};
@@ -4238,6 +4303,7 @@ async function handleLoginImpl(e) {
       try {
         loadAppState();
         updateLocationDisplay(state.zipCode || '84601');
+        applyRegionalCatalog();
         renderCartDrawer();
       } catch (e) {
         // Last line of defense: never let saved data stop the app from starting
