@@ -277,7 +277,6 @@ body.wyse-modal-open {
       </div>
       <div>
         <span class="text-xl sm:text-2xl font-black tracking-tight text-brand-600">Shop<span class="text-accent-blue">Wyse</span></span>
-        <span class="hidden sm:inline-block ml-2 text-xs bg-brand-100 text-brand-600 px-2 py-0.5 rounded-full font-semibold">Provo / Salt Lake</span>
       </div>
     </div>
 
@@ -424,7 +423,7 @@ body.wyse-modal-open {
             <label for="input-zip-code" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">ZIP Code</label>
             <div class="relative">
               <i class="fa-solid fa-location-dot absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-              <input type="text" id="input-zip-code" value="84064" maxlength="5" inputmode="numeric"
+              <input type="text" id="input-zip-code" value="84604" maxlength="5" inputmode="numeric"
                 class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-semibold text-slate-900" />
             </div>
           </div>
@@ -500,7 +499,7 @@ body.wyse-modal-open {
           <h2 class="text-2xl font-black text-slate-900">
             Results for: <span id="results-query-label" class="text-accent-blue font-semibold"></span>
           </h2>
-          <p class="text-sm text-slate-600">Comparing prices within <span id="results-radius-label" class="font-bold">5 miles</span> of <span id="results-zip-label" class="font-bold">84064</span></p>
+          <p class="text-sm text-slate-600">Comparing prices within <span id="results-radius-label" class="font-bold">5 miles</span> of <span id="results-zip-label" class="font-bold">84604</span></p>
         </div>
 
         <!-- Toggle Preview of Grocery List Button (desktop only; phones use the bottom bar) -->
@@ -589,7 +588,7 @@ body.wyse-modal-open {
         </div>
         <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
           <label for="deals-zip-input" class="text-xs font-bold uppercase text-slate-600">ZIP:</label>
-          <input type="text" id="deals-zip-input" value="84064" maxlength="5" inputmode="numeric" class="min-w-0 flex-1 sm:flex-none sm:w-24 px-3 py-3 sm:py-2 bg-slate-50 border border-slate-300 rounded-lg text-base font-bold text-center" />
+          <input type="text" id="deals-zip-input" value="84604" maxlength="5" inputmode="numeric" class="min-w-0 flex-1 sm:flex-none sm:w-24 px-3 py-3 sm:py-2 bg-slate-50 border border-slate-300 rounded-lg text-base font-bold text-center" />
           <button onclick="refreshDeals()" class="shrink-0 px-5 py-3 sm:py-2 min-h-[44px] bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold rounded-lg text-sm transition">Update</button>
         </div>
       </div>
@@ -760,7 +759,7 @@ body.wyse-modal-open {
         <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <div class="flex items-center gap-2 w-full sm:w-auto">
             <label for="map-zip-input" class="text-xs font-bold uppercase text-slate-600 whitespace-nowrap">ZIP Code:</label>
-            <input type="text" id="map-zip-input" value="84064" maxlength="5" inputmode="numeric" class="flex-1 min-w-0 sm:flex-none sm:w-24 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-base sm:text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-accent-blue" />
+            <input type="text" id="map-zip-input" value="84604" maxlength="5" inputmode="numeric" class="flex-1 min-w-0 sm:flex-none sm:w-24 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-base sm:text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-accent-blue" />
             <button onclick="updateMapLocation()" class="px-5 py-2 min-h-[44px] bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold text-sm rounded-lg shadow transition">
               GO
             </button>
@@ -1396,7 +1395,7 @@ body.wyse-modal-open {
       isLoggedIn: false,
       userEmail: '',
       userFirstName: '',
-      zipCode: '84064',
+      zipCode: '84604',
       radius: 5,
       searchTerm: null, // null until the user runs a search
       claimedDeals: [], // Hot Deal ids already added to the cart
@@ -1607,6 +1606,208 @@ function closeGroceryListPrompt(value = false) {
     let leafletMap = null;
     let mapMarkers = [];
 
+    // --- Live Kroger (Smith's) prices ---
+    // The kroger-search Supabase Edge Function (supabase/functions/kroger-search) holds the
+    // Kroger API secret and returns real Smith's prices. Walmart, Target, Costco and Trader
+    // Joe's have no API here, so their prices are ESTIMATES derived from the Smith's regular
+    // price. Each estimate is stable per product, so totals don't jump around between visits.
+    // Internal team demo only: Kroger's terms don't allow comparing their prices with other retailers.
+    const KROGER_STORE_ID = 'smiths_provo';
+    const KROGER_MIN_TERM = 3; // Kroger rejects shorter search terms
+    const KROGER_PRODUCTS_KEY = 'shopwyse_kroger_products';
+    const KROGER_SEARCH_CACHE_KEY = 'shopwyse_kroger_search_cache';
+    const KROGER_SEARCH_CACHE_MS = 15 * 60 * 1000;
+    const KROGER_MAX_CACHED_PRODUCTS = 300;
+    // Local testing: localStorage.setItem('shopwyse_kroger_url', 'http://127.0.0.1:8787')
+    const KROGER_SEARCH_URL = (() => {
+      try {
+        const override = localStorage.getItem('shopwyse_kroger_url');
+        if (override) return override;
+      } catch (e) {}
+      return `${SUPABASE_URL}/functions/v1/kroger-search`;
+    })();
+    // Typical price level compared with Smith's, before a per-product wobble of up to ±8%
+    const ESTIMATED_STORE_LEVELS = {
+      walmart_provo: 0.93,
+      costco_orem: 0.88,
+      traderjoes_orem: 0.98,
+      target_provo: 1.04
+    };
+
+    // Kroger product text goes into innerHTML templates, so escape it first
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[char]);
+    }
+
+    // FNV-1a hash of the text, mapped to [0, 1)
+    function stableUnit(text) {
+      let hash = 0x811c9dc5;
+      for (let i = 0; i < text.length; i++) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 0x01000193);
+      }
+      return (hash >>> 0) / 4294967296;
+    }
+
+    function estimatedStorePrice(smithsRegular, krogerProductId, storeId) {
+      const wobble = (stableUnit(`${krogerProductId}|${storeId}`) - 0.5) * 0.16;
+      const raw = smithsRegular * (ESTIMATED_STORE_LEVELS[storeId] + wobble);
+      // Shelf-style price ending in 9 (e.g. $3.49), never below $0.29
+      return Number(Math.max(0.29, Math.round(raw * 10) / 10 - 0.01).toFixed(2));
+    }
+
+    function isKrogerProductKey(id) {
+      return /^kr_\d{13}$/.test(String(id));
+    }
+
+    function isUsableKrogerProduct(p) {
+      return p && typeof p === 'object' && /^\d{13}$/.test(String(p.productId)) &&
+        typeof p.description === 'string' && p.description.trim() !== '' &&
+        Number.isFinite(Number(p.regular)) && Number(p.regular) > 0;
+    }
+
+    // Turns one kroger-search product into a PRODUCTS entry the rest of the app understands
+    function krogerCatalogEntry(p, locationName, fetchedAt) {
+      const regular = Number(p.regular);
+      const promo = Number(p.promo) > 0 && Number(p.promo) < regular ? Number(p.promo) : null;
+      const prices = { [KROGER_STORE_ID]: promo ?? regular };
+      Object.keys(ESTIMATED_STORE_LEVELS).forEach(storeId => {
+        prices[storeId] = estimatedStorePrice(regular, p.productId, storeId);
+      });
+      const image = typeof p.image === 'string' && p.image.startsWith('https://www.kroger.com/') ? p.image : null;
+
+      return {
+        id: `kr_${p.productId}`,
+        name: p.description,
+        category: (Array.isArray(p.categories) && p.categories[0]) || 'Grocery',
+        icon: image
+          ? `<img src="${escapeHtml(image)}" alt="" loading="lazy" class="inline-block w-[1.6em] h-[1.6em] object-contain align-middle">`
+          : '🛒',
+        prices,
+        live: {
+          raw: p,
+          brand: p.brand || null,
+          size: p.size || null,
+          regular,
+          promo,
+          stockLevel: p.stockLevel || null,
+          aisle: p.aisle || null,
+          locationName: locationName || null,
+          fetchedAt: fetchedAt || Date.now()
+        }
+      };
+    }
+
+    function upsertProduct(entry) {
+      const index = PRODUCTS.findIndex(p => p.id === entry.id);
+      if (index >= 0) PRODUCTS[index] = entry;
+      else PRODUCTS.push(entry);
+    }
+
+    function registerKrogerProducts(rawProducts, location) {
+      const fetchedAt = Date.now();
+      const entries = (Array.isArray(rawProducts) ? rawProducts : [])
+        .filter(isUsableKrogerProduct)
+        .map(p => krogerCatalogEntry(p, location && location.name, fetchedAt));
+      entries.forEach(upsertProduct);
+      saveKrogerProductCache();
+      return entries;
+    }
+
+    function listedProductIds() {
+      return [
+        ...state.cart,
+        ...((state.activeSavedList && state.activeSavedList.items) || []),
+        ...state.savedLists.flatMap(list => Array.isArray(list.items) ? list.items : [])
+      ].map(item => item && item.id);
+    }
+
+    // Keep live products on this device so lists still price them after a refresh.
+    // Products on the current list or a saved list are always kept.
+    function saveKrogerProductCache() {
+      const referenced = new Set(listedProductIds());
+      const live = PRODUCTS.filter(p => p.live).sort((a, b) => a.live.fetchedAt - b.live.fetchedAt);
+      const keep = [
+        ...live.filter(p => referenced.has(p.id)),
+        ...live.filter(p => !referenced.has(p.id)).slice(-KROGER_MAX_CACHED_PRODUCTS)
+      ];
+      const snapshot = keep.map(p => ({ p: p.live.raw, locationName: p.live.locationName, fetchedAt: p.live.fetchedAt }));
+      try { localStorage.setItem(KROGER_PRODUCTS_KEY, JSON.stringify(snapshot)); } catch (e) {}
+    }
+
+    function loadKrogerProductCache() {
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem(KROGER_PRODUCTS_KEY)); } catch (e) {}
+      if (!Array.isArray(saved)) return;
+      saved
+        .filter(entry => entry && isUsableKrogerProduct(entry.p))
+        .forEach(entry => upsertProduct(krogerCatalogEntry(entry.p, entry.locationName, Number(entry.fetchedAt) || Date.now())));
+    }
+
+    async function callKrogerFunction(body) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 20000);
+      try {
+        const response = await fetch(KROGER_SEARCH_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify(body),
+          signal: controller.signal
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || `price service returned ${response.status}`);
+        if (!result.location || !Array.isArray(result.products)) throw new Error('unexpected response from the price service');
+        return result;
+      } catch (error) {
+        if (error.name === 'AbortError') throw new Error('the price service took too long to answer');
+        if (error instanceof TypeError) throw new Error('could not reach the price service');
+        throw error;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    // Searches are cached for 15 minutes per browser tab to stay inside Kroger's daily limit
+    async function fetchKrogerSearch(term, zip, radius) {
+      const key = `${term.toLowerCase()}|${zip}|${radius}`;
+      let cacheStore = {};
+      try { cacheStore = JSON.parse(sessionStorage.getItem(KROGER_SEARCH_CACHE_KEY)) || {}; } catch (e) {}
+      const hit = cacheStore[key];
+      if (hit && Date.now() - hit.at < KROGER_SEARCH_CACHE_MS && hit.result) return hit.result;
+
+      const result = await callKrogerFunction({ term, zip, radius });
+      cacheStore[key] = { at: Date.now(), result };
+      Object.keys(cacheStore).forEach(k => {
+        if (!cacheStore[k] || Date.now() - cacheStore[k].at >= KROGER_SEARCH_CACHE_MS) delete cacheStore[k];
+      });
+      try { sessionStorage.setItem(KROGER_SEARCH_CACHE_KEY, JSON.stringify(cacheStore)); } catch (e) {}
+      return result;
+    }
+
+    // A list can hold live products this device has never priced (a saved list from another
+    // computer, or cleared storage). Look those up once so they show up with prices.
+    async function refreshMissingKrogerProducts() {
+      const missing = [...new Set(listedProductIds().filter(id => isKrogerProductKey(id) && !PRODUCTS.some(p => p.id === id)))]
+        .map(id => id.slice(3))
+        .slice(0, 50);
+      if (!missing.length || !/^\d{5}$/.test(String(state.zipCode))) return;
+
+      try {
+        const result = await callKrogerFunction({ productIds: missing, zip: state.zipCode, radius: state.radius });
+        registerKrogerProducts(result.products, result.location);
+        renderCartDrawer();
+        if (state.currentScreen === 'list') renderGroceryList();
+      } catch (error) {
+        console.warn('Could not look up live prices for saved items:', error);
+      }
+    }
+
     // --- Navigation Guard & Switching ---
     function guardNav(screenId) {
       if (!state.isLoggedIn && (screenId === 'deals' || screenId === 'map' || screenId === 'list' || screenId === 'account')) {
@@ -1710,16 +1911,61 @@ function closeGroceryListPrompt(value = false) {
     }
 
     // --- Render Search Results Screen (Sticky 4) ---
-    function renderSearchResults(term) {
-      const container = document.getElementById('results-container');
-      container.innerHTML = '';
+    // Searches of 3+ characters use live Smith's prices (Kroger API) plus estimated prices
+    // for the other stores. Shorter searches, or a failed live lookup, use the sample catalog.
+    let searchRequestSeq = 0;
 
-      // Rank useful matches rather than relying on one exact substring.
-      // Search uses the existing sample PRODUCTS only; it does not fetch live prices.
+    function renderSearchResults(term) {
+      const query = String(term || '').trim();
+      const seq = ++searchRequestSeq;
+      const container = document.getElementById('results-container');
+
+      if (query.length < KROGER_MIN_TERM) {
+        container.removeAttribute('aria-busy');
+        renderResultCards(rankSampleProducts(term), {
+          notice: query
+            ? { tone: 'info', text: "Type at least 3 letters to see live Smith's prices. Showing sample prices for now." }
+            : null
+        });
+        return;
+      }
+
+      container.setAttribute('aria-busy', 'true');
+      container.innerHTML = `
+        <div class="bg-white rounded-2xl p-8 border border-brand-200 shadow-sm text-center text-slate-700 font-semibold" role="status">
+          <i class="fa-solid fa-spinner fa-spin mr-2" aria-hidden="true"></i>Checking live Smith's prices…
+        </div>`;
+
+      fetchKrogerSearch(query, state.zipCode, state.radius)
+        .then(result => {
+          if (seq !== searchRequestSeq) return; // a newer search has started
+          const products = registerKrogerProducts(result.products, result.location);
+          renderResultCards(products, {
+            live: result,
+            emptyText: "Smith's doesn't carry anything matching that search. Try a different word or spelling."
+          });
+        })
+        .catch(error => {
+          if (seq !== searchRequestSeq) return;
+          console.warn('Live Kroger search failed:', error);
+          renderResultCards(rankSampleProducts(term), {
+            notice: {
+              tone: 'warn',
+              text: `Live Smith's prices aren't available right now (${error.message}). Showing sample prices instead.`
+            }
+          });
+        })
+        .finally(() => {
+          if (seq === searchRequestSeq) container.removeAttribute('aria-busy');
+        });
+    }
+
+    // Sample catalog search: rank useful matches rather than relying on one exact substring
+    function rankSampleProducts(term) {
       const normalizeSearch = value => String(value || '')
         .toLowerCase()
         .normalize('NFKD')
-        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[̀-ͯ]/g, '')
         .replace(/[^a-z0-9]+/g, ' ')
         .trim();
 
@@ -1732,7 +1978,7 @@ function closeGroceryListPrompt(value = false) {
 
       const query = normalizeSearch(term);
       const queryWords = query.split(' ').filter(Boolean).map(singularSearchWord);
-      const rankedMatches = PRODUCTS.map(product => {
+      return PRODUCTS.filter(product => !product.live).map(product => {
         const name = normalizeSearch(product.name);
         const category = normalizeSearch(product.category);
         const nameWords = name.split(' ').map(singularSearchWord);
@@ -1749,89 +1995,133 @@ function closeGroceryListPrompt(value = false) {
 
         return { product, score };
       }).filter(result => result.score > 0)
-        .sort((a, b) => b.score - a.score || a.product.name.localeCompare(b.product.name));
+        .sort((a, b) => b.score - a.score || a.product.name.localeCompare(b.product.name))
+        .map(result => result.product);
+    }
 
-      if (rankedMatches.length === 0) {
-        const emptyState = document.createElement('div');
-        emptyState.className = 'bg-white rounded-2xl p-8 border border-brand-200 shadow-sm text-center';
-        const heading = document.createElement('h3');
-        heading.className = 'text-lg font-black text-slate-900';
-        heading.textContent = 'No matching groceries found';
-        const description = document.createElement('p');
-        description.className = 'text-sm text-slate-600 mt-2';
-        description.textContent = 'Try a shorter search, a different spelling, or a category such as Dairy or Produce. Our current sample catalog is limited.';
-        emptyState.append(heading, description);
-        container.appendChild(emptyState);
+    const STOCK_LABELS = { HIGH: 'In stock', LOW: 'Low stock', TEMPORARILY_OUT_OF_STOCK: 'Temporarily out of stock' };
+
+    function resultsNoticeHtml(tone, html) {
+      const styles = {
+        live: 'bg-blue-50 border-blue-200 text-blue-900',
+        info: 'bg-slate-50 border-slate-200 text-slate-700',
+        warn: 'bg-amber-50 border-amber-300 text-amber-900'
+      };
+      const icons = { live: 'fa-bolt', info: 'fa-circle-info', warn: 'fa-triangle-exclamation' };
+      return `
+        <div class="rounded-2xl border p-4 text-sm font-medium flex items-start gap-3 ${styles[tone]}" role="status">
+          <i class="fa-solid ${icons[tone]} mt-0.5" aria-hidden="true"></i>
+          <div>${html}</div>
+        </div>`;
+    }
+
+    function renderResultCards(products, { live = null, notice = null, emptyText = null } = {}) {
+      const container = document.getElementById('results-container');
+      let html = '';
+
+      if (live) {
+        const radiusNote = live.outsideRadius
+          ? ` This is the closest one, outside your ${state.radius}-mile radius.`
+          : '';
+        html += resultsNoticeHtml('live', `
+          <strong>Live prices from ${escapeHtml(live.location.name)}</strong> (Kroger API).${escapeHtml(radiusNote)}
+          <span class="block mt-1">Walmart, Target, Costco and Trader Joe's prices are <strong>estimates</strong> based on the Smith's price.</span>`);
+      }
+      if (notice) html += resultsNoticeHtml(notice.tone, escapeHtml(notice.text));
+
+      if (products.length === 0) {
+        html += `
+          <div class="bg-white rounded-2xl p-8 border border-brand-200 shadow-sm text-center">
+            <h3 class="text-lg font-black text-slate-900">No matching groceries found</h3>
+            <p class="text-sm text-slate-600 mt-2">${escapeHtml(emptyText || 'Try a shorter search, a different spelling, or a category such as Dairy or Produce. Our current sample catalog is limited.')}</p>
+          </div>`;
       }
 
-      rankedMatches.forEach(({ product }) => {
-        // Calculate cheapest store for this product
-        let cheapestStoreId = null;
-        let lowestPrice = Infinity;
-        Object.entries(product.prices).forEach(([sId, price]) => {
-          if (price < lowestPrice) {
-            lowestPrice = price;
-            cheapestStoreId = sId;
-          }
-        });
+      products.forEach(product => { html += productCardHtml(product); });
+      container.innerHTML = html;
+      renderCartDrawer();
+    }
 
-        const card = document.createElement('div');
-        card.className = 'bg-white rounded-2xl p-5 border border-brand-200 shadow-sm space-y-4';
+    function productCardHtml(product) {
+      const name = escapeHtml(product.name);
+      let cheapestStoreId = null;
+      let lowestPrice = Infinity;
+      Object.entries(product.prices).forEach(([storeId, price]) => {
+        if (price < lowestPrice) {
+          lowestPrice = price;
+          cheapestStoreId = storeId;
+        }
+      });
 
-        let storeOptionsHtml = '';
-        STORES.forEach(store => {
-          const price = product.prices[store.id] || 0;
-          const isCheapest = store.id === cheapestStoreId;
-          storeOptionsHtml += `
-            <div class="flex items-center justify-between gap-3 p-3 rounded-xl ${isCheapest ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-100'}">
-              <!-- Left side: store name on top, distance and badge underneath -->
-              <div>
-                <div class="flex items-center gap-2">
-                  <i class="fa-solid fa-store text-slate-400 text-sm"></i>
-                  <span class="font-bold text-slate-800 text-sm">${store.name}</span>
-                </div>
-                <div class="flex flex-wrap items-center gap-2 mt-0.5">
-                  <span class="text-xs text-slate-600 font-medium">${store.distance} mi</span>
-                  ${isCheapest ? '<span class="text-[10px] bg-emerald-600 text-white font-black px-2 py-0.5 rounded-full">BEST PRICE</span>' : ''}
-                </div>
+      const storeOptionsHtml = STORES.map(store => {
+        const price = product.prices[store.id] || 0;
+        const isCheapest = store.id === cheapestStoreId;
+        const isLivePrice = Boolean(product.live) && store.id === KROGER_STORE_ID;
+
+        let sourceTag = '';
+        if (isLivePrice) sourceTag = '<span class="text-[10px] bg-blue-700 text-white font-black px-2 py-0.5 rounded-full">LIVE PRICE</span>';
+        else if (product.live) sourceTag = '<span class="text-[10px] bg-slate-200 text-slate-800 font-black px-2 py-0.5 rounded-full">ESTIMATE</span>';
+
+        const liveDetails = isLivePrice
+          ? [STOCK_LABELS[product.live.stockLevel], product.live.aisle].filter(Boolean).map(escapeHtml).join(' · ')
+          : '';
+        const wasPrice = isLivePrice && product.live.promo
+          ? `<span class="text-xs text-slate-600 line-through mr-1">$${product.live.regular.toFixed(2)}</span><span class="sr-only">now</span>`
+          : '';
+
+        return `
+          <div class="flex items-center justify-between gap-3 p-3 rounded-xl ${isCheapest ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-100'}">
+            <!-- Left side: store name on top, distance and badges underneath -->
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-store text-slate-400 text-sm" aria-hidden="true"></i>
+                <span class="font-bold text-slate-800 text-sm">${store.name}</span>
               </div>
-              <!-- Right side: price and button (stacked on phones, side by side on bigger screens) -->
-              <div class="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 shrink-0">
-                <span class="font-extrabold text-base ${isCheapest ? 'text-emerald-700' : 'text-slate-700'}">$${price.toFixed(2)}</span>
-                <button onclick="addProductToCart('${product.id}')" class="px-3 py-2 min-h-[40px] bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white text-xs font-bold rounded-lg shadow-sm transition">
-                  + Add<span class="hidden sm:inline"> to List</span>
-                </button>
+              <div class="flex flex-wrap items-center gap-2 mt-0.5">
+                <span class="text-xs text-slate-600 font-medium">${store.distance} mi</span>
+                ${sourceTag}
+                ${isCheapest ? '<span class="text-[10px] bg-emerald-700 text-white font-black px-2 py-0.5 rounded-full">BEST PRICE</span>' : ''}
+              </div>
+              ${liveDetails ? `<p class="text-[11px] text-slate-600 mt-0.5">${liveDetails}</p>` : ''}
+            </div>
+            <!-- Right side: price and button (stacked on phones, side by side on bigger screens) -->
+            <div class="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 shrink-0">
+              <span class="font-extrabold text-base ${isCheapest ? 'text-emerald-700' : 'text-slate-700'}">${wasPrice}$${price.toFixed(2)}</span>
+              <button onclick="addProductToCart('${product.id}')" aria-label="Add ${name} to list" class="px-3 py-2 min-h-[40px] bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white text-xs font-bold rounded-lg shadow-sm transition">
+                + Add<span class="hidden sm:inline"> to List</span>
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+
+      const subtitle = product.live
+        ? [product.live.brand, product.live.size].filter(Boolean).map(escapeHtml).join(' · ')
+        : '';
+
+      return `
+        <div class="bg-white rounded-2xl p-5 border border-brand-200 shadow-sm space-y-4">
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="text-3xl shrink-0">${product.icon}</span>
+              <div class="min-w-0">
+                <h3 class="text-lg font-black text-slate-900 break-words">${name}</h3>
+                ${subtitle ? `<span class="block text-xs text-slate-700 font-semibold">${subtitle}</span>` : ''}
+                <span class="text-xs text-slate-600 font-medium">Category: ${escapeHtml(product.category)}</span>
               </div>
             </div>
-          `;
-        });
-
-        card.innerHTML = `
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <span class="text-3xl">${product.icon}</span>
-              <div>
-                <h3 class="text-lg font-black text-slate-900">${product.name}</h3>
-                <span class="text-xs text-slate-600 font-medium">Category: ${product.category}</span>
-              </div>
-            </div>
-            <button onclick="addProductToCart('${product.id}')" class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold rounded-xl text-xs shadow transition">
-              <i class="fa-solid fa-plus"></i> Add Best Deal to List
+            <button onclick="addProductToCart('${product.id}')" class="hidden sm:inline-flex shrink-0 items-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold rounded-xl text-xs shadow transition">
+              <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Best Deal to List
             </button>
           </div>
-          ${qtyPickerHtml(product.id, product.name)}
+          ${qtyPickerHtml(product.id, name)}
           <div class="space-y-2">
             ${storeOptionsHtml}
           </div>
           <!-- Phones only: the "best deal" button goes full width at the bottom of the card -->
           <button onclick="addProductToCart('${product.id}')" class="sm:hidden w-full py-3 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold rounded-xl text-sm shadow transition flex items-center justify-center gap-2 touch-btn">
-            <i class="fa-solid fa-plus"></i> Add Best Deal to List
+            <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Best Deal to List
           </button>
-        `;
-        container.appendChild(card);
-      });
-
-      renderCartDrawer();
+        </div>`;
     }
 
     // --- Collapsible Cart Drawer (Sticky 4) ---
@@ -1912,13 +2202,13 @@ function closeGroceryListPrompt(value = false) {
             <div class="flex items-center gap-2">
               <span class="text-lg">${prod.icon}</span>
               <div>
-                <p class="font-bold text-slate-800 text-xs">${prod.name}</p>
+                <p class="font-bold text-slate-800 text-xs">${escapeHtml(prod.name)}</p>
                 <p class="text-[11px] text-slate-600">Qty: ${cartItem.quantity} × $${minPrice.toFixed(2)}</p>
               </div>
             </div>
             <div class="flex items-center gap-2">
               <span class="font-black text-xs text-brand-600">$${itemTotal.toFixed(2)}</span>
-              <button onclick="removeFromCart('${cartItem.id}')" aria-label="Remove ${prod.name} from list" class="w-10 h-10 flex items-center justify-center border border-red-300 rounded-lg text-red-500 hover:text-red-700 hover:border-red-600 text-sm">✕</button>
+              <button onclick="removeFromCart('${cartItem.id}')" aria-label="Remove ${escapeHtml(prod.name)} from list" class="w-10 h-10 flex items-center justify-center border border-red-300 rounded-lg text-red-500 hover:text-red-700 hover:border-red-600 text-sm">✕</button>
             </div>
           </div>
         `;
@@ -1981,7 +2271,7 @@ async function promptAddSavedItemToCart(productId, savedQuantity) {
         'Add Item to Cart',
         `
           <p class="mb-3">
-            How many ${product.name} would you like to add to your current cart?
+            How many ${escapeHtml(product.name)} would you like to add to your current cart?
           </p>
 
           <input
@@ -2426,7 +2716,7 @@ function openShoppingTimeBreakdown(event) {
 
                 <div>
                   <h5 class="font-black text-slate-900 text-base">
-                    ${prod.name}
+                    ${escapeHtml(prod.name)}
                   </h5>
 
                   <span class="text-xs text-slate-600 font-medium">
@@ -2456,7 +2746,7 @@ function openShoppingTimeBreakdown(event) {
                     <div class="flex items-center border border-slate-200 rounded-xl bg-slate-50">
                       <button
                         onclick="updateCartQuantity('${cartItem.id}', -1)"
-                        aria-label="Decrease quantity of ${prod.name}"
+                        aria-label="Decrease quantity of ${escapeHtml(prod.name)}"
                         class="w-11 h-11 flex items-center justify-center text-slate-600 text-lg font-bold hover:bg-slate-200 rounded-l-xl">
                         -
                       </button>
@@ -2467,7 +2757,7 @@ function openShoppingTimeBreakdown(event) {
 
                       <button
                         onclick="updateCartQuantity('${cartItem.id}', 1)"
-                        aria-label="Increase quantity of ${prod.name}"
+                        aria-label="Increase quantity of ${escapeHtml(prod.name)}"
                         class="w-11 h-11 flex items-center justify-center text-slate-600 text-lg font-bold hover:bg-slate-200 rounded-r-xl">
                         +
                       </button>
@@ -2475,7 +2765,7 @@ function openShoppingTimeBreakdown(event) {
 
                     <button
                       onclick="removeFromCart('${cartItem.id}')"
-                      aria-label="Remove ${prod.name} from list"
+                      aria-label="Remove ${escapeHtml(prod.name)} from list"
                       class="w-11 h-11 flex items-center justify-center border border-red-300 rounded-lg text-red-500 hover:text-red-700 hover:border-red-600">
                       <i class="fa-solid fa-trash-can text-sm" aria-hidden="true"></i>
                     </button>
@@ -2688,6 +2978,7 @@ function openShoppingTimeBreakdown(event) {
 
       state.savedLists = data || [];
       renderSavedListHistory();
+      refreshMissingKrogerProducts();
 
       if (state.currentScreen === 'list') {
         renderGroceryList();
@@ -3100,7 +3391,7 @@ function openShoppingTimeBreakdown(event) {
             <div class="flex items-center gap-2">
               <span class="text-xl">${prod.icon}</span>
               <div>
-                <span class="font-black text-slate-800">${prod.name} (Qty: ${cartItem.quantity})</span>
+                <span class="font-black text-slate-800">${escapeHtml(prod.name)} (Qty: ${cartItem.quantity})</span>
                 <span class="block text-[11px] text-emerald-700 font-bold">Lowest price in Provo!</span>
               </div>
             </div>
@@ -3121,7 +3412,7 @@ function openShoppingTimeBreakdown(event) {
             <div class="flex items-center gap-2">
               <span class="text-xl">${prod.icon}</span>
               <div>
-                <span class="font-black text-slate-800">${prod.name} (Qty: ${cartItem.quantity})</span>
+                <span class="font-black text-slate-800">${escapeHtml(prod.name)} (Qty: ${cartItem.quantity})</span>
                 <span class="block text-[11px] text-amber-700 font-medium">
                   Cheaper at <strong class="text-slate-800">${bestStoreObj.name}</strong> ($${lowestPrice.toFixed(2)} ea)
                 </span>
@@ -3230,6 +3521,7 @@ function openShoppingTimeBreakdown(event) {
     // Reads saved state back, keeping only values the app can use. Anything
     // unexpected is dropped instead of crashing the page on every load.
     function loadAppState() {
+      loadKrogerProductCache(); // live products must be known before the saved list is checked
       let saved = null;
       try { saved = JSON.parse(localStorage.getItem(APP_STATE_KEY)); } catch (e) {}
       if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return; // first visit: keep the sample list
@@ -3237,7 +3529,7 @@ function openShoppingTimeBreakdown(event) {
       if (Array.isArray(saved.cart)) {
         state.cart = saved.cart
           .filter(item => item && typeof item === 'object' &&
-            PRODUCTS.some(p => p.id === item.id) && isValidQuantity(item.quantity))
+            (PRODUCTS.some(p => p.id === item.id) || isKrogerProductKey(item.id)) && isValidQuantity(item.quantity))
           .map(item => ({ id: item.id, quantity: item.quantity }));
       }
       if (Array.isArray(saved.claimedDeals)) {
@@ -3481,6 +3773,7 @@ async function handleLoginImpl(e) {
       try { await restoreSession(); } catch (e) { console.error('Session restore failed:', e); }
       appBooted = true;
       navigateTo(resolveScreen(location.hash), { replace: true });
+      refreshMissingKrogerProducts();
     });
   </script>
   <!-- Browser-based recipe recognition for Wyse AI -->
