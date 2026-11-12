@@ -587,7 +587,8 @@ body.wyse-modal-open {
             <label for="input-search-term" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Item Search</label>
             <div class="relative">
               <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-              <input type="text" id="input-search-term" placeholder="e.g. Gallon Milk, Eggs, Bread..." 
+              <input type="text" id="input-search-term" placeholder="e.g. Gallon Milk, Eggs, Bread..."
+                onkeydown="if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); executeSearch(); }"
                 class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-accent-blue focus:outline-none font-medium text-slate-900" />
             </div>
           </div>
@@ -2317,7 +2318,7 @@ function closeGroceryListPrompt(value = false) {
           ? ` This is the closest one, outside your ${state.radius}-mile radius.`
           : '';
         html += resultsNoticeHtml('live', `
-          <strong>Live prices from ${escapeHtml(live.location.name)}</strong> (Kroger API).${escapeHtml(radiusNote)}
+          <strong>Live prices from ${escapeHtml(live.location.name)}</strong>.${escapeHtml(radiusNote)}
           <span class="block mt-1">Walmart, Target, Costco and Trader Joe's prices are <strong>estimates</strong> based on the Smith's price.</span>`);
       }
       if (notice) html += resultsNoticeHtml(notice.tone, escapeHtml(notice.text));
