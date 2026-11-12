@@ -1150,9 +1150,14 @@ body.wyse-modal-open {
           <h2 class="text-xl sm:text-2xl font-black text-slate-900">Account Profile</h2>
           <p class="text-xs text-slate-600">Manage credentials and notification alerts</p>
         </div>
-        <button onclick="handleLogout()" class="w-full sm:w-auto min-h-[44px] px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-400 text-slate-700 font-bold text-sm rounded-xl transition">
-          Log Out
-        </button>
+        <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <button id="btn-admin-page" type="button" onclick="navigateTo('admin')" class="hidden w-full sm:w-auto min-h-[44px] px-4 py-2 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold text-sm rounded-xl transition">
+            Admin
+          </button>
+          <button onclick="handleLogout()" class="w-full sm:w-auto min-h-[44px] px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-400 text-slate-700 font-bold text-sm rounded-xl transition">
+            Log Out
+          </button>
+        </div>
       </div>
 
       <!-- Credentials Container -->
@@ -1217,6 +1222,28 @@ body.wyse-modal-open {
           </button>
         </div>
       </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- ADMIN (only for users with is_admin)                      -->
+    <!-- ========================================================= -->
+    <section id="screen-admin" class="hidden max-w-4xl w-full mx-auto bg-white p-4 sm:p-8 rounded-2xl border border-brand-200 shadow-sm space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+        <div class="min-w-0">
+          <h2 class="text-xl sm:text-2xl font-black text-slate-900">Admin</h2>
+          <p class="text-xs text-slate-600">All ShopWyse users, most recent login first</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <button type="button" onclick="loadAdminUsers()" class="w-full sm:w-auto min-h-[44px] px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-400 text-slate-700 font-bold text-sm rounded-xl transition">
+            Refresh
+          </button>
+          <button type="button" onclick="navigateTo('account')" class="w-full sm:w-auto min-h-[44px] px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-400 text-slate-700 font-bold text-sm rounded-xl transition">
+            Back to Account
+          </button>
+        </div>
+      </div>
+      <p id="admin-status" class="text-sm text-slate-600" role="status" aria-live="polite"></p>
+      <div id="admin-users" class="space-y-2"></div>
     </section>
 
   <!-- ========================================================= -->
@@ -1583,6 +1610,7 @@ body.wyse-modal-open {
       claimedDeals: [],
       currentScreen: 'search',
       weeklyShoppingMinutes: null,
+      isAdmin: false,
       shoppingTimeSummary: null,
       shoppingTimeBreakdown: [],
       savedLists: [],
@@ -2170,8 +2198,8 @@ function closeGroceryListPrompt(value = false) {
       document.getElementById('modal-auth-interceptor').classList.add('hidden');
     }
 
-    const SCREENS = ['search', 'results', 'deals', 'list', 'map', 'login', 'register', 'account', 'recipes'];
-    const PROTECTED_SCREENS = ['deals', 'map', 'list', 'account'];
+    const SCREENS = ['search', 'results', 'deals', 'list', 'map', 'login', 'register', 'account', 'recipes', 'admin'];
+    const PROTECTED_SCREENS = ['deals', 'map', 'list', 'account', 'admin'];
 
     // replace: true updates the URL without adding a Back-button entry
     function navigateTo(screenId, { replace = false } = {}) {
@@ -2219,6 +2247,8 @@ function closeGroceryListPrompt(value = false) {
         loadSavedGroceryLists();
       }
 
+      if (screenId === 'admin') loadAdminUsers();
+
       if (screenId === 'map') initOrUpdateMap();
     }
 
@@ -2227,6 +2257,8 @@ function closeGroceryListPrompt(value = false) {
       const banner = document.getElementById('unregistered-banner');
       const listTitle = document.getElementById('list-title');
       if (listTitle) listTitle.textContent = state.isLoggedIn && state.userFirstName ? `${state.userFirstName}'s Grocery List` : 'Your Grocery List';
+      const adminButton = document.getElementById('btn-admin-page');
+      if (adminButton) adminButton.classList.toggle('hidden', !(state.isLoggedIn && state.isAdmin));
       if (state.isLoggedIn) {
         if (label) label.textContent = `${state.userFirstName || state.userEmail} (Account)`;
         if (banner) banner.classList.add('hidden');
@@ -3996,6 +4028,7 @@ function openShoppingTimeBreakdown(event) {
       state.userEmail = user.email;
       state.userFirstName = user.first_name || '';
       state.weeklyShoppingMinutes = user.weekly_shopping_minutes ?? null;
+      state.isAdmin = user.is_admin === true;
       document.getElementById('account-email-display').textContent = user.email;
       saveSession(user.user_id);
       updateAuthUI();
@@ -4108,6 +4141,7 @@ function openShoppingTimeBreakdown(event) {
       if (screen === 'results' && state.searchTerm === null) return 'search';
       if ((screen === 'login' || screen === 'register') && state.isLoggedIn) return 'account';
       if (PROTECTED_SCREENS.includes(screen) && !state.isLoggedIn) return 'login';
+      if (screen === 'admin' && !state.isAdmin) return 'account';
       return screen;
     }
 
@@ -4172,6 +4206,7 @@ async function handleLoginImpl(e) {
 
         // Successful login
         applyUser(data);
+        recordLogin(data.user_id);
 
         showToast('Successfully logged in!');
 
@@ -4231,8 +4266,149 @@ async function handleLoginImpl(e) {
       }
 
       applyUser(data);
+      recordLogin(data.user_id);
       showToast('Account created successfully! Preferences saved.');
       navigateTo('search');
+    }
+
+    // --- Login tracking + Admin page ---
+    // Stamp the login time for the admin list. A failure here never blocks logging in.
+    async function recordLogin(userId) {
+      if (!userId) return;
+      const { error } = await db
+        .from(USERS_TABLE)
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('user_id', userId);
+      if (error) console.warn('Could not record login time:', error.message);
+    }
+
+    const ADMIN_USER_COLUMNS = 'user_id, first_name, last_name, email, is_admin, last_login_at, created_at';
+    let adminLoadSeq = 0;
+
+    function formatAdminDate(value) {
+      if (!value) return null;
+      const date = new Date(value);
+      return Number.isNaN(date.getTime())
+        ? null
+        : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    async function loadAdminUsers() {
+      const status = document.getElementById('admin-status');
+      const list = document.getElementById('admin-users');
+      if (!state.isAdmin) return;
+      const seq = ++adminLoadSeq;
+      status.textContent = 'Loading users…';
+      list.setAttribute('aria-busy', 'true');
+
+      // Never select passwords here
+      const { data, error } = await db
+        .from(USERS_TABLE)
+        .select(ADMIN_USER_COLUMNS)
+        .order('last_login_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false });
+
+      if (seq !== adminLoadSeq) return;
+      list.removeAttribute('aria-busy');
+      if (error) {
+        console.error('Admin user list failed:', error);
+        status.textContent = /is_admin|last_login_at/.test(error.message || '')
+          ? 'The admin columns are missing. Run supabase/migrations/20261112_admin_users.sql in the Supabase SQL Editor.'
+          : 'Could not load users. Please try again.';
+        list.replaceChildren();
+        return;
+      }
+
+      // Admin rights may have been removed since this user logged in
+      const me = data.find(user => user.user_id === state.user_id);
+      if (!me || me.is_admin !== true) {
+        state.isAdmin = false;
+        updateAuthUI();
+        showToast('You no longer have admin access');
+        navigateTo('account', { replace: true });
+        return;
+      }
+
+      const adminCount = data.filter(user => user.is_admin === true).length;
+      status.textContent = `${data.length} user${data.length === 1 ? '' : 's'}, ${adminCount} admin${adminCount === 1 ? '' : 's'}`;
+      list.replaceChildren(...data.map(adminUserRow));
+    }
+
+    // Built with textContent: names and emails are user-entered
+    function adminUserRow(user) {
+      const isSelf = user.user_id === state.user_id;
+      const isAdmin = user.is_admin === true;
+      const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || '(no name)';
+
+      const row = document.createElement('div');
+      row.className = 'flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-xl border ' +
+        (isAdmin ? 'border-brand-700 bg-brand-50' : 'border-slate-200 bg-white');
+
+      const info = document.createElement('div');
+      info.className = 'min-w-0';
+      const nameLine = document.createElement('p');
+      nameLine.className = 'font-bold text-slate-900 flex flex-wrap items-center gap-2';
+      nameLine.append(document.createTextNode(name));
+      if (isAdmin) {
+        const badge = document.createElement('span');
+        badge.className = 'text-[10px] font-black uppercase tracking-wide bg-brand-500 text-white px-2 py-0.5 rounded';
+        badge.textContent = 'Admin';
+        nameLine.append(badge);
+      }
+      if (isSelf) {
+        const you = document.createElement('span');
+        you.className = 'text-xs font-semibold text-slate-600';
+        you.textContent = '(you)';
+        nameLine.append(you);
+      }
+      const email = document.createElement('p');
+      email.className = 'text-sm text-slate-700 break-all';
+      email.textContent = user.email || '';
+      const dates = document.createElement('p');
+      dates.className = 'text-xs text-slate-600 mt-1';
+      const lastLogin = formatAdminDate(user.last_login_at);
+      const joined = formatAdminDate(user.created_at);
+      dates.textContent = `Last login: ${lastLogin || 'not recorded yet'}` + (joined ? ` · Joined ${joined}` : '');
+      info.append(nameLine, email, dates);
+      row.append(info);
+
+      // Admins can promote anyone else; you can't remove your own access
+      if (!isSelf) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'w-full sm:w-auto shrink-0 min-h-[44px] px-4 py-2 font-bold text-sm rounded-xl transition ' +
+          (isAdmin
+            ? 'bg-slate-100 hover:bg-slate-200 border border-slate-400 text-slate-700'
+            : 'bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white');
+        button.textContent = isAdmin ? 'Remove admin' : 'Make admin';
+        button.setAttribute('aria-label', `${isAdmin ? 'Remove admin access from' : 'Make admin:'} ${name} (${user.email || 'no email'})`);
+        button.addEventListener('click', () => setUserAdmin(user, !isAdmin, button));
+        row.append(button);
+      }
+      return row;
+    }
+
+    async function setUserAdmin(user, makeAdmin, button) {
+      if (!state.isAdmin || user.user_id === state.user_id) return;
+      button.disabled = true;
+      button.textContent = makeAdmin ? 'Making admin…' : 'Removing…';
+
+      const { data, error } = await db
+        .from(USERS_TABLE)
+        .update({ is_admin: makeAdmin })
+        .eq('user_id', user.user_id)
+        .select('user_id, is_admin')
+        .maybeSingle();
+
+      if (error || !data) {
+        console.error('Admin change failed:', error);
+        showToast('Could not update admin access. Please try again.');
+        button.disabled = false;
+        button.textContent = makeAdmin ? 'Make admin' : 'Remove admin';
+        return;
+      }
+      showToast(makeAdmin ? `${user.email} is now an admin` : `Removed admin access from ${user.email}`);
+      loadAdminUsers();
     }
 
     function handleLogout() {
@@ -4241,7 +4417,9 @@ async function handleLoginImpl(e) {
       state.userEmail = '';
       state.userFirstName = '';
       state.weeklyShoppingMinutes = null;
+      state.isAdmin = false;
       document.getElementById('account-email-display').textContent = '';
+      document.getElementById('admin-users').replaceChildren();
       clearSession();
       // Don't leave this user's list behind for the next person on this browser
       clearAppState();
