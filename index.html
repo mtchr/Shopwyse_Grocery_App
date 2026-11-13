@@ -445,6 +445,32 @@ body.wyse-modal-open {
   box-shadow: 0 0 0 2px #ddd6fe !important;
 }
 
+/* Show scan and camera errors at the top of the viewport. */
+#wyse-scan-error {
+  position: fixed;
+  top: max(1rem, env(safe-area-inset-top));
+  left: 50%;
+  width: min(32rem, calc(100vw - 2rem));
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate(-50%, -12px);
+  transition: opacity 250ms ease, transform 250ms ease, visibility 0s linear 250ms;
+}
+
+#wyse-scan-error.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+  transition-delay: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #wyse-scan-error { transition: none; }
+}
+
   </style>
 </head>
 
@@ -1302,7 +1328,6 @@ body.wyse-modal-open {
 
           <div id="wyse-dropzone" class="wyse-dropzone rounded-2xl p-6 sm:p-8 text-center outline-none" tabindex="0" role="button" aria-label="Choose a recipe photo or drop it here">
             <input id="recipe-image" type="file" accept="image/png,image/jpeg,image/webp,image/heic" class="hidden">
-            <input id="recipe-camera" type="file" accept="image/*" capture="environment" class="hidden">
 
             <div id="wyse-upload-prompt" class="space-y-4">
               <div class="w-16 h-16 rounded-2xl bg-white border border-brand-200 shadow-sm text-accent-blue flex items-center justify-center mx-auto">
@@ -1316,7 +1341,7 @@ body.wyse-modal-open {
                   <i class="fa-regular fa-image"></i>
                   Choose photo
                 </button>
-                <button id="take-recipe-photo" type="button" class="min-h-[48px] px-5 py-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold rounded-xl transition flex items-center justify-center gap-2">
+                <button id="take-recipe-photo" type="button" class="min-h-[48px] px-5 py-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold rounded-xl transition flex items-center justify-center gap-2 disabled:bg-slate-600 disabled:text-white disabled:border-slate-700 disabled:cursor-not-allowed disabled:opacity-100 disabled:shadow-none">
                   <i class="fa-solid fa-camera"></i>
                   Take photo
                 </button>
@@ -1329,12 +1354,23 @@ body.wyse-modal-open {
                 <p id="wyse-photo-name" class="text-sm font-bold text-slate-700 truncate max-w-[70%]"></p>
                 <button id="remove-recipe-photo" type="button" class="text-sm font-bold text-red-600 hover:text-red-700">Remove</button>
               </div>
+              <p class="mt-2 text-sm font-semibold text-slate-600">Photo ready. Press Find my ingredients when you’re ready to scan.</p>
             </div>
 
             <label class="mt-4 inline-flex items-center justify-center gap-2 text-sm font-bold text-slate-700 cursor-pointer">
               <input id="recipe-handwriting-mode" type="checkbox" class="w-5 h-5 rounded border-slate-300 text-accent-blue focus:ring-accent-blue">
               Handwritten or cursive recipe
             </label>
+          </div>
+
+          <div id="wyse-camera-dialog" class="hidden fixed inset-0 z-50 bg-black/80 p-4 flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Take a recipe photo">
+            <div class="w-full max-w-xl rounded-2xl bg-white p-4 space-y-4">
+              <video id="wyse-camera-video" class="w-full max-h-[70vh] bg-slate-900 rounded-xl" autoplay muted playsinline aria-label="Camera preview"></video>
+              <div class="flex flex-wrap justify-center gap-2">
+                <button id="wyse-capture-photo" type="button" class="min-h-[48px] px-5 py-3 bg-accent-blue text-white font-bold rounded-xl">Use this photo</button>
+                <button id="wyse-cancel-camera" type="button" class="min-h-[48px] px-5 py-3 border border-slate-300 text-slate-800 font-bold rounded-xl">Cancel</button>
+              </div>
+            </div>
           </div>
 
           <div class="flex items-center gap-3" aria-hidden="true">
@@ -1356,9 +1392,13 @@ body.wyse-modal-open {
 
           <div id="wyse-progress" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-3.5 flex items-center gap-3">
             <span class="w-5 h-5 border-2 border-blue-200 border-t-accent-blue rounded-full animate-spin shrink-0" aria-hidden="true"></span>
-            <p id="ai-status" class="text-sm font-bold text-blue-900" aria-live="polite">Getting ready…</p>
+            <div class="flex-1 min-w-0">
+              <p id="ai-status" class="text-sm font-bold text-blue-900" aria-live="polite">Getting ready…</p>
+              <div id="wyse-progress-track" class="mt-2 h-2 rounded-full bg-blue-200 overflow-hidden" role="progressbar" aria-label="Estimated recipe scan progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div id="wyse-progress-fill" class="h-full w-0 bg-accent-blue transition-[width] duration-300"></div>
+              </div>
+            </div>
           </div>
-
           <div id="wyse-results-panel" class="hidden border-t border-slate-200 pt-5 space-y-4">
             <div class="flex items-center justify-between gap-3">
               <div>
@@ -1419,6 +1459,11 @@ body.wyse-modal-open {
       </div>
     </section>
   </main>
+
+  <div id="wyse-scan-error" class="flex items-start gap-3 rounded-xl border border-red-400 bg-red-50 p-4 text-sm font-bold text-red-900 shadow-xl" role="alert" aria-atomic="true">
+    <p id="wyse-scan-error-message" class="flex-1"></p>
+    <button id="wyse-dismiss-error" type="button" class="shrink-0 rounded px-2 py-1 text-red-900 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500" aria-label="Dismiss error message">✕</button>
+  </div>
 
   <!-- ========================================================= -->
   <!-- MODAL: LOGIN REQUIRED POPUP                               -->
@@ -4264,7 +4309,9 @@ async function handleLoginImpl(e) {
     const wysePage = document.querySelector('#screen-recipes');
     const wyseWelcome = document.querySelector('#wyse-welcome');
     const imageInput = document.querySelector('#recipe-image');
-    const cameraInput = document.querySelector('#recipe-camera');
+    const takePhotoButton = document.querySelector('#take-recipe-photo');
+    const cameraDialog = document.querySelector('#wyse-camera-dialog');
+    const cameraVideo = document.querySelector('#wyse-camera-video');
     const handwritingMode = document.querySelector('#recipe-handwriting-mode');
     const textInput = document.querySelector('#recipe-text');
     const dropzone = document.querySelector('#wyse-dropzone');
@@ -4275,6 +4322,10 @@ async function handleLoginImpl(e) {
     const extractButton = document.querySelector('#extract-recipe');
     const progressPanel = document.querySelector('#wyse-progress');
     const statusElement = document.querySelector('#ai-status');
+    const progressTrack = document.querySelector('#wyse-progress-track');
+    const progressFill = document.querySelector('#wyse-progress-fill');
+    const scanError = document.querySelector('#wyse-scan-error');
+    const scanErrorMessage = document.querySelector('#wyse-scan-error-message');
     const resultsPanel = document.querySelector('#wyse-results-panel');
     const resultsSummary = document.querySelector('#wyse-results-summary');
     const ingredientResults = document.querySelector('#ingredient-results');
@@ -4292,6 +4343,11 @@ async function handleLoginImpl(e) {
     let handwritingPipelinePromise;
     let selectedRecipeImage = null;
     let selectedImageUrl = null;
+    let cameraStream = null;
+    let cameraMissingThisSession = false;
+    let scanErrorTimer = null;
+    let scanProgress = 0;
+    let scanInProgress = false;
     let lastFocusedElement = null;
     let lastWyseRecipe = null;
     let lastWyseSourceText = '';
@@ -4343,6 +4399,39 @@ async function handleLoginImpl(e) {
       progressPanel.classList.remove('hidden');
     }
 
+    // Library callbacks report progress for separate tasks and files. Map them
+    // into one estimated scan that cannot move backwards or finish before results.
+    function setScanProgress(percent, message) {
+      scanProgress = Math.max(scanProgress, Math.min(99, Math.round(percent)));
+      progressFill.style.width = `${scanProgress}%`;
+      progressTrack.setAttribute('aria-valuenow', String(scanProgress));
+      updateProgress(`${message} · about ${scanProgress}% complete`);
+    }
+
+    function finishScanProgress() {
+      scanProgress = 100;
+      progressFill.style.width = '100%';
+      progressTrack.setAttribute('aria-valuenow', '100');
+      updateProgress('Recipe scan complete · 100%');
+    }
+
+    function showScanError(message) {
+      clearTimeout(scanErrorTimer);
+      scanError.classList.remove('is-visible');
+      scanErrorMessage.textContent = message;
+      // Restart the transition even when the same error occurs twice in a row.
+      void scanError.offsetWidth;
+      scanError.classList.add('is-visible');
+      scanErrorTimer = setTimeout(hideScanError, 10000);
+    }
+
+    function hideScanError() {
+      clearTimeout(scanErrorTimer);
+      scanError.classList.remove('is-visible');
+    }
+
+    document.querySelector('#wyse-dismiss-error').addEventListener('click', hideScanError);
+
     function hideProgress() {
       progressPanel.classList.add('hidden');
     }
@@ -4351,13 +4440,13 @@ async function handleLoginImpl(e) {
       if (!workerPromise) {
         workerPromise = Tesseract.createWorker('eng', 1, {
           logger(event) {
-            if (typeof event.progress === 'number') {
-              const percent = Math.round(event.progress * 100);
-              updateProgress(`${event.status}: ${percent}%`);
-            } else if (event.status) {
-              updateProgress(event.status);
+            if (scanInProgress && event.status === 'recognizing text' && Number.isFinite(event.progress)) {
+              setScanProgress(10 + event.progress * 35, 'Reading the recipe photo');
             }
           }
+        }).catch(error => {
+          workerPromise = null;
+          throw error;
         });
       }
       return workerPromise;
@@ -4366,12 +4455,13 @@ async function handleLoginImpl(e) {
     function getHandwritingPipeline() {
       if (!handwritingPipelinePromise) {
         handwritingPipelinePromise = (async () => {
-          updateProgress('Loading the handwriting reader for its first use…');
+          setScanProgress(45, 'Loading the handwriting reader');
           const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2');
           return pipeline('image-to-text', 'Xenova/trocr-base-handwritten', {
             progress_callback(progress) {
-              if (progress.status === 'progress' && Number.isFinite(progress.progress)) {
-                updateProgress(`Loading handwriting reader: ${Math.round(progress.progress)}%`);
+              // progress_total covers the whole model; per-file percentages reset.
+              if (scanInProgress && progress.status === 'progress_total' && Number.isFinite(progress.progress)) {
+                setScanProgress(45 + progress.progress * 0.3, 'Loading the handwriting reader');
               }
             }
           });
@@ -4419,6 +4509,22 @@ async function handleLoginImpl(e) {
 
       // Compress the photo so it takes up less database space
       return canvas.toDataURL('image/jpeg', 0.72);
+    }
+
+    async function prepareOcrImage(file) {
+      const image = await loadBrowserImage(file);
+      // Phone photos can be far larger than OCR needs. Limit the working copy
+      // for both readers so their text coordinates still refer to one image.
+      const maxSide = 1800;
+      if (Math.max(image.width, image.height) <= maxSide) return file;
+      const canvas = document.createElement('canvas');
+      const scale = maxSide / Math.max(image.width, image.height);
+      canvas.width = Math.round(image.width * scale);
+      canvas.height = Math.round(image.height * scale);
+      canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+      return new Promise((resolve, reject) => {
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not prepare the recipe photo.')), 'image/jpeg', 0.9);
+      });
     }
 
     function flattenTesseractLines(blocks = []) {
@@ -4575,13 +4681,14 @@ async function handleLoginImpl(e) {
       const lineSamples = [];
 
       for (let index = 0; index < ranges.length; index += 1) {
-        updateProgress(`Reading handwritten ingredient ${index + 1} of ${ranges.length}…`);
+        setScanProgress(75 + index / ranges.length * 20, `Reading handwritten ingredient ${index + 1} of ${ranges.length}`);
         const imageDataUrl = cropIngredientLine(image, region, ranges[index]);
         const output = await reader(imageDataUrl);
         const text = cleanLine(output?.[0]?.generated_text || '');
         if (text && text.length > 1 && !/^(ingredients?|directions?)\s*:?$/i.test(text)) {
           lineSamples.push({ text, image_data_url: imageDataUrl });
         }
+        setScanProgress(75 + (index + 1) / ranges.length * 20, `Read ${index + 1} of ${ranges.length} handwritten lines`);
       }
 
       if (!lineSamples.length) {
@@ -4591,9 +4698,12 @@ async function handleLoginImpl(e) {
     }
 
     async function recognizeImage(file) {
+      setScanProgress(5, 'Preparing the recipe reader');
+      const ocrImage = await prepareOcrImage(file);
       const worker = await getOcrWorker();
-      updateProgress('Finding the ingredient section…');
-      const result = await worker.recognize(file, {}, { text: true, blocks: true });
+      setScanProgress(10, 'Finding the ingredient section');
+      const result = await worker.recognize(ocrImage, {}, { text: true, blocks: true });
+      setScanProgress(45, 'Checking the recognized text');
       const tesseractText = (result.data.text || '').trim();
       const confidence = Number(result.data.confidence) || 0;
       const tesseractLines = flattenTesseractLines(result.data.blocks || []);
@@ -4602,7 +4712,7 @@ async function handleLoginImpl(e) {
 
       if (shouldReadHandwriting) {
         try {
-          const lineSamples = await recognizeHandwrittenIngredients(file, tesseractLines);
+          const lineSamples = await recognizeHandwrittenIngredients(ocrImage, tesseractLines);
           return {
             text: lineSamples.map(sample => sample.text).join('\n'),
             engine: 'trocr-base-handwritten',
@@ -4637,17 +4747,23 @@ async function handleLoginImpl(e) {
     function selectRecipeImage(file) {
       if (!file) return;
 
+      if (scanInProgress) {
+        showScanError('Please wait for this recipe scan to finish before choosing another photo.');
+        return;
+      }
+
       if (!file.type.startsWith('image/')) {
-        updateProgress('Please choose an image file.');
+        showScanError('Please choose an image file.');
         return;
       }
 
       if (file.size > WYSE_MAX_IMAGE_BYTES) {
-        updateProgress('That photo is larger than 10 MB. Please choose a smaller image.');
+        showScanError('That photo is larger than 10 MB. Please choose a smaller image.');
         return;
       }
 
       selectedRecipeImage = file;
+      hideScanError();
       if (selectedImageUrl) URL.revokeObjectURL(selectedImageUrl);
       selectedImageUrl = URL.createObjectURL(file);
       previewImage.src = selectedImageUrl;
@@ -4656,12 +4772,12 @@ async function handleLoginImpl(e) {
       photoPreview.classList.remove('hidden');
       hideProgress();
       resultsPanel.classList.add('hidden');
+      // Leave the photo in the preview until Find my ingredients is pressed.
     }
 
     function clearRecipeImage() {
       selectedRecipeImage = null;
       imageInput.value = '';
-      cameraInput.value = '';
       if (selectedImageUrl) URL.revokeObjectURL(selectedImageUrl);
       selectedImageUrl = null;
       previewImage.removeAttribute('src');
@@ -4674,18 +4790,76 @@ async function handleLoginImpl(e) {
       imageInput.click();
     });
 
-    document.querySelector('#take-recipe-photo').addEventListener('click', event => {
+    function closeRecipeCamera() {
+      cameraStream?.getTracks().forEach(track => track.stop());
+      cameraStream = null;
+      cameraVideo.pause();
+      cameraVideo.srcObject = null;
+      cameraDialog.classList.add('hidden');
+      takePhotoButton.disabled = cameraMissingThisSession;
+      if (!takePhotoButton.disabled && takePhotoButton.getClientRects().length) takePhotoButton.focus();
+      else if (document.querySelector('#choose-recipe-photo').getClientRects().length) document.querySelector('#choose-recipe-photo').focus();
+      else extractButton.focus();
+    }
+
+    takePhotoButton.addEventListener('click', async event => {
       event.stopPropagation();
-      cameraInput.click();
+      if (scanInProgress) return;
+      hideScanError();
+      takePhotoButton.disabled = true;
+      try {
+        // Request any available camera only after the user clicks Take photo.
+        if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera access is not supported on this page. Try HTTPS or choose a photo instead.');
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        cameraVideo.srcObject = cameraStream;
+        cameraDialog.classList.remove('hidden');
+        await cameraVideo.play();
+        document.querySelector('#wyse-capture-photo').focus();
+      } catch (error) {
+        cameraMissingThisSession = error.name === 'NotFoundError';
+        closeRecipeCamera();
+        if (cameraMissingThisSession) {
+          takePhotoButton.title = 'No camera found. Reload the page after connecting a camera.';
+          showScanError('No camera was found. Connect a camera and reload the page, or choose a photo instead.');
+        } else if (error.name === 'NotAllowedError') {
+          showScanError('Camera permission was denied. Allow camera access in your browser or choose a photo instead.');
+        } else if (error.name === 'NotReadableError') {
+          showScanError('The camera is unavailable or already in use. Close other camera apps and try again.');
+        } else {
+          showScanError(error.message || 'Could not open the camera. Please try again or choose a photo.');
+        }
+      }
     });
 
+    document.querySelector('#wyse-capture-photo').addEventListener('click', () => {
+      if (!cameraVideo.videoWidth || !cameraVideo.videoHeight) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = cameraVideo.videoWidth;
+      canvas.height = cameraVideo.videoHeight;
+      canvas.getContext('2d').drawImage(cameraVideo, 0, 0);
+      canvas.toBlob(blob => {
+        closeRecipeCamera();
+        if (blob) {
+          selectRecipeImage(new File([blob], `recipe-photo-${Date.now()}.jpg`, { type: 'image/jpeg' }));
+        } else {
+          showScanError('Could not capture the photo. Please try again.');
+        }
+      }, 'image/jpeg', 0.9);
+    });
+
+    document.querySelector('#wyse-cancel-camera').addEventListener('click', closeRecipeCamera);
+    cameraDialog.addEventListener('click', event => {
+      if (event.target === cameraDialog) closeRecipeCamera();
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !cameraDialog.classList.contains('hidden')) closeRecipeCamera();
+    });
     document.querySelector('#remove-recipe-photo').addEventListener('click', event => {
       event.stopPropagation();
       clearRecipeImage();
     });
 
     imageInput.addEventListener('change', () => selectRecipeImage(imageInput.files[0]));
-    cameraInput.addEventListener('change', () => selectRecipeImage(cameraInput.files[0]));
 
     dropzone.addEventListener('click', event => {
       if (event.target === dropzone || event.target.closest('#wyse-upload-prompt > div:first-child, #wyse-upload-prompt h3, #wyse-upload-prompt p')) {
@@ -4833,7 +5007,8 @@ async function handleLoginImpl(e) {
     }
 
     async function extractRecipe({ imageFile, recipeText = '' }) {
-      let sourceText = recipeText.trim();
+      // An explicitly selected photo takes priority over leftover typed text.
+      let sourceText = imageFile ? '' : recipeText.trim();
       if (!sourceText && !imageFile) {
         throw new Error('Choose a recipe photo or type some ingredients first.');
       }
@@ -5095,31 +5270,46 @@ async function handleLoginImpl(e) {
       resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    extractButton.addEventListener('click', async () => {
+    async function scanRecipe() {
+      if (scanInProgress) return;
+      scanInProgress = true;
+      scanProgress = 0;
+      progressFill.style.width = '0%';
+      progressTrack.setAttribute('aria-valuenow', '0');
+      hideScanError();
       extractButton.disabled = true;
       resultsPanel.classList.add('hidden');
 
       try {
-        updateProgress(selectedRecipeImage && !textInput.value.trim()
-          ? 'Reading your recipe photo…'
-          : 'Organizing your ingredients…');
+        setScanProgress(0, selectedRecipeImage ? 'Reading your recipe photo' : 'Organizing your ingredients');
 
         const result = await extractRecipe({
           imageFile: selectedRecipeImage,
           recipeText: textInput.value
         });
 
-        hideProgress();
+        setScanProgress(98, 'Preparing your results');
         renderWyseResults(result);
+        finishScanProgress();
+        hideProgress();
       } catch (error) {
-        updateProgress(error.message);
+        hideProgress();
+        showScanError(error.message || 'The recipe reader could not finish. Please try again.');
       } finally {
+        scanInProgress = false;
         extractButton.disabled = false;
       }
+    }
+
+    extractButton.addEventListener('click', event => {
+      event.preventDefault();
+      void scanRecipe();
     });
 
     function resetWyseAssistant() {
+      if (scanInProgress) return;
       clearRecipeImage();
+      hideScanError();
       textInput.value = '';
       handwritingMode.checked = false;
       lastWyseRecipe = null;
