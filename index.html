@@ -508,11 +508,6 @@ body.wyse-modal-open {
         <span class="hidden md:inline">Hot</span> Deals
       </button>
 
-      <button onclick="guardNav('map')" id="nav-map" class="px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
-        <i class="fa-solid fa-map-location-dot text-brand-500"></i>
-        <span>Map</span>
-      </button>
-
       <button onclick="guardNav('list')" id="nav-list" class="relative px-3 py-2 rounded-lg font-medium text-slate-600 hover:text-brand-600 hover:bg-brand-50 flex items-center gap-1.5 transition">
         <i class="fa-solid fa-cart-shopping text-accent-blue"></i>
         <span class="hidden md:inline">Grocery</span> List
@@ -536,9 +531,6 @@ body.wyse-modal-open {
   <div id="mobile-menu" class="hidden sm:hidden border-t border-brand-200 bg-white px-4 py-2">
     <button onclick="closeMobileMenu(); guardNav('deals')" class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 border-b border-slate-100 touch-btn">
       <i class="fa-solid fa-fire text-amber-500 w-5"></i> Hot Deals
-    </button>
-    <button onclick="closeMobileMenu(); guardNav('map')" class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 border-b border-slate-100 touch-btn">
-      <i class="fa-solid fa-map-location-dot text-brand-500 w-5"></i> Map
     </button>
     <button onclick="closeMobileMenu(); guardNav('list')" class="w-full py-3 flex items-center gap-3 text-left font-semibold text-slate-700 border-b border-slate-100 touch-btn">
       <i class="fa-solid fa-cart-shopping text-accent-blue w-5"></i> Grocery List
@@ -795,12 +787,6 @@ body.wyse-modal-open {
           </h2>
           <p class="text-sm text-slate-600">Review selected quantities, compare store totals, and plan your route.</p>
         </div>
-        <div class="flex gap-2">
-          <!-- Desktop only; phones use the bottom bar instead -->
-          <button onclick="guardNav('map')" class="hidden lg:flex px-5 py-2 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold rounded-xl text-sm shadow transition flex items-center gap-2">
-            <i class="fa-solid fa-map-location-dot"></i> View Optimized Map
-          </button>
-        </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -906,27 +892,8 @@ body.wyse-modal-open {
                 </span>
               </div>
             </div>
-
-
-            <!-- Desktop only; phones use the bottom bar instead -->
-            <button onclick="guardNav('map')" class="hidden lg:flex w-full py-3.5 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold rounded-xl shadow transition items-center justify-center gap-2 touch-btn">
-              <i class="fa-solid fa-route"></i>
-              Optimize Stores on Map
-            </button>
           </div>
         </div>
-      </div>
-
-      <!-- Mobile Bottom Bar: total on the left, map button on the right -->
-      <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-brand-200 shadow-lg px-4 py-3 flex items-center justify-between gap-3">
-        <div>
-          <span class="block text-[11px] uppercase font-bold text-slate-600">Best Split Total</span>
-          <span id="mobile-list-total" class="text-xl font-black text-brand-600">$0.00</span>
-        </div>
-        <button onclick="guardNav('map')" class="px-5 py-3 bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold rounded-xl shadow transition flex items-center gap-2 touch-btn">
-          <i class="fa-solid fa-route"></i>
-          Optimize on Map
-        </button>
       </div>
     </section>
 
