@@ -16,8 +16,7 @@ alana - 10 minutes, 3 items
       - 12 minutes, 6 items
       - 25 minutes, 30 items 
 
-ashlyn - 22 items, avg was 1 minute and 25.71 seconds
-       - stores = Costco, Walmart Supercenter, Dollar Tree
+ashlyn - 22 items, avg was 1 minute and 25.71 seconds, stores => Costco, Walmart Supercenter, Dollar Tree
 
 | Column | Type | Notes |
 | --- | --- | --- |
