@@ -1590,7 +1590,7 @@ body.wyse-modal-open {
       </button>
     </div>
 
-    <div id="shopping-time-breakdown-list" class="space-y-2 py-4">
+    <div id="shopping-time-breakdown-list" class="space-y-3 py-4 max-h-[60vh] overflow-y-auto">
       <!-- Rendered by JavaScript -->
     </div>
 
@@ -2932,45 +2932,45 @@ async function saveShoppingTime(minutes) {
         addToCart(productId, quantity, onAdded, dealId);
     }
 } 
+// Observed shopping times: Alana (3 items/10 min, 6 items/12 min,
+// 30 items/25 min) and Ashlyn (22 items, 85.71 sec/item across
+// Costco, Walmart Supercenter and Dollar Tree).
+// Weighted by item count: 4705.62 seconds / 61 items = 77.1413 sec/item.
+// This is a pooled estimate, NOT a measured store-specific rate.
+const SHOPPING_TIME_SECONDS_PER_ITEM = (10 * 60 + 12 * 60 + 25 * 60 + 22 * 85.71) / (3 + 6 + 30 + 22);
+
 function openShoppingTimeBreakdown(event) {
-  if (event) {
-    event.stopPropagation();
-  }
-
-  const list = document.getElementById(
-    'shopping-time-breakdown-list'
-  );
-
+  if (event) event.stopPropagation();
+  const list = document.getElementById('shopping-time-breakdown-list');
   const summary = state.shoppingTimeSummary;
+  const stores = Array.isArray(state.shoppingTimeBreakdown)
+    ? state.shoppingTimeBreakdown : [];
 
   if (!summary || summary.itemCount === 0) {
-    list.innerHTML =
-      '<p class="text-sm text-slate-600">Add items to see your estimated shopping time.</p>';
+    list.innerHTML = '<p class="text-sm text-slate-600">Add items to see your estimated shopping time.</p>';
   } else {
-    list.innerHTML = `
-      <div class="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-2">
-        <div class="flex justify-between text-sm">
-          <span class="text-slate-600">Items on your list</span>
-          <strong class="text-slate-800">${summary.itemCount}</strong>
+    const storeRows = stores.map(entry => `
+      <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3">
+        <div class="min-w-0">
+          <p class="font-bold text-slate-800">${escapeHtml(entry.storeName)}</p>
+          <p class="text-xs text-slate-600">${entry.itemCount} ${entry.itemCount === 1 ? 'item' : 'items'} × ${summary.secondsPerItem.toFixed(2)} seconds</p>
         </div>
-
-        <div class="flex justify-between text-sm">
-          <span class="text-slate-600">Estimated time per item</span>
-          <strong class="text-slate-800">18.02 seconds</strong>
-        </div>
-
-        <div class="flex justify-between border-t border-slate-200 pt-2">
-          <strong class="text-slate-800">Total estimated time</strong>
-          <strong class="text-brand-600">
-            ${formatEstimatedTime(summary.totalSeconds)}
-          </strong>
-        </div>
+        <strong class="shrink-0 text-brand-600">${formatEstimatedTime(entry.totalSeconds)}</strong>
       </div>
-    `;
-  }
+    `).join('');
 
-  document.getElementById('shopping-time-breakdown-modal')
-    .classList.remove('hidden');
+    list.innerHTML = `
+      <p class="text-xs text-slate-600">Estimated using 61 observed items across four shopping trips. Each store uses the same pooled per-item average; this is not a store-specific measurement. Excludes travel, checkout, and waiting.</p>
+      <div class="space-y-2" aria-label="Estimated time by store">
+        ${storeRows || '<p class="text-sm text-slate-600">No store assignments available.</p>'}
+      </div>
+      <div class="rounded-xl bg-brand-50 border border-brand-200 p-4 space-y-2">
+        <div class="flex justify-between gap-3 text-sm"><span>Items on your list</span><strong>${summary.itemCount}</strong></div>
+        <div class="flex justify-between gap-3 text-sm"><span>Estimated time per item</span><strong>${summary.secondsPerItem.toFixed(2)} seconds</strong></div>
+        <div class="flex justify-between gap-3 border-t border-brand-200 pt-2"><strong>Total estimated time</strong><strong class="text-brand-600">${formatEstimatedTime(summary.totalSeconds)}</strong></div>
+      </div>`;
+  }
+  document.getElementById('shopping-time-breakdown-modal').classList.remove('hidden');
 }
   function closeShoppingTimeBreakdown() {
   document
@@ -2986,34 +2986,32 @@ function openShoppingTimeBreakdown(event) {
       return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ${seconds} ${seconds === 1 ? 'second' : 'seconds'}`;
     }
 
-    function loadAverageShoppingTime(itemCount) {
-      const timeLabels = [
-        document.getElementById('grocery-time-estimate'),
-        document.getElementById('header-estimated-time')
-      ].filter(Boolean);
-
-      const totalSeconds = itemCount * 18.02;
-
-      timeLabels.forEach(label => {
-        label.textContent = formatEstimatedTime(totalSeconds);
-      });
-
+    function loadAverageShoppingTime(itemCount, storeBaskets = {}) {
+      const secondsPerItem = SHOPPING_TIME_SECONDS_PER_ITEM;
+      const breakdown = Object.values(storeBaskets)
+        .filter(basket => basket.unitsCheapestCount > 0)
+        .map(basket => ({
+          storeName: basket.store.name,
+          itemCount: basket.unitsCheapestCount,
+          totalSeconds: basket.unitsCheapestCount * secondsPerItem
+        }));
+      const assignedItems = breakdown.reduce((sum, store) => sum + store.itemCount, 0);
+      // Only display assigned units; unsupported ZIP codes have no local store prices.
+      const displayedCount = assignedItems;
+      const totalSeconds = breakdown.reduce((sum, store) => sum + store.totalSeconds, 0);
+      [document.getElementById('grocery-time-estimate'),
+       document.getElementById('header-estimated-time')]
+        .filter(Boolean)
+        .forEach(label => { label.textContent = formatEstimatedTime(totalSeconds); });
       state.shoppingTimeSummary = {
-        itemCount,
-        secondsPerItem: 18.02,
+        itemCount: displayedCount,
+        secondsPerItem,
         totalSeconds
       };
-
-      const summaryLabel = document.getElementById(
-        'shopping-time-breakdown-summary'
-      );
-
-      if (summaryLabel) {
-        summaryLabel.textContent =
-          `${itemCount} items × 18.02 seconds per item`;
-      }
-
-      state.shoppingTimeBreakdown = [];
+      state.shoppingTimeBreakdown = breakdown;
+      const summaryLabel = document.getElementById('shopping-time-breakdown-summary');
+      if (summaryLabel) summaryLabel.textContent =
+        `${displayedCount} items across ${breakdown.length} ${breakdown.length === 1 ? 'store' : 'stores'}`;
     }
 
     function updateCartQuantity(productId, delta) {
@@ -3430,7 +3428,7 @@ function openShoppingTimeBreakdown(event) {
         0
       );
 
-      const estimatedSeconds = itemCount * 18.02;
+      const estimatedSeconds = itemCount * SHOPPING_TIME_SECONDS_PER_ITEM;
 
       const { data, error } = await db
         .from('saved_grocery_lists')
