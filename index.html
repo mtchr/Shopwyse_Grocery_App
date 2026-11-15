@@ -4341,6 +4341,9 @@ async function handleLoginImpl(e) {
 
     let workerPromise;
     let handwritingPipelinePromise;
+    let activeHandwritingModelId = null;
+    // The ShopWyse fine-tuned handwriting reader, hosted as an ONNX model.
+    const SHOPWYSE_TROCR_V2_MODEL_ID = 'fullStackM/shopwyse-trocr-v2';
     let selectedRecipeImage = null;
     let selectedImageUrl = null;
     let cameraStream = null;
@@ -4457,16 +4460,32 @@ async function handleLoginImpl(e) {
         handwritingPipelinePromise = (async () => {
           setScanProgress(45, 'Loading the handwriting reader');
           const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2');
-          return pipeline('image-to-text', 'Xenova/trocr-base-handwritten', {
+          const options = {
             progress_callback(progress) {
               // progress_total covers the whole model; per-file percentages reset.
               if (scanInProgress && progress.status === 'progress_total' && Number.isFinite(progress.progress)) {
                 setScanProgress(45 + progress.progress * 0.3, 'Loading the handwriting reader');
               }
             }
-          });
+          };
+          if (SHOPWYSE_TROCR_V2_MODEL_ID) {
+            try {
+              const reader = await pipeline('image-to-text', SHOPWYSE_TROCR_V2_MODEL_ID, {
+                ...options, dtype: 'fp32'
+              });
+              activeHandwritingModelId = SHOPWYSE_TROCR_V2_MODEL_ID;
+              return reader;
+            } catch (error) {
+              console.warn('ShopWyse handwriting reader could not load; using the previous model.', error);
+              setScanProgress(45, 'Loading the previous handwriting reader');
+            }
+          }
+          const reader = await pipeline('image-to-text', 'Xenova/trocr-base-handwritten', options);
+          activeHandwritingModelId = 'Xenova/trocr-base-handwritten';
+          return reader;
         })().catch(error => {
           handwritingPipelinePromise = null;
+          activeHandwritingModelId = null;
           throw error;
         });
       }
@@ -4652,6 +4671,39 @@ async function handleLoginImpl(e) {
         .slice(0, 18);
     }
 
+    function blendTrainingContrast(canvas) {
+      // Match the training notebook's 1% grayscale autocontrast blended
+      // into the original RGB crop at 35%.
+      const context = canvas.getContext('2d');
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+      const values = pixels.data;
+      const histogram = new Uint32Array(256);
+      for (let i = 0; i < values.length; i += 4) {
+        const gray = Math.round(values[i] * 0.299 + values[i + 1] * 0.587 + values[i + 2] * 0.114);
+        histogram[gray] += 1;
+      }
+      const cutoff = canvas.width * canvas.height * 0.01;
+      let low = 0;
+      let high = 255;
+      let discarded = 0;
+      while (low < 255 && discarded + histogram[low] <= cutoff) {
+        discarded += histogram[low++];
+      }
+      discarded = 0;
+      while (high > low && discarded + histogram[high] <= cutoff) {
+        discarded += histogram[high--];
+      }
+      if (high <= low) return;
+      for (let i = 0; i < values.length; i += 4) {
+        const gray = Math.round(values[i] * 0.299 + values[i + 1] * 0.587 + values[i + 2] * 0.114);
+        const enhanced = Math.max(0, Math.min(255, Math.round((gray - low) * 255 / (high - low))));
+        for (let channel = 0; channel < 3; channel += 1) {
+          values[i + channel] = Math.round(values[i + channel] * 0.65 + enhanced * 0.35);
+        }
+      }
+      context.putImageData(pixels, 0, 0);
+    }
+
     function cropIngredientLine(image, region, range) {
       const width = Math.max(1, region.right - region.left);
       const height = Math.max(1, range.bottom - range.top);
@@ -4663,8 +4715,12 @@ async function handleLoginImpl(e) {
       context.fillStyle = '#ffffff';
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.imageSmoothingEnabled = true;
-      context.filter = 'grayscale(1) contrast(1.45)';
+      if (activeHandwritingModelId !== SHOPWYSE_TROCR_V2_MODEL_ID) context.filter = 'grayscale(1) contrast(1.45)';
       context.drawImage(image, region.left, range.top, width, height, 0, 0, canvas.width, canvas.height);
+      if (activeHandwritingModelId === SHOPWYSE_TROCR_V2_MODEL_ID) {
+        blendTrainingContrast(canvas);
+        return canvas.toDataURL('image/png');
+      }
       return canvas.toDataURL('image/jpeg', 0.9);
     }
 
@@ -4683,7 +4739,9 @@ async function handleLoginImpl(e) {
       for (let index = 0; index < ranges.length; index += 1) {
         setScanProgress(75 + index / ranges.length * 20, `Reading handwritten ingredient ${index + 1} of ${ranges.length}`);
         const imageDataUrl = cropIngredientLine(image, region, ranges[index]);
-        const output = await reader(imageDataUrl);
+        const output = await reader(imageDataUrl, activeHandwritingModelId === SHOPWYSE_TROCR_V2_MODEL_ID
+          ? { max_length: 96, num_beams: 4 }
+          : {});
         const text = cleanLine(output?.[0]?.generated_text || '');
         if (text && text.length > 1 && !/^(ingredients?|directions?)\s*:?$/i.test(text)) {
           lineSamples.push({ text, image_data_url: imageDataUrl });
@@ -4715,7 +4773,8 @@ async function handleLoginImpl(e) {
           const lineSamples = await recognizeHandwrittenIngredients(ocrImage, tesseractLines);
           return {
             text: lineSamples.map(sample => sample.text).join('\n'),
-            engine: 'trocr-base-handwritten',
+            engine: activeHandwritingModelId === SHOPWYSE_TROCR_V2_MODEL_ID
+              ? 'shopwyse-trocr-v2' : 'trocr-base-handwritten',
             confidence,
             original_text: tesseractText,
             line_samples: lineSamples,
