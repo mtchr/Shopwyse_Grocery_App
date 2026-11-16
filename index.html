@@ -1190,6 +1190,37 @@ body.wyse-modal-open {
           </div>
         </div>
 
+        <!-- Estimated savings across this user's saved lists (same math as the Admin page) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-brand-200 pt-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-1">
+              <span class="text-xs font-bold uppercase tracking-wide text-slate-600">Est. Time Saved</span>
+              <button type="button" onclick="toggleInfo(this)" aria-expanded="false" aria-controls="info-time-saved-account" aria-label="How estimated time saved is calculated" class="w-8 h-8 inline-flex items-center justify-center rounded-full text-brand-600 hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-accent-blue">
+                <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div id="account-time-saved" class="text-2xl font-black text-brand-600">—</div>
+            <p id="account-time-saved-note" class="text-xs text-slate-600"></p>
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1">
+              <span class="text-xs font-bold uppercase tracking-wide text-slate-600">Est. Money Saved</span>
+              <button type="button" onclick="toggleInfo(this)" aria-expanded="false" aria-controls="info-money-saved-account" aria-label="How estimated money saved is calculated" class="w-8 h-8 inline-flex items-center justify-center rounded-full text-brand-600 hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-accent-blue">
+                <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div id="account-money-saved" class="text-2xl font-black text-emerald-700">—</div>
+            <p id="account-money-saved-note" class="text-xs text-slate-600"></p>
+          </div>
+          <!-- Explanations span both columns, opened by the (i) buttons above -->
+          <p id="info-time-saved-account" class="hidden sm:col-span-2 text-xs text-slate-700 bg-white border border-brand-200 rounded-lg p-3">
+            <strong>Est. time saved:</strong> for each list you've saved, ShopWyse takes the weekly grocery shopping time you gave in the "Your Shopping Habits" question and subtracts its estimated in-store time for that list (about 77 seconds per item, from timed shopping trips by our team). A list never counts as negative time. The results are added up across your saved lists. Travel time isn't included.
+          </p>
+          <p id="info-money-saved-account" class="hidden sm:col-span-2 text-xs text-slate-700 bg-white border border-brand-200 rounded-lg p-3">
+            <strong>Est. money saved:</strong> for each list you've saved, ShopWyse compares buying everything at the one store with the lowest total against buying each item at the store where it's cheapest, including Hot Deals you added. That's the "Estimated Money Saved" on your Grocery List. The differences are added up across your saved lists. Lists saved before ShopWyse started recording this are priced at today's prices. Walmart, Target, Costco and Trader Joe's prices are estimates.
+          </p>
+        </div>
+
         <div class="border-t border-brand-200 pt-3">
           <h3 class="text-sm font-bold text-slate-800 mb-2">Previous Grocery Lists</h3>
           <div id="saved-list-history" class="space-y-2">
@@ -1241,6 +1272,21 @@ body.wyse-modal-open {
         </div>
       </div>
       <p id="admin-status" class="text-sm text-slate-600" role="status" aria-live="polite"></p>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-slate-700">
+        <span>How the estimates work:</span>
+        <button type="button" onclick="toggleInfo(this)" aria-expanded="false" aria-controls="info-time-saved-admin" class="inline-flex items-center gap-1.5 min-h-[32px] px-2 rounded-lg text-brand-600 hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-accent-blue">
+          <i class="fa-solid fa-circle-info" aria-hidden="true"></i> Est. time saved
+        </button>
+        <button type="button" onclick="toggleInfo(this)" aria-expanded="false" aria-controls="info-money-saved-admin" class="inline-flex items-center gap-1.5 min-h-[32px] px-2 rounded-lg text-brand-600 hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-accent-blue">
+          <i class="fa-solid fa-circle-info" aria-hidden="true"></i> Est. money saved
+        </button>
+      </div>
+      <p id="info-time-saved-admin" class="hidden text-xs text-slate-700 bg-brand-50 border border-brand-200 rounded-lg p-3">
+        <strong>Est. time saved:</strong> for each of the user's saved lists, ShopWyse takes the weekly grocery shopping time they gave in the "Your Shopping Habits" question and subtracts its estimated in-store time for that list (about 77 seconds per item, from timed shopping trips by our team). A list never counts as negative time. The results are added up across their saved lists. Travel time isn't included. Users who haven't answered the question show "no survey answer".
+      </p>
+      <p id="info-money-saved-admin" class="hidden text-xs text-slate-700 bg-brand-50 border border-brand-200 rounded-lg p-3">
+        <strong>Est. money saved:</strong> for each saved list, ShopWyse compares buying everything at the one store with the lowest total against buying each item at the store where it's cheapest, including Hot Deals they added. That's the "Estimated Money Saved" on the Grocery List. The differences are added up across their saved lists. Lists saved before ShopWyse started recording this are priced at today's prices. Walmart, Target, Costco and Trader Joe's prices are estimates.
+      </p>
       <div id="admin-users" class="space-y-2"></div>
     </section>
 
@@ -2205,6 +2251,7 @@ function closeGroceryListPrompt(value = false) {
         setKrogerStore(result.location);
         renderCartDrawer();
         if (state.currentScreen === 'list') renderGroceryList();
+        renderAccountSavings(); // older saved lists can now be priced
       } catch (error) {
         console.warn('Could not look up live prices for saved items:', error);
       }
@@ -2924,6 +2971,7 @@ async function saveShoppingTime(minutes) {
 
     // Update the current user's state
     state.weeklyShoppingMinutes = data.weekly_shopping_minutes;
+    renderAccountSavings(); // time saved uses this answer
 
     // Close the survey
     document.getElementById('shopping-time-modal')
@@ -3438,17 +3486,23 @@ function openShoppingTimeBreakdown(event) {
       );
 
       const estimatedSeconds = itemCount * SHOPPING_TIME_SECONDS_PER_ITEM;
+      // Recorded for the admin page, at the prices the shopper saw when saving
+      const estimatedSavings = estimateListSavings(state.cart);
 
-      const { data, error } = await db
-        .from('saved_grocery_lists')
-        .insert({
-          user_id: state.user_id,
-          item_count: itemCount,
-          estimated_seconds: estimatedSeconds,
-          items: items
-        })
-        .select()
-        .single();
+      const row = {
+        user_id: state.user_id,
+        item_count: itemCount,
+        estimated_seconds: estimatedSeconds,
+        items: items
+      };
+      const insertList = values => db.from('saved_grocery_lists').insert(values).select().single();
+      let { data, error } = await insertList(
+        estimatedSavings === null ? row : { ...row, estimated_savings: estimatedSavings }
+      );
+      // Before supabase/migrations/20261116_list_savings.sql is run, the column doesn't exist yet
+      if (error && /estimated_savings/.test(error.message || '')) {
+        ({ data, error } = await insertList(row));
+      }
 
       if (error) {
         console.error('Error saving grocery list:', error);
@@ -3500,11 +3554,51 @@ function openShoppingTimeBreakdown(event) {
       }
     }
 
+    // Est. Time Saved and Est. Money Saved on the Account page
+    function renderAccountSavings() {
+      const timeValue = document.getElementById('account-time-saved');
+      const timeNote = document.getElementById('account-time-saved-note');
+      const moneyValue = document.getElementById('account-money-saved');
+      const moneyNote = document.getElementById('account-money-saved-note');
+      if (!timeValue || !moneyValue) return;
+
+      const totals = summarizeSavedLists(state.savedLists);
+      if (!totals.count) {
+        timeValue.textContent = '—';
+        moneyValue.textContent = '—';
+        timeNote.textContent = 'Save a grocery list to see this.';
+        moneyNote.textContent = 'Save a grocery list to see this.';
+        return;
+      }
+      const listsText = `${totals.count} saved list${totals.count === 1 ? '' : 's'}`;
+
+      const timeSaved = estimatedTimeSaved(state.weeklyShoppingMinutes, totals);
+      if (timeSaved === null) {
+        timeValue.textContent = '—';
+        timeNote.textContent = 'Shown once you answer the "Your Shopping Habits" question.';
+      } else {
+        timeValue.textContent = formatDuration(timeSaved);
+        timeNote.textContent = `Across ${listsText}, compared with your usual ${Number(state.weeklyShoppingMinutes)} minutes a week`;
+      }
+
+      if (!totals.pricedLists) {
+        moneyValue.textContent = '—';
+        moneyNote.textContent = 'Prices for your saved items aren\'t available right now.';
+      } else {
+        moneyValue.textContent = `$${totals.savings.toFixed(2)}`;
+        moneyNote.textContent = totals.pricedLists < totals.count
+          ? `Across ${totals.pricedLists} of your ${listsText}; the others couldn't be priced`
+          : `Across ${listsText}`;
+      }
+    }
+
     function renderSavedListHistory() {
       const historyContainer = document.getElementById('saved-list-history');
       const averageLabel = document.getElementById('avg-shopping-time');
 
       if (!historyContainer || !averageLabel) return;
+
+      renderAccountSavings();
 
       if (state.savedLists.length === 0) {
         averageLabel.textContent = '—';
@@ -3760,6 +3854,66 @@ function openShoppingTimeBreakdown(event) {
       if (!applied) return prod.prices;
       const regular = prod.prices[applied.storeId];
       return { ...prod.prices, [applied.storeId]: Math.min(applied.deal.dealPrice, regular ?? Infinity) };
+    }
+
+    // Same math as "Estimated Money Saved" on the Grocery List: what the whole list costs at
+    // the cheapest single store, minus buying each item where it's cheapest.
+    // items: [{ id, quantity, dealId? }]. null if an item has no known prices.
+    function estimateListSavings(items) {
+      let splitTotal = 0;
+      const storeTotals = Object.fromEntries(STORES.map(store => [store.id, 0]));
+      for (const item of items || []) {
+        const prices = item && cartItemPrices(item);
+        const quantity = Number(item && item.quantity) || 0;
+        if (!prices) return null;
+        const known = STORES.map(store => prices[store.id]).filter(Number.isFinite);
+        if (!known.length) return null;
+        splitTotal += Math.min(...known) * quantity;
+        STORES.forEach(store => {
+          storeTotals[store.id] += (Number.isFinite(prices[store.id]) ? prices[store.id] : Infinity) * quantity;
+        });
+      }
+      const cheapestStoreTotal = Math.min(...Object.values(storeTotals));
+      if (!Number.isFinite(cheapestStoreTotal)) return null;
+      return Math.max(0, Math.round((cheapestStoreTotal - splitTotal) * 100) / 100);
+    }
+
+    // Totals over one user's saved lists, shared by the Account and Admin pages:
+    // list count, estimated in-store seconds (per list too) and estimated money saved.
+    // Uses the savings recorded when a list was saved, or today's prices for older lists.
+    function summarizeSavedLists(lists) {
+      const totals = { count: 0, seconds: 0, secondsByList: [], savings: 0, pricedLists: 0 };
+      (lists || []).forEach(list => {
+        const seconds = Number(list && list.estimated_seconds);
+        if (!Number.isFinite(seconds)) return;
+        totals.count += 1;
+        totals.seconds += seconds;
+        totals.secondsByList.push(seconds);
+        const recorded = list.estimated_savings === null || list.estimated_savings === undefined ? NaN : Number(list.estimated_savings);
+        const savings = Number.isFinite(recorded) ? recorded : estimateListSavings(Array.isArray(list.items) ? list.items : []);
+        if (savings !== null && Number.isFinite(savings)) {
+          totals.savings += savings;
+          totals.pricedLists += 1;
+        }
+      });
+      return totals;
+    }
+
+    // Time saved: for each list, the weekly shopping time the user reported in the survey
+    // minus ShopWyse's estimated in-store time for that list (never below zero).
+    // null if they haven't answered the survey.
+    function estimatedTimeSaved(weeklyMinutes, totals) {
+      const minutes = Number(weeklyMinutes);
+      if (weeklyMinutes === null || weeklyMinutes === undefined || !Number.isFinite(minutes) || minutes <= 0 || !totals) return null;
+      return totals.secondsByList.reduce((sum, seconds) => sum + Math.max(0, minutes * 60 - seconds), 0);
+    }
+
+    // (i) buttons: show or hide the explanation panel the button controls
+    function toggleInfo(button) {
+      const panel = document.getElementById(button.getAttribute('aria-controls'));
+      if (!panel) return;
+      const open = panel.classList.toggle('hidden') === false;
+      button.setAttribute('aria-expanded', String(open));
     }
 
     // Loads this ZIP's deals once per visit: live sale prices if there's a Kroger-family
@@ -4393,9 +4547,20 @@ async function handleLoginImpl(e) {
       if (error) console.warn('Could not record login time:', error.message);
     }
 
-    const ADMIN_USER_COLUMNS = 'user_id, first_name, last_name, email, is_admin, last_login_at, created_at';
+    const ADMIN_USER_COLUMNS = 'user_id, first_name, last_name, email, is_admin, last_login_at, created_at, weekly_shopping_minutes';
     let adminLoadSeq = 0;
-    let adminListTotals = null; // user_id -> { count, seconds }; null if lists couldn't be loaded
+    // user_id -> { count, seconds, secondsByList[], savings, pricedLists }; null if lists couldn't be loaded
+    let adminListTotals = null;
+
+    // "1 hr 5 min", "12 min", "45 sec"
+    function formatDuration(totalSeconds) {
+      const seconds = Math.round(totalSeconds);
+      if (seconds < 60) return `${seconds} sec`;
+      const minutes = Math.round(seconds / 60);
+      if (minutes < 60) return `${minutes} min`;
+      const hours = Math.floor(minutes / 60);
+      return minutes % 60 ? `${hours} hr ${minutes % 60} min` : `${hours} hr`;
+    }
 
     // Matches "Avg Time to Grocery Shop" on the Account page
     function adminAverageTimeText(userId) {
@@ -4404,6 +4569,48 @@ async function handleLoginImpl(e) {
       if (!totals || !totals.count) return 'Avg time to grocery shop: no saved lists';
       return `Avg time to grocery shop: ${formatEstimatedTime(totals.seconds / totals.count)} ` +
         `(${totals.count} saved list${totals.count === 1 ? '' : 's'})`;
+    }
+
+    function adminSavingsText(user) {
+      if (!adminListTotals) return 'Est. time saved: unavailable · Est. money saved: unavailable';
+      const totals = adminListTotals.get(user.user_id);
+      if (!totals || !totals.count) return 'Est. time saved: no saved lists · Est. money saved: no saved lists';
+      const timeSaved = estimatedTimeSaved(user.weekly_shopping_minutes, totals);
+      const timeText = timeSaved === null
+        ? 'no survey answer'
+        : `${formatDuration(timeSaved)} (vs. their usual ${Number(user.weekly_shopping_minutes)} min/week)`;
+      const moneyText = totals.pricedLists
+        ? `$${totals.savings.toFixed(2)}` + (totals.pricedLists < totals.count ? ` (${totals.pricedLists} of ${totals.count} lists priced)` : '')
+        : 'couldn\'t price these lists';
+      return `Est. time saved: ${timeText} · Est. money saved: ${moneyText}`;
+    }
+
+    // Saved lists, with estimated_savings when that column exists (it's added by a migration)
+    async function fetchAdminSavedLists() {
+      let result = await db.from('saved_grocery_lists').select('user_id, estimated_seconds, estimated_savings, items');
+      if (result.error && /estimated_savings/.test(result.error.message || '')) {
+        result = await db.from('saved_grocery_lists').select('user_id, estimated_seconds, items');
+      }
+      return result;
+    }
+
+    // Lists saved before savings were recorded are priced now; live products this browser
+    // hasn't seen are looked up first (up to 4 calls of 50 products)
+    async function priceOlderAdminLists(lists) {
+      const unpriced = lists.filter(list => !Number.isFinite(Number(list.estimated_savings)) || list.estimated_savings === null);
+      const missing = [...new Set(unpriced.flatMap(list => (Array.isArray(list.items) ? list.items : []).map(item => item && item.id)))]
+        .filter(id => isKrogerProductKey(id) && !PRODUCTS.some(p => p.id === id))
+        .map(id => id.slice(3))
+        .slice(0, 200);
+      for (let i = 0; i < missing.length; i += 50) {
+        try {
+          const result = await callKrogerFunction({ productIds: missing.slice(i, i + 50), zip: state.zipCode, radius: state.radius });
+          registerKrogerProducts(result.products, result.location);
+        } catch (error) {
+          console.warn('Admin: could not price some saved items:', error);
+          break;
+        }
+      }
     }
 
     function formatAdminDate(value) {
@@ -4427,22 +4634,25 @@ async function handleLoginImpl(e) {
         db.from(USERS_TABLE)
           .select(ADMIN_USER_COLUMNS)
           .order('created_at', { ascending: false }),
-        db.from('saved_grocery_lists')
-          .select('user_id, estimated_seconds')
+        fetchAdminSavedLists()
       ]);
 
       if (seq !== adminLoadSeq) return;
       if (listsResult.error) console.error('Admin saved-list lookup failed:', listsResult.error);
-      // Per user: saved-list count and total estimated seconds (same data as their Account page)
-      const listTotals = new Map();
-      (listsResult.data || []).forEach(list => {
-        const seconds = Number(list.estimated_seconds);
-        if (!Number.isFinite(seconds)) return;
-        const totals = listTotals.get(list.user_id) || { count: 0, seconds: 0 };
-        totals.count += 1;
-        totals.seconds += seconds;
-        listTotals.set(list.user_id, totals);
+      const savedLists = listsResult.data || [];
+      if (!listsResult.error && !error) {
+        status.textContent = 'Working out estimated savings…';
+        await priceOlderAdminLists(savedLists);
+        if (seq !== adminLoadSeq) return;
+      }
+
+      // Per user: the same totals their Account page shows
+      const listsByUser = new Map();
+      savedLists.forEach(list => {
+        if (!listsByUser.has(list.user_id)) listsByUser.set(list.user_id, []);
+        listsByUser.get(list.user_id).push(list);
       });
+      const listTotals = new Map([...listsByUser].map(([userId, lists]) => [userId, summarizeSavedLists(lists)]));
       adminListTotals = listsResult.error ? null : listTotals;
       list.removeAttribute('aria-busy');
       if (error) {
@@ -4465,7 +4675,19 @@ async function handleLoginImpl(e) {
       }
 
       const adminCount = data.filter(user => user.is_admin === true).length;
-      status.textContent = `${data.length} user${data.length === 1 ? '' : 's'}, ${adminCount} admin${adminCount === 1 ? '' : 's'}`;
+      let summary = `${data.length} user${data.length === 1 ? '' : 's'}, ${adminCount} admin${adminCount === 1 ? '' : 's'}`;
+      if (adminListTotals) {
+        let money = 0;
+        let time = 0;
+        data.forEach(user => {
+          const totals = adminListTotals.get(user.user_id);
+          if (!totals) return;
+          money += totals.savings;
+          time += estimatedTimeSaved(user.weekly_shopping_minutes, totals) || 0;
+        });
+        summary += ` · All users: est. ${formatDuration(time)} and $${money.toFixed(2)} saved across ${savedLists.length} saved list${savedLists.length === 1 ? '' : 's'}`;
+      }
+      status.textContent = summary;
       list.replaceChildren(...data.map(adminUserRow));
     }
 
@@ -4507,7 +4729,10 @@ async function handleLoginImpl(e) {
       const shoppingTime = document.createElement('p');
       shoppingTime.className = 'text-xs font-semibold text-brand-600 mt-0.5';
       shoppingTime.textContent = adminAverageTimeText(user.user_id);
-      info.append(nameLine, email, dates, shoppingTime);
+      const savings = document.createElement('p');
+      savings.className = 'text-xs font-semibold text-emerald-700 mt-0.5';
+      savings.textContent = adminSavingsText(user);
+      info.append(nameLine, email, dates, shoppingTime, savings);
       row.append(info);
 
       // Admins can promote anyone else; you can't remove your own access
