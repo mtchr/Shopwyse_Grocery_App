@@ -797,6 +797,15 @@ body.wyse-modal-open {
 
       <p id="deals-source-note" class="text-sm text-slate-600" role="status" aria-live="polite"></p>
 
+      <!-- Hot Deals ↔ Wyse Recipes connection -->
+      <div class="bg-white rounded-2xl p-4 border border-brand-200 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <p class="text-sm font-semibold text-slate-700">Plan meals around the ingredients on sale.</p>
+        <button type="button" onclick="openRecipesFromDeals()" class="px-4 py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl touch-btn">
+          <i class="fa-solid fa-book-open mr-2" aria-hidden="true"></i>Find recipes with these deals
+        </button>
+      </div>
+      <div id="deals-recipe-matches" class="hidden"></div>
+
       <!-- Deals Grid -->
       <div id="deals-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <!-- Rendered from JS -->
@@ -4059,12 +4068,16 @@ function openShoppingTimeBreakdown(event) {
               <span class="text-sm text-slate-600 line-through"><span class="sr-only">was </span>$${deal.oldPrice.toFixed(2)}</span>
             </div>
           </div>
+          <button type="button" data-deal-recipe-id="${escapeHtml(deal.id)}" class="w-full py-2 text-violet-700 border border-violet-200 rounded-xl font-bold text-sm hover:bg-violet-50">
+            <i class="fa-solid fa-book-open mr-1" aria-hidden="true"></i>Recipes using this deal
+          </button>
           <div class="mt-4">${qtyPickerHtml(deal.id, name)}</div>
           <button onclick="addDealToCart('${deal.id}')" aria-label="Add ${name} deal to list" class="mt-2 w-full py-2.5 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold text-xs rounded-xl shadow-sm transition touch-btn flex items-center justify-center gap-1.5">
             <i class="fa-solid fa-cart-plus" aria-hidden="true"></i> Add Deal to Cart
           </button>
         `;
 
+        card.querySelector('[data-deal-recipe-id]').addEventListener('click', () => openRecipesFromDeals(deal.name));
         container.appendChild(card);
       });
 
@@ -6273,6 +6286,70 @@ async function handleLoginImpl(e) {
     // Only the text lines are saved; store matches and prices are worked out
     // each time, so they stay current if the catalog changes.
     // =========================================================
+    // Hot Deals ↔ Wyse Recipes: conservative ingredient matching, no invented savings.
+    function dealWords(value) {
+      const stop = new Set(['fresh','large','grade','whole','size','family','bunch','bag','pack','lb','oz','the','and','with','cups','cup','tablespoon','teaspoon','chopped','minced','sliced','of','a','an']);
+      const singular = w => w.endsWith('ies') ? w.slice(0,-3)+'y' : (w.endsWith('s') && !w.endsWith('ss') ? w.slice(0,-1) : w);
+      return String(value || '').toLowerCase().replace(/[^a-z\s]/g,' ').split(/\s+/)
+        .map(singular).filter(w => w.length > 2 && !stop.has(w));
+    }
+    function matchDealsToRecipe(lines, deals) {
+      const found = [];
+      (deals || []).forEach(deal => {
+        const words = dealWords(deal.name);
+        const match = (lines || []).find(line => {
+          const ingredient = dealWords(line);
+          return ingredient.some(word => words.includes(word));
+        });
+        if (match) found.push({deal, ingredient:match});
+      });
+      return found;
+    }
+    async function openRecipesFromDeals(ingredientName = '') {
+      navigateTo('recipes');
+      showWyseTab('recipes');
+      if (state.savedRecipes === null) await showRecipeList();
+      const list = document.getElementById('wyse-recipes-list-view');
+      if (!list || state.currentScreen !== 'recipes') return;
+      list.querySelector('#deals-recipe-suggestions')?.remove();
+      const panel = document.createElement('div');
+      panel.id = 'deals-recipe-suggestions';
+      panel.className = 'bg-violet-50 border border-violet-200 rounded-2xl p-4 mb-5 space-y-3';
+      const title = document.createElement('h3');
+      title.className = 'font-black text-violet-900 text-lg';
+      title.textContent = ingredientName ? `Recipes using ${ingredientName}` : 'Recipes using Hot Deals';
+      panel.append(title);
+      if (!state.hotDeals || state.hotDeals.zip !== state.zipCode) {
+        try { await loadHotDeals(); } catch (_) {}
+      }
+      const allDeals = getActiveDeals().filter(d => !ingredientName || d.name === ingredientName);
+      const candidates = (state.savedRecipes || []).map(recipe => ({
+        recipe, matches: matchDealsToRecipe(recipe.ingredients || [], allDeals)
+      })).filter(item => item.matches.length).sort((a,b) => b.matches.length - a.matches.length);
+      const note = document.createElement('p');
+      note.className = 'text-sm text-slate-700';
+      note.textContent = state.hotDeals?.source === 'sample'
+        ? 'Matches use sample deals, not verified local prices.'
+        : 'Matches use currently loaded deals. Ingredient names are approximate matches.';
+      panel.append(note);
+      if (!candidates.length) {
+        const empty = document.createElement('p');
+        empty.className = 'text-sm font-semibold text-slate-700';
+        empty.textContent = 'No saved recipes match these deals yet. Save a recipe to see it here.';
+        panel.append(empty);
+      }
+      candidates.forEach(({recipe,matches}) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'block w-full text-left bg-white rounded-xl border border-violet-200 p-3 hover:bg-violet-100';
+        button.textContent = `${recipe.name} · ${matches.length} matching ${matches.length === 1 ? 'deal' : 'deals'} (${matches.map(m => m.deal.name).join(', ')})`;
+        button.addEventListener('click', () => openRecipeDetail(recipe));
+        panel.append(button);
+      });
+      list.prepend(panel);
+    }
+    window.openRecipesFromDeals = openRecipesFromDeals;
+
     const RECIPES_TABLE = 'saved_recipes';
     state.savedRecipes = null; // null until loaded for the signed-in user
     let openRecipe = null;     // recipe being viewed: { recipe_id, name, lines: [{ text, skip }], dirty }
@@ -6721,7 +6798,37 @@ async function handleLoginImpl(e) {
       actions.append(saveButton, deleteButton);
 
       Object.assign(detailRefs, { newLine, total, addButton, addLabel, saveButton, deleteButton });
-      recipeDetail.replaceChildren(back, nameBlock, heading, list, addRow, totalRow, addButton, actions);
+      // Recipes ↔ Hot Deals: show relevant discounted ingredients without changing recipe editing.
+      const dealPanel = el('div', 'rounded-xl border border-violet-200 bg-violet-50 p-4 space-y-2');
+      dealPanel.id = 'recipe-hot-deals-panel';
+      const dealTitle = el('h4', 'font-black text-violet-900', 'Hot Deals for this recipe');
+      const dealContent = el('div', 'space-y-2 text-sm text-slate-700');
+      const browseDeals = el('button', 'min-h-[44px] px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white font-bold', 'Browse Hot Deals');
+      browseDeals.type = 'button';
+      browseDeals.addEventListener('click', () => guardNav('deals'));
+      dealPanel.append(dealTitle, dealContent, browseDeals);
+      const displayRecipeDeals = () => {
+        const deals = getActiveDeals();
+        dealContent.replaceChildren();
+        if (!state.hotDeals || state.hotDeals.zip !== state.zipCode) {
+          dealContent.textContent = 'Checking nearby deals…';
+          loadHotDeals().then(() => { if (openRecipe === recipe) displayRecipeDeals(); })
+            .catch(() => { if (openRecipe === recipe) dealContent.textContent = 'Deals unavailable right now.'; });
+          return;
+        }
+        const matches = matchDealsToRecipe(recipe.lines.map(line => line.text), deals);
+        if (!matches.length) {
+          dealContent.textContent = 'No matching deals found for these ingredients right now.';
+          return;
+        }
+        matches.forEach(({deal, ingredient}) => {
+          const line = el('p', 'font-semibold');
+          line.textContent = `${ingredient} → ${deal.name}: $${Number(deal.dealPrice).toFixed(2)} (${state.hotDeals.source === 'live' ? 'live deal' : 'sample deal'})`;
+          dealContent.append(line);
+        });
+      };
+      displayRecipeDeals();
+      recipeDetail.replaceChildren(back, nameBlock, heading, list, addRow, totalRow, addButton, actions, dealPanel);
       showEmptyLinesNote();
       updateRecipeSummary();
     }
