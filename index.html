@@ -2756,12 +2756,12 @@ function closeGroceryListPrompt(value = false) {
               <span class="text-lg">${prod.icon}</span>
               <div>
                 <p class="font-bold text-slate-800 text-xs">${escapeHtml(prod.name)}</p>
-                <p class="text-[11px] text-slate-600">Qty: ${cartItem.quantity} × $${minPrice.toFixed(2)}</p>
+                <p class="text-[11px] text-slate-600">Qty: ${cartItem.quantity} × $${minPrice.toFixed(2)} · ${escapeHtml(storeName(choice.storeId))}</p>
               </div>
             </div>
             <div class="flex items-center gap-2">
               <span class="font-black text-xs text-brand-600">$${itemTotal.toFixed(2)}</span>
-              <button onclick="removeFromCart('${cartItem.id}')" aria-label="Remove ${escapeHtml(prod.name)} from list" class="w-10 h-10 flex items-center justify-center border border-red-300 rounded-lg text-red-500 hover:text-red-700 hover:border-red-600 text-sm">✕</button>
+              <button onclick="removeFromCart('${cartLineKey(cartItem)}')" aria-label="Remove ${escapeHtml(prod.name)} from ${escapeHtml(storeName(choice.storeId))} from list" class="w-10 h-10 flex items-center justify-center border border-red-300 rounded-lg text-red-500 hover:text-red-700 hover:border-red-600 text-sm">✕</button>
             </div>
           </div>
         `;
@@ -2813,7 +2813,9 @@ function addProductToCart(productId, storeId = null) {
 }
 
 
-async function promptAddSavedItemToCart(productId, savedQuantity) {
+// lineKey: cartLineKey() of the saved-list line (product id, plus its store if one was picked)
+async function promptAddSavedItemToCart(lineKey, savedQuantity) {
+    const productId = String(lineKey).split('@')[0];
     const product = PRODUCTS.find(p => p.id === productId);
 
     if (!product) {
@@ -2882,7 +2884,7 @@ async function promptAddSavedItemToCart(productId, savedQuantity) {
     const savedList = state.activeSavedList;
     // Bring along a deal the item was saved with
     const savedItem = savedList && Array.isArray(savedList.items)
-        ? savedList.items.find(item => item.id === productId)
+        ? savedList.items.find(item => cartLineKey(item) === lineKey)
         : null;
     const dealId = savedItem && findDeal(savedItem.dealId) ? savedItem.dealId : null;
     const storeId = savedItem && typeof savedItem.storeId === 'string' ? savedItem.storeId : null;
@@ -2897,6 +2899,12 @@ async function promptAddSavedItemToCart(productId, savedQuantity) {
 
 // Returns true if the item was added now. onAdded runs once it's added,
 // including later if the shopping-time question has to be answered first.
+// One list line per product per picked store: "kr_123@target_provo", or just "kr_123" for an
+// item bought wherever it's cheapest. Used by the list's +, −, remove and saved-list buttons.
+function cartLineKey(item) {
+    return item.storeId ? `${item.id}@${item.storeId}` : item.id;
+}
+
 // storeId pins the item to a store; null means buy it wherever it's cheapest.
 function addToCart(productId, quantity = 1, onAdded = null, dealId = null, storeId = null) {
 
@@ -2922,15 +2930,14 @@ function addToCart(productId, quantity = 1, onAdded = null, dealId = null, store
     state.activeSavedList = null;
 
     // Normal cart functionality
-    const existing = state.cart.find(item => item.id === productId);
+    const existing = state.cart.find(item => cartLineKey(item) === cartLineKey({ id: productId, storeId }));
 
     // A claimed deal applies to every unit of that item on the list
-    // An item is bought at one store, so adding it from another store moves all of it there.
-    // "Add Best Deal" (no store) leaves an earlier pick alone.
+    // Each store gets its own line, so the same item added from Target and from Costco shows
+    // up under both. "Add Best Deal" (no store) has its own line that follows the cheapest store.
     if (existing) {
         existing.quantity += quantity;
         if (dealId) existing.dealId = dealId;
-        if (storeId) existing.storeId = storeId;
     } else {
         state.cart.push({
             id: productId,
@@ -3083,20 +3090,21 @@ function openShoppingTimeBreakdown(event) {
         `${displayedCount} items across ${breakdown.length} ${breakdown.length === 1 ? 'store' : 'stores'}`;
     }
 
-    function updateCartQuantity(productId, delta) {
-      const item = state.cart.find(i => i.id === productId);
+    // lineKey: cartLineKey() of the list line, so other stores' lines of the same item are untouched
+    function updateCartQuantity(lineKey, delta) {
+      const item = state.cart.find(i => cartLineKey(i) === lineKey);
       if (item) {
         item.quantity += delta;
         if (item.quantity <= 0) {
-          state.cart = state.cart.filter(i => i.id !== productId);
+          state.cart = state.cart.filter(i => cartLineKey(i) !== lineKey);
         }
       }
       renderGroceryList();
       renderCartDrawer();
     }
 
-    function removeFromCart(productId) {
-      state.cart = state.cart.filter(i => i.id !== productId);
+    function removeFromCart(lineKey) {
+      state.cart = state.cart.filter(i => cartLineKey(i) !== lineKey);
       renderGroceryList();
       renderCartDrawer();
     }
@@ -3305,7 +3313,7 @@ function openShoppingTimeBreakdown(event) {
                       </span>
 
                       <button
-                        onclick="promptAddSavedItemToCart('${cartItem.id}', ${cartItem.quantity})"
+                        onclick="promptAddSavedItemToCart('${cartLineKey(cartItem)}', ${cartItem.quantity})"
                         class="px-4 py-2.5 rounded-xl font-bold text-sm transition"
                       >
                         <i class="fa-solid fa-cart-plus mr-1" aria-hidden="true"></i>
@@ -3316,7 +3324,7 @@ function openShoppingTimeBreakdown(event) {
                   : `
                     <div class="flex items-center border border-slate-200 rounded-xl bg-slate-50">
                       <button
-                        onclick="updateCartQuantity('${cartItem.id}', -1)"
+                        onclick="updateCartQuantity('${cartLineKey(cartItem)}', -1)"
                         aria-label="Decrease quantity of ${escapeHtml(prod.name)}"
                         class="w-11 h-11 flex items-center justify-center text-slate-600 text-lg font-bold hover:bg-slate-200 rounded-l-xl">
                         -
@@ -3327,7 +3335,7 @@ function openShoppingTimeBreakdown(event) {
                       </span>
 
                       <button
-                        onclick="updateCartQuantity('${cartItem.id}', 1)"
+                        onclick="updateCartQuantity('${cartLineKey(cartItem)}', 1)"
                         aria-label="Increase quantity of ${escapeHtml(prod.name)}"
                         class="w-11 h-11 flex items-center justify-center text-slate-600 text-lg font-bold hover:bg-slate-200 rounded-r-xl">
                         +
@@ -3335,7 +3343,7 @@ function openShoppingTimeBreakdown(event) {
                     </div>
 
                     <button
-                      onclick="removeFromCart('${cartItem.id}')"
+                      onclick="removeFromCart('${cartLineKey(cartItem)}')"
                       aria-label="Remove ${escapeHtml(prod.name)} from list"
                       class="w-11 h-11 flex items-center justify-center border border-red-300 rounded-lg text-red-500 hover:text-red-700 hover:border-red-600">
                       <i class="fa-solid fa-trash-can text-sm" aria-hidden="true"></i>
@@ -3869,6 +3877,10 @@ function openShoppingTimeBreakdown(event) {
     // Where a list item is bought and at what price: the store the shopper picked on Search
     // (item.storeId), or the cheapest store when they used "Add Best Deal" or didn't pick one.
     // A picked store that isn't in this ZIP's store list, or has no price, falls back too.
+    function storeName(storeId) {
+      return (STORES.find(s => s.id === storeId) || {}).name || '';
+    }
+
     function itemStoreChoice(item) {
       const prices = item && cartItemPrices(item);
       if (!prices) return null;
