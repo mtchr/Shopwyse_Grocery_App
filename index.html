@@ -783,7 +783,7 @@ body.wyse-modal-open {
           <h2 class="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
             <i class="fa-solid fa-fire text-amber-500 shrink-0"></i> Hot Deals Nearby
           </h2>
-          <p class="text-sm text-slate-600">Sample deals based on your selected ZIP code.</p>
+          <p class="text-sm text-slate-600">Sale prices at the grocery store nearest your ZIP code.</p>
         </div>
         <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
           <label for="deals-zip-input" class="text-xs font-bold uppercase text-slate-600">ZIP:</label>
@@ -794,6 +794,8 @@ body.wyse-modal-open {
           <button onclick="refreshDeals()" class="shrink-0 px-5 py-3 sm:py-2 min-h-[44px] bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white font-bold rounded-lg text-sm transition">Update</button>
         </div>
       </div>
+
+      <p id="deals-source-note" class="text-sm text-slate-600" role="status" aria-live="polite"></p>
 
       <!-- Deals Grid -->
       <div id="deals-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1625,6 +1627,8 @@ body.wyse-modal-open {
       claimedDeals: [],
       currentScreen: 'search',
       weeklyShoppingMinutes: null,
+      krogerStore: null,   // nearest Kroger-family store found for a ZIP (see setKrogerStore)
+      hotDeals: null,      // { zip, deals, source: 'live' | 'sample', note } once loaded
       isAdmin: false,
       shoppingTimeSummary: null,
       shoppingTimeBreakdown: [],
@@ -1763,62 +1767,90 @@ function closeGroceryListPrompt(value = false) {
       { id: 'target_provo', name: 'Target', address: '1290 N State St, Provo', lat: 40.2505, lng: -111.6644, distance: 1.6 }
     ];
 
-    // ZIP vertical slice: sample regions, with separate stores and prices.
-    // Other ZIP codes have no local sample inventory. Never imply Provo data is local.
+    // --- Stores for the selected ZIP ---
+    // Provo ZIPs use the Provo stores above. Any other ZIP gets the same five chains near
+    // that ZIP; the Kroger-family slot (smiths_provo) takes the real banner and address of the
+    // nearest Kroger-family store once the price service has found it (Fry's, Ralphs, King Soopers…).
     const ORIGINAL_STORES = STORES.map(store => ({ ...store }));
-    const REGION_STORES = {
-      provo: ORIGINAL_STORES,
-      gilbert: [
-        {id:'walmart_provo',name:'Walmart Supercenter',address:'Gilbert, AZ (sample location)',lat:33.3528,lng:-111.7890,distance:2.1},
-        {id:'smiths_provo',name:"Fry's Food Stores",address:'Gilbert, AZ (sample location)',lat:33.3612,lng:-111.7762,distance:1.5},
-        {id:'traderjoes_orem',name:"Trader Joe's",address:'Gilbert, AZ (sample location)',lat:33.3417,lng:-111.8002,distance:2.8},
-        {id:'costco_orem',name:'Costco Wholesale',address:'Gilbert, AZ (sample location)',lat:33.3655,lng:-111.8072,distance:3.1},
-        {id:'target_provo',name:'Target',address:'Gilbert, AZ (sample location)',lat:33.3465,lng:-111.7744,distance:1.9}
-      ],
-      nyc: [
-        {id:'walmart_provo',name:'Walmart (demo only)',address:'New York, NY (sample location)',lat:40.746,lng:-73.994,distance:2.1},
-        {id:'smiths_provo',name:'Grocery Market (demo only)',address:'New York, NY (sample location)',lat:40.752,lng:-73.985,distance:1.6},
-        {id:'traderjoes_orem',name:"Trader Joe's",address:'New York, NY (sample location)',lat:40.742,lng:-73.992,distance:1.4},
-        {id:'costco_orem',name:'Costco Wholesale',address:'New York, NY (sample location)',lat:40.755,lng:-73.999,distance:3.2},
-        {id:'target_provo',name:'Target',address:'New York, NY (sample location)',lat:40.750,lng:-73.990,distance:1.1}
-      ]
-    };
-    const REGION_CENTERS = {provo:[40.2672,-111.6911],gilbert:[33.3528,-111.7890],nyc:[40.7506,-73.9972]};
-    function regionForZip(zip) {
-      const value = String(zip || '');
-      if (/^8460[0-6]$/.test(value)) return 'provo';
-      if (value === '85234') return 'gilbert';
-      if (value === '10001') return 'nyc';
-      return null;
+    const KROGER_STORE_KEY = 'shopwyse_kroger_store';
+    const DEFAULT_KROGER_NAME = 'Kroger-family store';
+
+    function isProvoZip(zip) {
+      return /^8460[0-6]$/.test(String(zip || ''));
     }
-    function isRegionAvailable() { return Boolean(regionForZip(state.zipCode)); }
-    function showRegionUnavailable(container, subject='prices') {
-      container.innerHTML = `<div class="col-span-full bg-white rounded-2xl border border-amber-200 p-6 text-center" role="status"><h3 class="font-black text-slate-900">No local ${subject} available yet</h3><p class="mt-2 text-slate-600">We don't have verified or sample ${subject} for ZIP ${state.zipCode}. Try demo ZIP 84601 (Provo), 85234 (Gilbert), or 10001 (New York). We won't show another city's prices as local.</p></div>`;
+
+    function nearbyStoresFor(zip) {
+      if (isProvoZip(zip)) return ORIGINAL_STORES.map(store => ({ ...store }));
+      return ORIGINAL_STORES.map(store => ({
+        ...store,
+        name: store.id === 'smiths_provo' ? DEFAULT_KROGER_NAME : store.name,
+        address: `Near ZIP ${zip}`,
+        lat: null,
+        lng: null,
+        distance: null
+      }));
     }
-    let regionCatalog = null;
+
+    // "Fry's Marketplace - Frys Marketplace Gilbert" -> "Fry's Marketplace"
+    function krogerBanner(locationName) {
+      return String(locationName || '').split(' - ')[0].trim() || DEFAULT_KROGER_NAME;
+    }
+
+    function titleCase(text) {
+      return String(text || '').toLowerCase().replace(/\b[a-z]/g, letter => letter.toUpperCase());
+    }
+
+    // Remembers the nearest Kroger-family store the price service found for a ZIP
+    function setKrogerStore(location, zip = state.zipCode) {
+      if (!location || !location.name) return;
+      const address = location.address || {};
+      state.krogerStore = {
+        zip,
+        name: krogerBanner(location.name),
+        address: [titleCase(address.addressLine1), titleCase(address.city), address.state].filter(Boolean).join(', '),
+        lat: Number.isFinite(Number(location.latitude)) ? Number(location.latitude) : null,
+        lng: Number.isFinite(Number(location.longitude)) ? Number(location.longitude) : null
+      };
+      try { localStorage.setItem(KROGER_STORE_KEY, JSON.stringify(state.krogerStore)); } catch (e) {}
+      syncKrogerStoreSlot();
+    }
+
+    function loadKrogerStore() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(KROGER_STORE_KEY));
+        if (saved && /^\d{5}$/.test(String(saved.zip)) && typeof saved.name === 'string') state.krogerStore = saved;
+      } catch (e) {}
+    }
+
+    // Outside Provo, name the Kroger-family slot after the real store for this ZIP
+    function syncKrogerStoreSlot() {
+      const slot = STORES.find(store => store.id === 'smiths_provo');
+      const known = state.krogerStore && state.krogerStore.zip === state.zipCode ? state.krogerStore : null;
+      if (!slot || isProvoZip(state.zipCode)) return;
+      slot.name = known ? known.name : DEFAULT_KROGER_NAME;
+      slot.address = known && known.address ? known.address : `Near ZIP ${state.zipCode}`;
+      slot.lat = known ? known.lat : null;
+      slot.lng = known ? known.lng : null;
+    }
+
+    // The name to show for the Kroger-family store at the selected ZIP
+    function krogerStoreName() {
+      const slot = STORES.find(store => store.id === 'smiths_provo');
+      return slot ? slot.name : DEFAULT_KROGER_NAME;
+    }
+
+    let catalogZip = null;
     function applyRegionalCatalog() {
-      const region = regionForZip(state.zipCode);
-      if (region === regionCatalog) return;
-      regionCatalog = region;
-      STORES.splice(0, STORES.length, ...(REGION_STORES[region] || []).map(x=>({...x})));
-      if (typeof ORIGINAL_PRODUCT_PRICES !== 'undefined') {
-        PRODUCTS.forEach(product => {
-          if (!ORIGINAL_PRODUCT_PRICES[product.id]) return;
-          const base = ORIGINAL_PRODUCT_PRICES[product.id];
-          if (!region) { product.prices = {}; return; }
-          if (region === 'provo') { product.prices = {...base}; return; }
-          const factor = region === 'gilbert' ? 1.07 : 1.34;
-          const variation = {walmart_provo:1.01,smiths_provo:0.98,traderjoes_orem:1.03,costco_orem:0.96,target_provo:1.05};
-          product.prices = Object.fromEntries(Object.entries(base).map(([id,price]) =>
-            [id, Math.round(price * factor * variation[id] * 100)/100]));
-        });
-      }
-      // Previously claimed deals are tied to a different region.
-      state.claimedDeals = state.claimedDeals.filter(id => (HOT_DEALS_BY_REGION[region] || []).some(d=>d.id===id));
+      if (state.zipCode === catalogZip) return;
+      catalogZip = state.zipCode;
+      STORES.splice(0, STORES.length, ...nearbyStoresFor(state.zipCode));
+      syncKrogerStoreSlot();
+      // Deals belong to the store near the old ZIP
+      state.hotDeals = null;
       if (state.currentScreen === 'deals') renderDeals();
-      if (state.currentScreen === 'results' && state.searchTerm !== null) renderSearchResults(state.searchTerm);
       if (state.currentScreen === 'list') renderGroceryList();
       if (state.currentScreen === 'map') initOrUpdateMap();
+      renderCartDrawer();
     }
 
     // --- Products & Store Price Matrix (Simulated Data) ---
@@ -1929,49 +1961,26 @@ function closeGroceryListPrompt(value = false) {
       }
     ];
 
-    const ORIGINAL_PRODUCT_PRICES = Object.fromEntries(PRODUCTS.map(p => [p.id, {...p.prices}]));
-
-    // --- Hot Deals Mock Data (Sticky 3) ---
-    // productId links each deal to PRODUCTS so it can be added to the cart.
+    // --- Hot Deals ---
+    // Real sale prices from the nearest Kroger-family store (Smith's, Fry's, Ralphs…), loaded
+    // by loadHotDeals(). SAMPLE_DEALS are only shown where there's no Kroger-family store
+    // nearby or the price service is down. productId links each deal to PRODUCTS.
     // The first DEALS_SHOWN unclaimed deals are shown; the rest replace them as they're added.
     const DEALS_SHOWN = 6;
-    const HOT_DEALS_BY_REGION = {
-      provo: [
-        { id: 'provo_deal_1', productId: 'item_milk', name: 'Gallon Whole Milk', storeName: 'Costco Wholesale', oldPrice: 3.99, dealPrice: 2.95, discount: '26% off', icon: '🥛' },
-        { id: 'provo_deal_2', productId: 'item_bananas', name: 'Bananas (Fresh Bunch)', storeName: "Trader Joe's", oldPrice: 1.69, dealPrice: 0.99, discount: '41% off', icon: '🍌' },
-        { id: 'provo_deal_3', productId: 'item_eggs', name: 'Large Grade A Eggs (18pk)', storeName: 'Walmart Supercenter', oldPrice: 4.49, dealPrice: 2.88, discount: '36% off', icon: '🥚' },
-        { id: 'provo_deal_4', productId: 'item_beef', name: 'Ground Beef 80/20 (3 lb)', storeName: 'Costco Wholesale', oldPrice: 16.99, dealPrice: 11.99, discount: '30% off', icon: '🥩' },
-        { id: 'provo_deal_5', productId: 'item_cereal', name: 'Cereal Family Size', storeName: "Smith's Food & Drug", oldPrice: 5.99, dealPrice: 2.99, discount: '50% off', icon: '🥣' },
-        { id: 'provo_deal_6', productId: 'item_oj', name: 'Orange Juice 52oz', storeName: 'Target', oldPrice: 4.29, dealPrice: 2.49, discount: '42% off', icon: '🍊' },
-        { id: 'provo_deal_7', productId: 'item_bread', name: 'Honey Wheat Bread', storeName: 'Walmart Supercenter', oldPrice: 2.49, dealPrice: 1.84, discount: '26% off', icon: '🍞' },
-        { id: 'provo_deal_8', productId: 'item_apples', name: 'Honeycrisp Apples (3 lb bag)', storeName: "Trader Joe's", oldPrice: 5.99, dealPrice: 4.49, discount: '25% off', icon: '🍎' }
-      ],
+    const SAMPLE_DEALS = [
+      { id: 'provo_deal_1', productId: 'item_milk', name: 'Gallon Whole Milk', storeId: 'costco_orem', oldPrice: 3.99, dealPrice: 2.95, icon: '🥛' },
+      { id: 'provo_deal_2', productId: 'item_bananas', name: 'Bananas (Fresh Bunch)', storeId: 'traderjoes_orem', oldPrice: 1.69, dealPrice: 0.99, icon: '🍌' },
+      { id: 'provo_deal_3', productId: 'item_eggs', name: 'Large Grade A Eggs (18pk)', storeId: 'walmart_provo', oldPrice: 4.49, dealPrice: 2.88, icon: '🥚' },
+      { id: 'provo_deal_4', productId: 'item_beef', name: 'Ground Beef 80/20 (3 lb)', storeId: 'costco_orem', oldPrice: 16.99, dealPrice: 11.99, icon: '🥩' },
+      { id: 'provo_deal_5', productId: 'item_cereal', name: 'Cereal Family Size', storeId: 'smiths_provo', oldPrice: 5.99, dealPrice: 2.99, icon: '🥣' },
+      { id: 'provo_deal_6', productId: 'item_oj', name: 'Orange Juice 52oz', storeId: 'target_provo', oldPrice: 4.29, dealPrice: 2.49, icon: '🍊' },
+      { id: 'provo_deal_7', productId: 'item_bread', name: 'Honey Wheat Bread', storeId: 'walmart_provo', oldPrice: 2.49, dealPrice: 1.84, icon: '🍞' },
+      { id: 'provo_deal_8', productId: 'item_apples', name: 'Honeycrisp Apples (3 lb bag)', storeId: 'traderjoes_orem', oldPrice: 5.99, dealPrice: 4.49, icon: '🍎' }
+    ];
 
-      gilbert: [
-        { id: 'gilbert_deal_1', productId: 'item_milk', name: 'Gallon Whole Milk', storeName: 'Fry’s Food Stores', oldPrice: 3.99, dealPrice: 2.79, discount: '30% off', icon: '🥛' },
-        { id: 'gilbert_deal_2', productId: 'item_bananas', name: 'Bananas (Fresh Bunch)', storeName: 'Walmart Supercenter', oldPrice: 1.69, dealPrice: 0.89, discount: '47% off', icon: '🍌' },
-        { id: 'gilbert_deal_3', productId: 'item_eggs', name: 'Large Grade A Eggs (18pk)', storeName: 'Target', oldPrice: 4.49, dealPrice: 2.99, discount: '33% off', icon: '🥚' },
-        { id: 'gilbert_deal_4', productId: 'item_beef', name: 'Ground Beef 80/20 (3 lb)', storeName: 'Costco Wholesale', oldPrice: 16.99, dealPrice: 12.49, discount: '26% off', icon: '🥩' },
-        { id: 'gilbert_deal_5', productId: 'item_cereal', name: 'Cereal Family Size', storeName: 'Fry’s Food Stores', oldPrice: 5.99, dealPrice: 3.49, discount: '42% off', icon: '🥣' },
-        { id: 'gilbert_deal_6', productId: 'item_oj', name: 'Orange Juice 52oz', storeName: 'Walmart Supercenter', oldPrice: 4.29, dealPrice: 2.69, discount: '37% off', icon: '🍊' },
-        { id: 'gilbert_deal_7', productId: 'item_bread', name: 'Honey Wheat Bread', storeName: 'Target', oldPrice: 2.49, dealPrice: 1.79, discount: '28% off', icon: '🍞' },
-        { id: 'gilbert_deal_8', productId: 'item_apples', name: 'Honeycrisp Apples (3 lb bag)', storeName: 'Costco Wholesale', oldPrice: 5.99, dealPrice: 4.29, discount: '28% off', icon: '🍎' }
-      ],
-
-      nyc: [
-        { id: 'nyc_deal_1', productId: 'item_milk', name: 'Gallon Whole Milk', storeName: 'Target', oldPrice: 5.49, dealPrice: 3.99, discount: '27% off', icon: '🥛' },
-        { id: 'nyc_deal_2', productId: 'item_bananas', name: 'Bananas (Fresh Bunch)', storeName: 'Trader Joe’s', oldPrice: 1.99, dealPrice: 1.29, discount: '35% off', icon: '🍌' },
-        { id: 'nyc_deal_3', productId: 'item_eggs', name: 'Large Grade A Eggs (18pk)', storeName: 'Costco Wholesale', oldPrice: 5.49, dealPrice: 3.99, discount: '27% off', icon: '🥚' },
-        { id: 'nyc_deal_4', productId: 'item_beef', name: 'Ground Beef 80/20 (3 lb)', storeName: 'Target', oldPrice: 18.99, dealPrice: 14.99, discount: '21% off', icon: '🥩' },
-        { id: 'nyc_deal_5', productId: 'item_cereal', name: 'Cereal Family Size', storeName: 'Trader Joe’s', oldPrice: 6.49, dealPrice: 3.99, discount: '39% off', icon: '🥣' },
-        { id: 'nyc_deal_6', productId: 'item_oj', name: 'Orange Juice 52oz', storeName: 'Target', oldPrice: 4.99, dealPrice: 3.49, discount: '30% off', icon: '🍊' },
-        { id: 'nyc_deal_7', productId: 'item_bread', name: 'Honey Wheat Bread', storeName: 'Trader Joe’s', oldPrice: 3.49, dealPrice: 2.49, discount: '29% off', icon: '🍞' },
-        { id: 'nyc_deal_8', productId: 'item_apples', name: 'Honeycrisp Apples (3 lb bag)', storeName: 'Target', oldPrice: 6.99, dealPrice: 5.49, discount: '21% off', icon: '🍎' }
-      ]
-    };
-
+    // Deals for the selected ZIP (live or sample), once loaded
     function getActiveDeals() {
-      return HOT_DEALS_BY_REGION[regionForZip(state.zipCode)] || [];
+      return state.hotDeals && state.hotDeals.zip === state.zipCode ? state.hotDeals.deals : [];
     }
 
     // Leaflet map instance
@@ -2193,6 +2202,7 @@ function closeGroceryListPrompt(value = false) {
       try {
         const result = await callKrogerFunction({ productIds: missing, zip: state.zipCode, radius: state.radius });
         registerKrogerProducts(result.products, result.location);
+        setKrogerStore(result.location);
         renderCartDrawer();
         if (state.currentScreen === 'list') renderGroceryList();
       } catch (error) {
@@ -2330,18 +2340,12 @@ function closeGroceryListPrompt(value = false) {
       const seq = ++searchRequestSeq;
       const container = document.getElementById('results-container');
 
-      if (!isRegionAvailable()) {
-        container.removeAttribute('aria-busy');
-        showRegionUnavailable(container, 'grocery prices');
-        return;
-      }
-
-      if (regionForZip(state.zipCode) !== 'provo' || query.length < KROGER_MIN_TERM) {
+      if (query.length < KROGER_MIN_TERM) {
         container.removeAttribute('aria-busy');
         renderResultCards(rankSampleProducts(term), {
           term,
-          notice: regionForZip(state.zipCode) !== 'provo' ? {tone:'info',text:'Regional demonstration prices only. Not real store quotes.'} : query
-            ? { tone: 'info', text: "Type at least 3 letters to see live Smith's prices. Showing sample prices for now." }
+          notice: query
+            ? { tone: 'info', text: 'Type at least 3 letters to see live prices. Showing sample prices for now.' }
             : null
         });
         return;
@@ -2350,12 +2354,14 @@ function closeGroceryListPrompt(value = false) {
       container.setAttribute('aria-busy', 'true');
       container.innerHTML = `
         <div class="bg-white rounded-2xl p-8 border border-brand-200 shadow-sm text-center text-slate-700 font-semibold" role="status">
-          <i class="fa-solid fa-spinner fa-spin mr-2" aria-hidden="true"></i>Checking live Smith's prices…
+          <i class="fa-solid fa-spinner fa-spin mr-2" aria-hidden="true"></i>Checking live prices near ${escapeHtml(state.zipCode)}…
         </div>`;
 
-      fetchKrogerSearch(query, state.zipCode, state.radius)
+      const zip = state.zipCode;
+      fetchKrogerSearch(query, zip, state.radius)
         .then(result => {
           if (seq !== searchRequestSeq) return; // a newer search has started
+          setKrogerStore(result.location, zip); // before rendering, so cards use the store's real name
           const groceryResults = result.products.filter(isGroceryProduct);
           const hiddenCount = result.products.length - groceryResults.length;
           const products = registerKrogerProducts(groceryResults, result.location);
@@ -2363,17 +2369,20 @@ function closeGroceryListPrompt(value = false) {
             live: result,
             emptyText: hiddenCount
               ? "ShopWyse compares groceries and household items, so clothing, medicine and similar products aren't shown. Try a grocery search."
-              : "Smith's doesn't carry anything matching that search. Try a different word or spelling."
+              : `${krogerStoreName()} doesn't carry anything matching that search. Try a different word or spelling.`
           });
         })
         .catch(error => {
           if (seq !== searchRequestSeq) return;
           console.warn('Live Kroger search failed:', error);
+          const noStore = /No Smith's or Kroger-family store/.test(error.message);
           renderResultCards(rankSampleProducts(term), {
             term,
             notice: {
               tone: 'warn',
-              text: `Live Smith's prices aren't available right now (${error.message}). Showing sample prices instead.`
+              text: noStore
+                ? `There's no Smith's or other Kroger-family store within 50 miles of ${zip}, so live prices aren't available there. Showing sample prices instead.`
+                : `Live prices aren't available right now (${error.message}). Showing sample prices instead.`
             }
           });
         })
@@ -2449,7 +2458,7 @@ function closeGroceryListPrompt(value = false) {
           : '';
         html += resultsNoticeHtml('live', `
           <strong>Live prices from ${escapeHtml(live.location.name)}</strong>.${escapeHtml(radiusNote)}
-          <span class="block mt-1">Walmart, Target, Costco and Trader Joe's prices are <strong>estimates</strong> based on the Smith's price.</span>`);
+          <span class="block mt-1">Walmart, Target, Costco and Trader Joe's prices are <strong>estimates</strong> based on the ${escapeHtml(krogerStoreName())} price.</span>`);
       }
       if (notice) html += resultsNoticeHtml(notice.tone, escapeHtml(notice.text));
 
@@ -2570,10 +2579,10 @@ function closeGroceryListPrompt(value = false) {
             <div class="min-w-0">
               <div class="flex items-center gap-2">
                 <i class="fa-solid fa-store text-slate-400 text-sm" aria-hidden="true"></i>
-                <span class="font-bold text-slate-800 text-sm">${store.name}</span>
+                <span class="font-bold text-slate-800 text-sm">${escapeHtml(store.name)}</span>
               </div>
               <div class="flex flex-wrap items-center gap-2 mt-0.5">
-                <span class="text-xs text-slate-600 font-medium">${store.distance} mi</span>
+                ${store.distance != null ? `<span class="text-xs text-slate-600 font-medium">${store.distance} mi</span>` : ''}
                 ${sourceTag}
                 ${isCheapest ? '<span class="text-[10px] bg-emerald-700 text-white font-black px-2 py-0.5 rounded-full">BEST PRICE</span>' : ''}
               </div>
@@ -3121,7 +3130,7 @@ function openShoppingTimeBreakdown(event) {
 
         storeTotalsContainer.innerHTML = '<p class="text-xs text-slate-400">No active store estimates.</p>';
         grandTotalLabel.textContent = '$0.00';
-        mobileTotalLabel.textContent = '$0.00';
+        if (mobileTotalLabel) mobileTotalLabel.textContent = '$0.00'; // phone total bar was removed with the map
 
         loadAverageShoppingTime(0, {}); // added this to store average shopping time
 
@@ -3204,7 +3213,7 @@ function openShoppingTimeBreakdown(event) {
             <i class="fa-solid fa-store text-slate-400 text-xs"></i>
 
             <h4 class="text-xs font-black uppercase tracking-wide text-slate-600">
-              ${group.store.name}
+              ${escapeHtml(group.store.name)}
             </h4>
 
             <span class="text-[11px] text-slate-400">
@@ -3289,7 +3298,7 @@ function openShoppingTimeBreakdown(event) {
       
       container.innerHTML = itemsHtml;
       grandTotalLabel.textContent = `$${bestSplitTotal.toFixed(2)}`;
-      mobileTotalLabel.textContent = `$${bestSplitTotal.toFixed(2)}`;
+      if (mobileTotalLabel) mobileTotalLabel.textContent = `$${bestSplitTotal.toFixed(2)}`;
 
 
       // Store by Store comparison list
@@ -3322,7 +3331,7 @@ function openShoppingTimeBreakdown(event) {
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="font-bold ${
                   isCheapest ? 'text-brand-800' : 'text-slate-800'
-                }">${sb.store.name}</span>
+                }">${escapeHtml(sb.store.name)}</span>
                 ${
                   isCheapest
                     ? '<span class="text-[10px] font-black uppercase text-amber-900 bg-amber-100 px-2 py-1 rounded-full border border-amber-300">Cheapest Option</span>'
@@ -3700,31 +3709,50 @@ function openShoppingTimeBreakdown(event) {
 
     // --- Deal pricing ---
     // A claimed deal is stored on its cart item ({ id, quantity, dealId }) so the deal
-    // price is what the list, totals and map charge at the deal's store.
-    function findDeal(dealId) {
-      if (!dealId) return null;
-      return Object.values(HOT_DEALS_BY_REGION).flat().find(d => d.id === dealId) || null;
+    // price is what the list and totals charge at the deal's store.
+    // Live deal ids are "deal_" + the product id, so a deal can be rebuilt from the
+    // saved product after a refresh without keeping a separate copy of it.
+    function liveDealFromProduct(product) {
+      const live = product && product.live;
+      if (!live || !live.promo || !(live.promo < live.regular)) return null;
+      return {
+        id: `deal_${product.id}`,
+        productId: product.id,
+        name: product.name,
+        storeId: KROGER_STORE_ID,
+        oldPrice: live.regular,
+        dealPrice: live.promo,
+        icon: product.icon,
+        live: true
+      };
     }
 
-    // Matches a deal's store name to one of the app's stores. Fry's is Kroger's Arizona
-    // banner, so it uses the Kroger-family (Smith's) slot.
+    function findDeal(dealId) {
+      if (!dealId) return null;
+      const sample = SAMPLE_DEALS.find(d => d.id === dealId);
+      if (sample) return sample;
+      const match = /^deal_(kr_\d{13})$/.exec(String(dealId));
+      return match ? liveDealFromProduct(PRODUCTS.find(p => p.id === match[1])) : null;
+    }
+
     function dealStoreId(deal) {
-      const name = String(deal.storeName || '').replace(/[’‘]/g, "'").toLowerCase();
-      if (/fry'?s/.test(name)) return KROGER_STORE_ID;
-      const store = STORES.find(s => s.name.toLowerCase() === name);
-      return store ? store.id : null;
+      return deal && STORES.some(store => store.id === deal.storeId) ? deal.storeId : null;
+    }
+
+    function dealPercentOff(deal) {
+      return Math.round((1 - deal.dealPrice / deal.oldPrice) * 100);
     }
 
     // The deal on a cart item, if it's real, for this product, and at a known store
     function itemDeal(item) {
       const deal = findDeal(item && item.dealId);
-      if (!deal || deal.productId !== item.id || !getActiveDeals().some(d=>d.id===deal.id)) return null;
+      if (!deal || deal.productId !== item.id) return null;
       const storeId = dealStoreId(deal);
       return storeId ? { deal, storeId } : null;
     }
 
     // Per-store prices for one cart (or saved-list) item, with its deal price applied.
-    // A deal only ever lowers a price (NYC deals can be above the Provo sample catalog).
+    // A deal only ever lowers a price.
     function cartItemPrices(item) {
       const prod = PRODUCTS.find(p => p.id === item.id);
       if (!prod) return null;
@@ -3734,11 +3762,69 @@ function openShoppingTimeBreakdown(event) {
       return { ...prod.prices, [applied.storeId]: Math.min(applied.deal.dealPrice, regular ?? Infinity) };
     }
 
+    // Loads this ZIP's deals once per visit: live sale prices if there's a Kroger-family
+    // store within 50 miles, otherwise the sample deals with a note saying why.
+    let hotDealsRequest = null;
+    function loadHotDeals() {
+      const zip = state.zipCode;
+      if (hotDealsRequest && hotDealsRequest.zip === zip) return hotDealsRequest.promise;
+
+      const promise = callKrogerFunction({ deals: true, zip, radius: state.radius })
+        .then(result => {
+          const products = registerKrogerProducts(result.products.filter(isGroceryProduct), result.location);
+          setKrogerStore(result.location, zip);
+          const deals = products.map(liveDealFromProduct).filter(Boolean);
+          if (!deals.length) throw new Error('no sale prices were found');
+          const address = state.krogerStore && state.krogerStore.address ? `, ${state.krogerStore.address}` : '';
+          const where = result.outsideRadius ? ` It's the closest one, outside your ${state.radius}-mile radius.` : '';
+          return { zip, deals, source: 'live', note: `Real sale prices at ${krogerStoreName()}${address}.${where}` };
+        })
+        .catch(error => {
+          console.warn('Live Hot Deals failed:', error);
+          const noStore = /No Smith's or Kroger-family store/.test(error.message);
+          return {
+            zip,
+            deals: SAMPLE_DEALS,
+            source: 'sample',
+            note: noStore
+              ? `There's no Smith's or other Kroger-family store within 50 miles of ${zip}, so these are sample deals, not real prices.`
+              : `Live deals aren't available right now (${error.message}). These are sample deals, not real prices.`
+          };
+        })
+        .then(hotDeals => {
+          if (state.zipCode === zip) state.hotDeals = hotDeals;
+          return hotDeals;
+        })
+        .finally(() => {
+          if (hotDealsRequest && hotDealsRequest.promise === promise) hotDealsRequest = null;
+        });
+      hotDealsRequest = { zip, promise };
+      return promise;
+    }
+
     function renderDeals() {
       const container = document.getElementById('deals-container');
-      const activeDeals = getActiveDeals();
+      const note = document.getElementById('deals-source-note');
 
-      if (!isRegionAvailable()) { showRegionUnavailable(container, 'Hot Deals'); return; }
+      if (!state.hotDeals || state.hotDeals.zip !== state.zipCode) {
+        note.textContent = '';
+        container.setAttribute('aria-busy', 'true');
+        container.innerHTML = `
+          <div class="col-span-full bg-white rounded-2xl p-8 border border-brand-200 shadow-sm text-center text-slate-700 font-semibold" role="status">
+            <i class="fa-solid fa-spinner fa-spin mr-2" aria-hidden="true"></i>Finding sale prices near ${escapeHtml(state.zipCode)}…
+          </div>`;
+        const zip = state.zipCode;
+        loadHotDeals().then(() => {
+          if (state.currentScreen === 'deals' && state.zipCode === zip) renderDeals();
+        });
+        return;
+      }
+
+      container.removeAttribute('aria-busy');
+      note.textContent = state.hotDeals.note;
+      note.className = state.hotDeals.source === 'live'
+        ? 'text-sm text-slate-600'
+        : 'text-sm font-semibold text-amber-900';
       pruneClaimedDeals();
 
       // Keep quantities the user already picked on cards that stay on screen
@@ -3749,7 +3835,7 @@ function openShoppingTimeBreakdown(event) {
 
       container.innerHTML = '';
 
-      const available = activeDeals
+      const available = getActiveDeals()
         .filter(d => !state.claimedDeals.includes(d.id))
         .slice(0, DEALS_SHOWN);
 
@@ -3760,27 +3846,30 @@ function openShoppingTimeBreakdown(event) {
 
       available.forEach(deal => {
         const card = document.createElement('div');
+        const name = escapeHtml(deal.name);
+        const storeName = escapeHtml((STORES.find(store => store.id === deal.storeId) || {}).name || '');
 
         card.className = 'min-w-0 w-full bg-white rounded-2xl p-4 sm:p-5 border border-brand-200 shadow-sm flex flex-col justify-between gap-3';
 
+        // deal.icon is an emoji or an <img> tag built by krogerCatalogEntry
         card.innerHTML = `
           <div>
             <div class="flex items-center justify-between mb-3">
-              <span class="text-3xl">${deal.icon}</span>
-              <span class="text-xs bg-red-100 text-red-700 font-black px-2.5 py-1 rounded-full">${deal.discount}</span>
+              <span class="text-3xl" aria-hidden="true">${deal.icon}</span>
+              <span class="text-xs bg-red-100 text-red-700 font-black px-2.5 py-1 rounded-full">${dealPercentOff(deal)}% off</span>
             </div>
-            <h3 class="font-black text-slate-900 text-base sm:text-lg break-words">${deal.name}</h3>
+            <h3 class="font-black text-slate-900 text-base sm:text-lg break-words">${name}</h3>
             <p class="text-sm text-slate-600 font-medium flex items-start gap-2 mt-2 break-words">
-              <i class="fa-solid fa-location-dot text-brand-500"></i> ${deal.storeName}
+              <i class="fa-solid fa-location-dot text-brand-500" aria-hidden="true"></i> ${storeName}
             </p>
             <div class="mt-3 flex flex-wrap items-baseline gap-2">
               <span class="text-2xl font-black text-brand-600">$${deal.dealPrice.toFixed(2)}</span>
-              <span class="text-sm text-slate-600 line-through">$${deal.oldPrice.toFixed(2)}</span>
+              <span class="text-sm text-slate-600 line-through"><span class="sr-only">was </span>$${deal.oldPrice.toFixed(2)}</span>
             </div>
           </div>
-          <div class="mt-4">${qtyPickerHtml(deal.id, deal.name)}</div>
-          <button onclick="addDealToCart('${deal.id}')" class="mt-2 w-full py-2.5 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold text-xs rounded-xl shadow-sm transition touch-btn flex items-center justify-center gap-1.5">
-            <i class="fa-solid fa-cart-plus"></i> Add Deal to Cart
+          <div class="mt-4">${qtyPickerHtml(deal.id, name)}</div>
+          <button onclick="addDealToCart('${deal.id}')" aria-label="Add ${name} deal to list" class="mt-2 w-full py-2.5 bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white font-bold text-xs rounded-xl shadow-sm transition touch-btn flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-cart-plus" aria-hidden="true"></i> Add Deal to Cart
           </button>
         `;
 
@@ -3810,17 +3899,17 @@ function openShoppingTimeBreakdown(event) {
     }
 
     function refreshDeals() {
-      const zip = document.getElementById('deals-zip-input').value.trim();
+      const input = document.getElementById('deals-zip-input');
+      const zip = input.value.trim();
 
       if (!/^\d{5}$/.test(zip)) {
-        alert('Please enter a valid 5-digit ZIP code.');
+        showToast('Please enter a valid 5-digit ZIP code.');
+        input.focus();
         return;
       }
 
       saveZipPreference(zip);
       renderDeals();
-
-      showToast(isRegionAvailable() ? `Updated regional demo deals for ZIP ${zip}` : `No local deals available for ZIP ${zip}`);
     }
 
     // --- MAP VIEW (Sticky 6 & Option A Logic) ---
@@ -3837,8 +3926,14 @@ function openShoppingTimeBreakdown(event) {
           leafletMap.invalidateSize();
         }
 
-        const region = regionForZip(state.zipCode);
-        if (region) leafletMap.setView(REGION_CENTERS[region], 12);
+        // Centre on the stores we know the location of (Provo's, or the nearest Kroger-family store)
+        const located = STORES.filter(store => store.lat != null && store.lng != null);
+        if (located.length) {
+          leafletMap.setView([
+            located.reduce((sum, store) => sum + store.lat, 0) / located.length,
+            located.reduce((sum, store) => sum + store.lng, 0) / located.length
+          ], 12);
+        }
         renderMapStoreMarkers();
       }, 100);
     }
@@ -3868,8 +3963,11 @@ function openShoppingTimeBreakdown(event) {
       mapMarkers.forEach(m => leafletMap.removeLayer(m));
       mapMarkers = [];
       const mapNote = document.getElementById('map-region-note');
-      if (mapNote) mapNote.textContent = isRegionAvailable() ? 'Map pins are demonstration locations, not verified store addresses.' : 'No local store data available for this ZIP.';
-      if (!isRegionAvailable()) return;
+      if (mapNote) {
+        mapNote.textContent = isProvoZip(state.zipCode)
+          ? 'Map pins are demonstration locations, not verified store addresses.'
+          : 'Only the Kroger-family store has a known location for this ZIP, once a search or Hot Deals has found it.';
+      }
 
       // Calculate for each store: how many items in cart are CHEAPEST at that store (Option A)
       const cheapestCounts = {};
@@ -3895,7 +3993,7 @@ function openShoppingTimeBreakdown(event) {
       });
 
       // Filter stores by radius
-      const visibleStores = STORES.filter(s => s.distance <= state.radius);
+      const visibleStores = STORES.filter(s => s.lat != null && s.lng != null && (s.distance == null || s.distance <= state.radius));
 
       visibleStores.forEach(store => {
         const count = cheapestCounts[store.id] || 0;
@@ -3923,7 +4021,7 @@ function openShoppingTimeBreakdown(event) {
     function openStoreDrilldown(store) {
       document.getElementById('store-modal-name').textContent = store.name;
       document.getElementById('store-modal-addr').textContent = store.address;
-      document.getElementById('store-modal-dist').textContent = `${store.distance} miles away`;
+      document.getElementById('store-modal-dist').textContent = store.distance != null ? `${store.distance} miles away` : 'Nearest to your ZIP';
 
       const cheapestListEl = document.getElementById('store-modal-cheapest-list');
       const otherListEl = document.getElementById('store-modal-other-list');
@@ -3985,7 +4083,7 @@ function openShoppingTimeBreakdown(event) {
               <div>
                 <span class="font-black text-slate-800">${escapeHtml(prod.name)} (Qty: ${cartItem.quantity})</span>
                 <span class="block text-[11px] text-amber-700 font-medium">
-                  Cheaper at <strong class="text-slate-800">${bestStoreObj.name}</strong> ($${lowestPrice.toFixed(2)} ea)
+                  Cheaper at <strong class="text-slate-800">${escapeHtml(bestStoreObj.name)}</strong> ($${lowestPrice.toFixed(2)} ea)
                 </span>
               </div>
             </div>
@@ -4519,6 +4617,7 @@ async function handleLoginImpl(e) {
     // --- App Boot ---
     window.addEventListener('DOMContentLoaded', async () => {
       try {
+        loadKrogerStore();
         loadAppState();
         updateLocationDisplay(state.zipCode || '84601');
         applyRegionalCatalog();

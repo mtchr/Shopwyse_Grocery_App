@@ -1,9 +1,10 @@
 // ShopWyse — Kroger (Smith's) live price lookup.
 //
 // Runs as a Supabase Edge Function so the Kroger client secret never reaches the browser.
-// The browser POSTs { term, zip, radius } (a search) or { productIds, zip, radius } (refresh
-// prices for items already on a list). We find the nearest Smith's (any Kroger-family store
-// if there's no Smith's), then return that store's prices for the matching products.
+// The browser POSTs { term, zip, radius } (a search), { productIds, zip, radius } (refresh
+// prices for items already on a list) or { deals: true, zip, radius } (Hot Deals: products on
+// promo). We find the nearest Smith's (any Kroger-family store if there's no Smith's), then
+// return that store's prices for the matching products.
 //
 // Secrets (Supabase dashboard → Edge Functions → Secrets, or `supabase secrets set`):
 //   kroger_client_key     Kroger application client ID     (KROGER_CLIENT_ID / KROGER_ID also accepted)
@@ -199,18 +200,56 @@ function toProduct(p: any): Json | null {
   };
 }
 
-async function searchProducts(locationId: string, term: string) {
-  const key = `search:${locationId}:${term.toLowerCase()}`;
+async function searchProducts(locationId: string, term: string, limit = SEARCH_LIMIT) {
+  const key = `search:${locationId}:${limit}:${term.toLowerCase()}`;
   const cached = cacheGet<Json[]>(key);
   if (cached) return cached;
   const body = await krogerGet('/products', {
     'filter.term': term,
     'filter.locationId': locationId,
-    'filter.limit': String(SEARCH_LIMIT),
+    'filter.limit': String(limit),
   });
   const products = (body.data || []).map(toProduct).filter(Boolean) as Json[];
   cacheSet(key, products, SEARCH_TTL_MS);
   return products;
+}
+
+// ---------- Hot Deals ----------
+// Real promo prices at the store, found by searching everyday staples.
+// One request costs DEAL_TERMS.length Kroger calls, so the result is cached per store.
+const DEAL_TERMS = ['milk', 'eggs', 'bread', 'cheese', 'yogurt', 'cereal', 'chicken', 'ground beef', 'fruit', 'pasta', 'snacks', 'coffee'];
+const DEALS_PER_TERM = 3;   // keeps the list varied instead of twenty yogurts
+const MAX_DEALS = 24;
+const DEALS_TTL_MS = 60 * 60 * 1000;
+// Same departments the app leaves out of search results
+const NON_GROCERY = new Set(['Apparel', 'Health', 'Electronics', 'Gift Cards', 'Automotive', 'Sporting Goods']);
+
+async function storeDeals(locationId: string) {
+  const key = `deals:${locationId}`;
+  const cached = cacheGet<Json[]>(key);
+  if (cached) return cached;
+
+  // One failed term shouldn't empty the page
+  const results = await Promise.allSettled(DEAL_TERMS.map(term => searchProducts(locationId, term, 25)));
+  if (results.every(r => r.status === 'rejected')) throw (results[0] as PromiseRejectedResult).reason;
+
+  const seen = new Set<string>();
+  const picks: Json[] = [];
+  results.forEach(result => {
+    if (result.status !== 'fulfilled') return;
+    result.value
+      .filter((p: any) => p.promo && !(p.categories || []).some((c: string) => NON_GROCERY.has(c)))
+      .sort((a: any, b: any) => (1 - b.promo / b.regular) - (1 - a.promo / a.regular))
+      .filter((p: any) => !seen.has(p.productId))
+      .slice(0, DEALS_PER_TERM)
+      .forEach((p: any) => { seen.add(p.productId); picks.push(p); });
+  });
+
+  const deals = picks
+    .sort((a: any, b: any) => (1 - b.promo / b.regular) - (1 - a.promo / a.regular))
+    .slice(0, MAX_DEALS);
+  cacheSet(key, deals, DEALS_TTL_MS);
+  return deals;
 }
 
 async function productsById(locationId: string, ids: string[]) {
@@ -228,6 +267,8 @@ function readInput(body: any) {
 
   const radius = Math.round(Number(body?.radius ?? 10));
   if (!Number.isFinite(radius) || radius < 1 || radius > 100) throw new HttpError(400, 'Radius must be between 1 and 100 miles.');
+
+  if (body?.deals === true) return { zip, radius, productIds: null, term: null, deals: true };
 
   if (Array.isArray(body?.productIds)) {
     const productIds = [...new Set(body.productIds.map(String))] as string[];
@@ -247,13 +288,15 @@ export async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json({ error: 'Use POST.' }, 405);
 
   try {
-    const { zip, radius, productIds, term } = readInput(await req.json().catch(() => null));
+    const { zip, radius, productIds, term, deals } = readInput(await req.json().catch(() => null)) as any;
     const found = await nearestStore(zip, radius);
     if (!found) return json({ error: `No Smith's or Kroger-family store within ${FALLBACK_RADIUS_MILES} miles of ${zip}.` }, 404);
 
-    const products = productIds
-      ? await productsById(found.store.locationId, productIds)
-      : await searchProducts(found.store.locationId, term as string);
+    const products = deals
+      ? await storeDeals(found.store.locationId)
+      : productIds
+        ? await productsById(found.store.locationId, productIds)
+        : await searchProducts(found.store.locationId, term as string);
 
     return json({ location: found.store, outsideRadius: found.outsideRadius, products, fetchedAt: new Date().toISOString() });
   } catch (error) {

@@ -1,8 +1,10 @@
 # ShopWyse Grocery App
 
+**Live site:** https://mtchr.github.io/Shopwyse_Grocery_App/
+
 ## App Summary
 
-Grocery shopping is an essential but time-consuming task, and shoppers who want the best prices often have to check several stores to find them. Our primary persona, Stephanie Baldwin, is a 45-year-old shopping for a family of seven who is always looking to keep grocery costs down. She often discovers mid-trip that her groceries cost more than planned, and that another store nearby had the same items for less. ShopWyse solves this by letting shoppers search for their groceries ahead of time and compare prices across nearby stores (Walmart, Trader Joe's, Smith's, Costco, and Target in the Provo/Salt Lake area). Users enter a ZIP code and a driving radius, add items to a grocery list, and see which store gives them the lowest total. The app also includes a Hot Deals tab for recent low prices, a map of nearby stores, and notification preferences. It is designed to be simple and frictionless for a busy, older audience, with big buttons and a minimal login. Users can save their grocery lists, view previously saved lists, start new lists, and track their estimated grocery shopping time.
+Grocery shopping is an essential but time-consuming task, and shoppers who want the best prices often have to check several stores to find them. Our primary persona, Stephanie Baldwin, is a 45-year-old shopping for a family of seven who is always looking to keep grocery costs down. She often discovers mid-trip that her groceries cost more than planned, and that another store nearby had the same items for less. ShopWyse solves this by letting shoppers search for their groceries ahead of time and compare prices across nearby stores (Walmart, Trader Joe's, Costco, Target, and the nearest Kroger-family store such as Smith's, Fry's, or Ralphs) for any US ZIP code. Users enter a ZIP code and a driving radius, add items to a grocery list, and see which store gives them the lowest total. The app also includes a Hot Deals tab with real sale prices from the nearest Kroger-family store, the Wyse AI recipe assistant, an admin page, and notification preferences. It is designed to be simple and frictionless for a busy, older audience, with big buttons and a minimal login. Users can save their grocery lists, view previously saved lists, start new lists, and track their estimated grocery shopping time.
 
 ## ERD
 
@@ -57,11 +59,108 @@ Column names are all lowercase, so unlike the camelCase columns in `users` (`"fi
 
 | Layer | What we used | Why |
 | --- | --- | --- |
-| Frontend | A single HTML file (`shopwyseapp.html`) with plain JavaScript, styled with Tailwind CSS (CDN), plus Leaflet for the map and Font Awesome for icons | No build step or installs. Anyone on the team can open the file in a browser, make a change, and see it immediately, which fits a fast design-sprint prototype. |
+| Frontend | A single HTML file (`index.html`) with plain JavaScript, styled with Tailwind CSS (CDN), with Font Awesome for icons and Tesseract.js plus a Transformers.js handwriting model for Wyse recipe scanning | No build step or installs. Anyone on the team can open the file in a browser, make a change, and see it immediately, which fits a fast design-sprint prototype. |
 | Backend / API | Supabase's auto-generated REST API, called with `supabase-js` (CDN) | Supabase creates an API for every table automatically, so we didn't have to write or host a server. |
 | Database | Supabase (hosted PostgreSQL) | A real relational database that matches our ERD, with a web dashboard where the team can view and edit rows without writing SQL. |
+| Live prices | Kroger Products and Locations API, called from a Supabase Edge Function (`supabase/functions/kroger-search`) | Gives real prices and sale prices from the nearest Kroger-family store for any ZIP. The function keeps the Kroger client secret off the web page and caches results to stay inside Kroger's daily limits. Walmart, Target, Costco and Trader Joe's have no public API, so their prices are estimates based on the Kroger price. |
+| Hosting | GitHub Pages | Serves `index.html` from the `main` branch, so merging to `main` publishes the site. |
 
 This approach fits our team because we are a product design team building a prototype for user interviews, not a production system. Keeping everything in one file with a hosted database means less setup and more time spent testing with users. Because this is a demo, passwords are stored in plain text and Row Level Security is turned off. Use throwaway passwords only.
+
+## Data Flow Diagrams
+
+Rectangles are external entities, circles are processes, and cylinders are data stores. GitHub draws these diagrams from the Mermaid code below.
+
+### Level 0 (Context Diagram)
+
+```mermaid
+flowchart LR
+  shopper["Shopper"]
+  admin["Admin"]
+  kroger["Kroger API<br/>(Locations + Products)"]
+  zipapi["Zippopotam.us<br/>(ZIP to city lookup)"]
+  cdn["Model CDNs<br/>(jsDelivr, Hugging Face)"]
+
+  sys(("0<br/>ShopWyse<br/>System"))
+
+  shopper -- "search terms, ZIP code, radius,<br/>list edits, login and registration,<br/>recipe photos and text" --> sys
+  sys -- "price comparisons, Hot Deals,<br/>store totals, time estimates,<br/>saved lists and recipes" --> shopper
+  admin -- "admin access changes" --> sys
+  sys -- "user list, join dates,<br/>average shopping times" --> admin
+  sys -- "ZIP code, search term,<br/>product IDs" --> kroger
+  kroger -- "nearest store, prices,<br/>sale prices, stock, aisle" --> sys
+  sys -- "ZIP code" --> zipapi
+  zipapi -- "city and state" --> sys
+  cdn -- "OCR engine and<br/>handwriting model" --> sys
+```
+
+### Level 1
+
+```mermaid
+flowchart TB
+  shopper["Shopper"]
+  admin["Admin"]
+  kroger["Kroger API"]
+  zipapi["Zippopotam.us"]
+  cdn["Model CDNs"]
+
+  p1(("1.0<br/>Manage<br/>Account"))
+  p2(("2.0<br/>Search and<br/>Compare Prices"))
+  p3(("3.0<br/>Find Hot<br/>Deals"))
+  p4(("4.0<br/>Build Grocery<br/>List"))
+  p5(("5.0<br/>Save and View<br/>Lists"))
+  p6(("6.0<br/>Wyse Recipe<br/>Assistant"))
+  p7(("7.0<br/>Administer<br/>Users"))
+
+  d1[("D1 users")]
+  d2[("D2 saved_grocery_lists")]
+  d3[("D3 saved_recipes")]
+  d4[("D4 Browser storage<br/>(session, list, cached prices)")]
+  d5[("D5 Sample catalog<br/>(products, sample deals)")]
+
+  shopper -- "name, email, password,<br/>survey answer" --> p1
+  p1 -- "logged-in user" --> shopper
+  p1 <-- "user record,<br/>last login time" --> d1
+  p1 -- "session ID" --> d4
+  p1 -- "ZIP code" --> zipapi
+  zipapi -- "city and state" --> p1
+
+  shopper -- "search term, ZIP, radius" --> p2
+  p2 -- "ZIP, search term" --> kroger
+  kroger -- "nearest store, prices" --> p2
+  d5 -- "sample prices<br/>(short or offline searches)" --> p2
+  p2 -- "priced products" --> d4
+  p2 -- "price comparison by store" --> shopper
+
+  shopper -- "ZIP code" --> p3
+  p3 -- "ZIP, deals request" --> kroger
+  kroger -- "products on sale" --> p3
+  d5 -- "sample deals (no Kroger<br/>store within 50 miles)" --> p3
+  p3 -- "deals" --> shopper
+
+  shopper -- "items, quantities,<br/>claimed deals" --> p4
+  p2 -- "chosen product" --> p4
+  p3 -- "claimed deal" --> p4
+  p4 <-- "current list" --> d4
+  p4 -- "cheapest store per item, store totals,<br/>money saved, time estimate" --> shopper
+
+  shopper -- "save, view, delete list" --> p5
+  p4 -- "list items, item count,<br/>estimated seconds" --> p5
+  p5 <-- "saved lists" --> d2
+  p5 -- "saved lists, average<br/>shopping time" --> shopper
+
+  shopper -- "recipe photo or text,<br/>corrections, recipe name" --> p6
+  cdn -- "OCR engine,<br/>handwriting model" --> p6
+  p6 <-- "saved recipes" --> d3
+  p6 -- "ingredients to add" --> p4
+  p6 -- "matched ingredients<br/>with prices" --> shopper
+
+  admin -- "make or remove admin" --> p7
+  d1 -- "users, join dates" --> p7
+  d2 -- "estimated seconds per list" --> p7
+  p7 -- "admin flag" --> d1
+  p7 -- "user list with<br/>average shopping time" --> admin
+```
 
 ## How to Get It Running
 
@@ -70,8 +169,8 @@ This approach fits our team because we are a product design team building a prot
    git clone https://github.com/mtchr/Shopwyse_Grocery_App.git
    ```
    Or, on GitHub, click **Code → Download ZIP** and unzip it.
-2. Open the project folder and double-click `shopwyseapp.html` to open it in a web browser (Chrome, Edge, Firefox, or Safari). An internet connection is required, because the styling, map, and database are loaded online.
-3. That's it. The Supabase project URL and publishable key are already in `shopwyseapp.html`, so the app connects to our shared database automatically.
+2. Open the project folder and double-click `index.html` to open it in a web browser (Chrome, Edge, Firefox, or Safari). An internet connection is required, because the styling, live prices, and database are loaded online.
+3. That's it. The Supabase project URL and publishable key are already in `index.html`, so the app connects to our shared database automatically.
 
 **Using your own Supabase project instead (optional):**
 
@@ -127,13 +226,13 @@ This approach fits our team because we are a product design team building a prot
    ```
 
 3. Go to **Project Settings → API Keys** and copy the **Project URL** and **publishable key**. Never use the secret key in this app, because anyone who opens the page can read it.
-4. In `shopwyseapp.html`, replace the values of `SUPABASE_URL` and `SUPABASE_ANON_KEY` near the top of the main `<script>` block, then open the file in a browser.
+4. In `index.html`, replace the values of `SUPABASE_URL` and `SUPABASE_ANON_KEY` near the top of the main `<script>` block, then open the file in a browser.
 
 ## Verifying the Vertical Slice
 
 Our vertical slice is account creation and login: the **Complete Registration** button saves a new user to the Supabase `users` table, and the **Log In** button checks entered credentials against that table.
 
-1. Open `shopwyseapp.html` and click **CREATE ACCOUNT** in the green banner on the home screen.
+1. Open `index.html` and click **CREATE ACCOUNT** in the green banner on the home screen.
 2. Enter a first name, last name, email, and password, then click **Complete Registration**. You should see "Account created successfully!" and your first name in the header.
 3. **Refresh the page.** You stay signed in, because the app remembers your session. Click **Account**, then **Log Out**.
 4. Click **Account** in the header, then **Log In Now** in the pop-up. Enter the same email and password and click **Log In**. You should see "Successfully logged in!", your first name in the header, and "{First name}'s Grocery List" on the list screen. This proves the account survived the refresh.
@@ -143,7 +242,7 @@ Our vertical slice is account creation and login: the **Complete Registration** 
 ## Saved Grocery Lists and Shopping Time
 
 ### Estimate Shopping Time
-- Estimated grocery shopping time is calculated using 18.02 seconds per item.
+- Estimated grocery shopping time uses a pooled average of about 77 seconds per item, from four timed shopping trips (61 items) by the team.
 - The estimate automatically updates when items or quantities change.
 - Estimated time is displayed in minutes and seconds.
 - Driving time is not included in the estimate.
