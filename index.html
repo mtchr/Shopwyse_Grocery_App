@@ -2638,7 +2638,7 @@ function closeGroceryListPrompt(value = false) {
             <!-- Right side: price and button (stacked on phones, side by side on bigger screens) -->
             <div class="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 shrink-0">
               <span class="font-extrabold text-base ${isCheapest ? 'text-emerald-700' : 'text-slate-700'}">${wasPrice}$${price.toFixed(2)}</span>
-              <button onclick="addProductToCart('${product.id}')" aria-label="Add ${name} to list" class="px-3 py-2 min-h-[40px] bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white text-xs font-bold rounded-lg shadow-sm transition">
+              <button onclick="addProductToCart('${product.id}', '${store.id}')" aria-label="Add ${name} from ${escapeHtml(store.name)} to list" class="px-3 py-2 min-h-[40px] bg-accent-blue hover:bg-accent-blueHover border border-blue-800 text-white text-xs font-bold rounded-lg shadow-sm transition">
                 + Add<span class="hidden sm:inline"> to List</span>
               </button>
             </div>
@@ -2743,8 +2743,10 @@ function closeGroceryListPrompt(value = false) {
         const prod = PRODUCTS.find(p => p.id === cartItem.id);
         if (!prod) return;
 
-        // Find lowest price (a claimed deal counts at its store)
-        let minPrice = Math.min(...Object.values(cartItemPrices(cartItem)));
+        // Price at the picked store, or the lowest price (a claimed deal counts at its store)
+        const choice = itemStoreChoice(cartItem);
+        if (!choice) return;
+        let minPrice = choice.price;
         let itemTotal = minPrice * cartItem.quantity;
         grandTotal += itemTotal;
 
@@ -2804,9 +2806,10 @@ function resetQty(key) {
     if (el) el.textContent = '1';
 }
 
-// Search Results buttons: add the chosen quantity, then reset the picker to 1
-function addProductToCart(productId) {
-    addToCart(productId, readQty(productId), () => resetQty(productId));
+// Search Results buttons: add the chosen quantity, then reset the picker to 1.
+// storeId: the store row the shopper clicked; none for "Add Best Deal" (cheapest store).
+function addProductToCart(productId, storeId = null) {
+    addToCart(productId, readQty(productId), () => resetQty(productId), null, storeId);
 }
 
 
@@ -2882,18 +2885,20 @@ async function promptAddSavedItemToCart(productId, savedQuantity) {
         ? savedList.items.find(item => item.id === productId)
         : null;
     const dealId = savedItem && findDeal(savedItem.dealId) ? savedItem.dealId : null;
+    const storeId = savedItem && typeof savedItem.storeId === 'string' ? savedItem.storeId : null;
 
     addToCart(productId, quantity, () => {
         state.activeSavedList = savedList;
         state.viewingSavedList = true;
 
         renderGroceryList();
-    }, dealId);
+    }, dealId, storeId);
 }
 
 // Returns true if the item was added now. onAdded runs once it's added,
 // including later if the shopping-time question has to be answered first.
-function addToCart(productId, quantity = 1, onAdded = null, dealId = null) {
+// storeId pins the item to a store; null means buy it wherever it's cheapest.
+function addToCart(productId, quantity = 1, onAdded = null, dealId = null, storeId = null) {
 
     if (!state.isLoggedIn) {
         showToast('Please log in to add items.');
@@ -2905,7 +2910,7 @@ function addToCart(productId, quantity = 1, onAdded = null, dealId = null) {
     if (state.weeklyShoppingMinutes === null ||
         state.weeklyShoppingMinutes === undefined) {
 
-        pendingCartProduct = { productId, quantity, onAdded, dealId };
+        pendingCartProduct = { productId, quantity, onAdded, dealId, storeId };
 
         document.getElementById('shopping-time-modal')
             .classList.remove('hidden');
@@ -2920,20 +2925,27 @@ function addToCart(productId, quantity = 1, onAdded = null, dealId = null) {
     const existing = state.cart.find(item => item.id === productId);
 
     // A claimed deal applies to every unit of that item on the list
+    // An item is bought at one store, so adding it from another store moves all of it there.
+    // "Add Best Deal" (no store) leaves an earlier pick alone.
     if (existing) {
         existing.quantity += quantity;
         if (dealId) existing.dealId = dealId;
+        if (storeId) existing.storeId = storeId;
     } else {
-        state.cart.push(dealId
-            ? { id: productId, quantity, dealId }
-            : { id: productId, quantity });
+        state.cart.push({
+            id: productId,
+            quantity,
+            ...(dealId ? { dealId } : {}),
+            ...(storeId ? { storeId } : {})
+        });
     }
 
     if (onAdded) onAdded();
     renderCartDrawer();
 
     const product = PRODUCTS.find(p => p.id === productId);
-    showToast(`Added ${quantity} × ${product ? product.name : 'item'} to your grocery list!`);
+    const store = storeId && STORES.find(s => s.id === storeId);
+    showToast(`Added ${quantity} × ${product ? product.name : 'item'}${store ? ` from ${store.name}` : ''} to your grocery list!`);
     return true;
 }
 
@@ -2982,11 +2994,11 @@ async function saveShoppingTime(minutes) {
     // Automatically add the item they originally clicked
     if (pendingCartProduct !== null) {
 
-        const { productId, quantity, onAdded, dealId } = pendingCartProduct;
+        const { productId, quantity, onAdded, dealId, storeId } = pendingCartProduct;
 
         pendingCartProduct = null;
 
-        addToCart(productId, quantity, onAdded, dealId);
+        addToCart(productId, quantity, onAdded, dealId, storeId);
     }
 } 
 // Observed shopping times: Alana (3 items/10 min, 6 items/12 min,
@@ -3203,18 +3215,15 @@ function openShoppingTimeBreakdown(event) {
         const prod = PRODUCTS.find(p => p.id === cartItem.id);
         if (!prod) return;
 
-        // Determine which store is cheapest (a claimed deal counts at its store)
+        // The store the shopper picked, or the cheapest one (a claimed deal counts at its store)
         const prices = cartItemPrices(cartItem);
-        let cheapestStoreId = null;
-        let lowestPrice = Infinity;
+        const choice = itemStoreChoice(cartItem);
+        if (!choice) return;
+        const cheapestStoreId = choice.storeId;
+        const lowestPrice = choice.price;
 
         STORES.forEach(s => {
-          const p = prices[s.id];
-          if (p < lowestPrice) {
-            lowestPrice = p;
-            cheapestStoreId = s.id;
-          }
-          storeBaskets[s.id].total += p * cartItem.quantity;
+          storeBaskets[s.id].total += prices[s.id] * cartItem.quantity;
         });
 
         const bestStore = STORES.find(
@@ -3476,7 +3485,8 @@ function openShoppingTimeBreakdown(event) {
           id: item.id,
           name: product ? product.name : item.name || item.id,
           quantity: item.quantity,
-          ...(item.dealId ? { dealId: item.dealId } : {})
+          ...(item.dealId ? { dealId: item.dealId } : {}),
+          ...(item.storeId ? { storeId: item.storeId } : {})
         };
       });
 
@@ -3856,19 +3866,35 @@ function openShoppingTimeBreakdown(event) {
       return { ...prod.prices, [applied.storeId]: Math.min(applied.deal.dealPrice, regular ?? Infinity) };
     }
 
+    // Where a list item is bought and at what price: the store the shopper picked on Search
+    // (item.storeId), or the cheapest store when they used "Add Best Deal" or didn't pick one.
+    // A picked store that isn't in this ZIP's store list, or has no price, falls back too.
+    function itemStoreChoice(item) {
+      const prices = item && cartItemPrices(item);
+      if (!prices) return null;
+      if (item.storeId && STORES.some(s => s.id === item.storeId) && Number.isFinite(prices[item.storeId])) {
+        return { storeId: item.storeId, price: prices[item.storeId], picked: true };
+      }
+      let best = null;
+      STORES.forEach(s => {
+        const price = prices[s.id];
+        if (Number.isFinite(price) && (!best || price < best.price)) best = { storeId: s.id, price, picked: false };
+      });
+      return best;
+    }
+
     // Same math as "Estimated Money Saved" on the Grocery List: what the whole list costs at
-    // the cheapest single store, minus buying each item where it's cheapest.
-    // items: [{ id, quantity, dealId? }]. null if an item has no known prices.
+    // the cheapest single store, minus buying each item at its chosen store.
+    // items: [{ id, quantity, dealId?, storeId? }]. null if an item has no known prices.
     function estimateListSavings(items) {
       let splitTotal = 0;
       const storeTotals = Object.fromEntries(STORES.map(store => [store.id, 0]));
       for (const item of items || []) {
         const prices = item && cartItemPrices(item);
         const quantity = Number(item && item.quantity) || 0;
-        if (!prices) return null;
-        const known = STORES.map(store => prices[store.id]).filter(Number.isFinite);
-        if (!known.length) return null;
-        splitTotal += Math.min(...known) * quantity;
+        const choice = item && itemStoreChoice(item);
+        if (!prices || !choice) return null;
+        splitTotal += choice.price * quantity;
         STORES.forEach(store => {
           storeTotals[store.id] += (Number.isFinite(prices[store.id]) ? prices[store.id] : Infinity) * quantity;
         });
@@ -4045,11 +4071,12 @@ function openShoppingTimeBreakdown(event) {
 
       const quantity = readQty(dealId);
 
-      // Remove the card and show the next deal only once the item is really in the cart
+      // Remove the card and show the next deal only once the item is really in the cart.
+      // The item is bought at the deal's store.
       addToCart(deal.productId, quantity, () => {
         state.claimedDeals.push(dealId);
         renderDeals();
-      }, dealId);
+      }, dealId, dealStoreId(deal));
     }
 
     function refreshDeals() {
@@ -4131,16 +4158,7 @@ function openShoppingTimeBreakdown(event) {
         const prod = PRODUCTS.find(p => p.id === cartItem.id);
         if (!prod) return;
 
-        const prices = cartItemPrices(cartItem);
-        let bestStoreId = null;
-        let lowestPrice = Infinity;
-        STORES.forEach(s => {
-          const price = prices[s.id];
-          if (price < lowestPrice) {
-            lowestPrice = price;
-            bestStoreId = s.id;
-          }
-        });
+        const bestStoreId = (itemStoreChoice(cartItem) || {}).storeId;
         if (bestStoreId) {
           cheapestCounts[bestStoreId] += 1;
         }
@@ -4194,15 +4212,10 @@ function openShoppingTimeBreakdown(event) {
         const thisStorePrice = prices[store.id];
         storeEstimatedTotal += thisStorePrice * cartItem.quantity;
 
-        // Find absolute cheapest store for this item
-        let absoluteBestStoreId = null;
-        let lowestPrice = Infinity;
-        STORES.forEach(s => {
-          if (prices[s.id] < lowestPrice) {
-            lowestPrice = prices[s.id];
-            absoluteBestStoreId = s.id;
-          }
-        });
+        // The store this item is bought at: the shopper's pick, or the cheapest
+        const choice = itemStoreChoice(cartItem) || {};
+        const absoluteBestStoreId = choice.storeId;
+        const lowestPrice = choice.price;
 
         const isCheapestHere = (store.id === absoluteBestStoreId);
 
@@ -4237,7 +4250,7 @@ function openShoppingTimeBreakdown(event) {
               <div>
                 <span class="font-black text-slate-800">${escapeHtml(prod.name)} (Qty: ${cartItem.quantity})</span>
                 <span class="block text-[11px] text-amber-700 font-medium">
-                  Cheaper at <strong class="text-slate-800">${escapeHtml(bestStoreObj.name)}</strong> ($${lowestPrice.toFixed(2)} ea)
+                  ${choice.picked ? 'You picked' : 'Cheaper at'} <strong class="text-slate-800">${escapeHtml(bestStoreObj.name)}</strong> ($${lowestPrice.toFixed(2)} ea)
                 </span>
               </div>
             </div>
@@ -4355,9 +4368,12 @@ function openShoppingTimeBreakdown(event) {
         state.cart = saved.cart
           .filter(item => item && typeof item === 'object' &&
             (PRODUCTS.some(p => p.id === item.id) || isKrogerProductKey(item.id)) && isValidQuantity(item.quantity))
-          .map(item => findDeal(item.dealId)
-            ? { id: item.id, quantity: item.quantity, dealId: item.dealId }
-            : { id: item.id, quantity: item.quantity });
+          .map(item => ({
+            id: item.id,
+            quantity: item.quantity,
+            ...(findDeal(item.dealId) ? { dealId: item.dealId } : {}),
+            ...(typeof item.storeId === 'string' && item.storeId ? { storeId: item.storeId } : {})
+          }));
       }
       if (Array.isArray(saved.claimedDeals)) {
         state.claimedDeals = saved.claimedDeals.filter(id => findDeal(id));
