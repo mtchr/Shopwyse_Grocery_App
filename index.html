@@ -4922,7 +4922,7 @@ async function handleLoginImpl(e) {
       /^((?:\d+\s+)?(?:\d+\/\d+|\d+(?:\.\d+)?|[¼½¾⅓⅔⅛⅜⅝⅞])(?:\s*(?:-|–|to)\s*(?:\d+\/\d+|\d+(?:\.\d+)?|[¼½¾⅓⅔⅛⅜⅝⅞]))?)/i;
 
     const unitPattern =
-      /^(cups?|c\.?|tablespoons?|tbsp\.?|teaspoons?|tsp\.?|ounces?|oz\.?|pounds?|lbs?\.?|grams?|g\.?|kilograms?|kg\.?|milliliters?|ml\.?|liters?|l\.?|cans?|packages?|pkg\.?|cloves?|slices?|pieces?|pinches?|sprigs?|bunches?)\b/i;
+      /^(cups?|c\.?|tablespoons?|tbsp\.?|tbs\.?|tbl\.?|teaspoons?|tsp\.?|t\.?|ounces?|oz\.?|pounds?|lbs?\.?|grams?|g\.?|kilograms?|kg\.?|milliliters?|ml\.?|liters?|l\.?|cans?|packages?|pkg\.?|cloves?|slices?|pieces?|pinches?|sprigs?|bunches?)\b/i;
 
     const productAliases = [
       { pattern: /\borange juice\b|\bo\.?j\.?\b/i, productId: 'item_oj' },
@@ -5562,7 +5562,11 @@ async function handleLoginImpl(e) {
 
     function parseIngredientLine(sourceLine) {
       const rawText = cleanLine(sourceLine);
-      let remaining = rawText;
+      // "1. 2 cups flour": drop the step number so 2 is the quantity
+      const stepNumber = rawText.match(/^(?:step\s*)?\d{1,2}[.)]\s+/i);
+      let remaining = stepNumber && quantityPattern.test(rawText.slice(stepNumber[0].length))
+        ? rawText.slice(stepNumber[0].length)
+        : rawText;
       let quantity = null;
       let unit = null;
       let preparation = null;
@@ -5667,15 +5671,175 @@ async function handleLoginImpl(e) {
         };
         if (recognition.warning) recipe.warnings.push(recognition.warning);
       }
-      recipe.ingredients = recipe.ingredients.map(enrichIngredientWithCatalog);
+      if (scanInProgress) setScanProgress(95, `Looking up ingredient prices near ${state.zipCode}`);
+      recipe.ingredients = await enrichIngredients(recipe.ingredients);
       return { sourceText, recipe };
     }
 
     window.extractRecipe = extractRecipe;
 
+    // ---------- Telling ingredients from instructions ----------
+    // Recipes without an "Ingredients" heading mix ingredients into numbered steps, and the
+    // step numbers look like quantities. These rules keep only the lines that read like an
+    // ingredient; the rest are listed as skipped so the shopper can bring one back.
+    const COOKING_VERB_PATTERN = /^(add|allow|arrange|bake|baste|beat|blend|boil|bring|broil|brown|brush|chill|chop|coat|combine|cook|cool|cover|crack|cut|dice|dip|dissolve|divide|drain|drizzle|dust|fill|flip|fold|fry|garnish|grate|grease|grill|heat|in|knead|layer|leave|let|line|marinate|mash|melt|microwave|mince|mix|on|once|place|pour|preheat|press|put|reduce|refrigerate|remove|repeat|return|rinse|roast|roll|saute|sauté|scoop|season|serve|set|shake|shape|simmer|slice|soak|spoon|spread|sprinkle|steam|stir|strain|stuff|take|then|toast|top|toss|transfer|turn|until|use|wash|when|while|whisk|wrap)\b/i;
+    const STEP_NUMBER_PATTERN = /^\s*(?:step\s*)?\d{1,2}\s*[.)]\s*/i;
+
+    // true when a recipe line is a cooking step or heading rather than an ingredient
+    function isInstructionLine(text) {
+      const line = cleanLine(String(text || ''));
+      if (!line) return true;
+      const step = line.match(STEP_NUMBER_PATTERN);
+      // "1. In a saucepan…" is a step; "1. 2 cups flour" is a numbered ingredient
+      if (step && !quantityPattern.test(line.slice(step[0].length))) return true;
+      const rest = step ? line.slice(step[0].length) : line;
+      if (/:\s*$/.test(rest)) return true;                                   // "To the pan, add:"
+      if (!quantityPattern.test(rest) && COOKING_VERB_PATTERN.test(rest)) return true;
+      if (/\b\d+\s*(minutes?|mins?|hours?|hrs?|seconds?)\b|°|\bdegrees\b|\buntil\b/i.test(rest)) return true;
+      return rest.length > 80 && /[.!]$/.test(rest);                          // a full sentence
+    }
+
+    // ---------- From an ingredient line to a store search ----------
+    const PREP_WORDS = new Set(['cubed', 'diced', 'chopped', 'minced', 'sliced', 'thinly', 'thickly', 'finely', 'roughly', 'coarsely',
+      'freshly', 'grated', 'peeled', 'crushed', 'melted', 'softened', 'beaten', 'divided', 'packed', 'sifted', 'cooked', 'uncooked',
+      'drained', 'rinsed', 'trimmed', 'halved', 'quartered', 'julienned', 'shaved', 'torn', 'room', 'temperature', 'cold', 'warm',
+      'hot', 'optional', 'about', 'approximately', 'heaping', 'level', 'scant', 'large', 'medium', 'small', 'of', 'a', 'an', 'the', 'some']);
+    const KEEP_WHOLE = /\b(half and half|macaroni and cheese|mac and cheese|salt and vinegar)\b/i;
+    // Measurements left in the item when a size comes first: "1 (14 oz) can diced tomatoes"
+    const UNIT_WORDS = new Set(['can', 'cans', 'jar', 'jars', 'package', 'packages', 'pkg', 'box', 'boxes', 'bag', 'bags',
+      'bottle', 'bottles', 'carton', 'cartons', 'container', 'containers', 'cup', 'cups', 'tbsp', 'tsp', 'oz', 'ounce', 'ounces',
+      'lb', 'lbs', 'pound', 'pounds', 'g', 'gram', 'grams', 'ml', 'stick', 'sticks', 'dash', 'pinch']);
+    // Packaged goods are sold prepared ("diced tomatoes", "sliced almonds"), so keep the prep words
+    const CONTAINER_PATTERN = /\b(cans?|jars?|packages?|pkg|box(es)?|bags?|bottles?|cartons?)\b/i;
+
+    // "4 oz cubed chicken with 1 tsp sesa-" -> "chicken"; "1T minced garlic" -> "garlic"
+    function ingredientSearchTerm(itemText) {
+      let text = String(itemText || '').toLowerCase()
+        .replace(/\([^)]*\)/g, ' ')                    // (about 2 cups)
+        .replace(/\bto taste\b|\bas needed\b|\bfor (garnish|serving|frying)\b/g, ' ')
+        .replace(/^[^a-z]+/, '');
+      if (!KEEP_WHOLE.test(text)) text = text.split(/\s+(?:with|and|or|plus|for|into|in|over|on|until)\s+|[;,/.]/)[0];
+      // A cooking step the shopper marked as an ingredient: "Cut 1 cucumber" -> "cucumber"
+      text = text.replace(/^[^a-z]+/, '');
+      while (COOKING_VERB_PATTERN.test(text)) text = text.replace(COOKING_VERB_PATTERN, '').replace(/^[^a-z]+/, '');
+      const packaged = CONTAINER_PATTERN.test(text);
+      const words = text
+        .replace(/[^a-z0-9%&'\- ]+/g, ' ')
+        .split(/\s+/)
+        .filter(word => word && !word.endsWith('-') && !UNIT_WORDS.has(word) && !/^\d/.test(word) &&
+          !(PREP_WORDS.has(word) && !(packaged && /(ed|ly)$/.test(word))));
+      const term = words.join(' ').replace(/^[-']+|[-']+$/g, '').trim();
+      return /[a-z]{3}/.test(term) ? term : '';
+    }
+
+    // Kroger departments that never hold a recipe ingredient
+    const NON_INGREDIENT_CATEGORIES = new Set(['Kitchen', 'Cleaning Products', 'Hardware', 'Garden & Patio', 'Floral',
+      'Personal Care', 'Beauty', 'Baby', 'Pet Care', 'Christmas', 'Holiday & Seasonal Goods', 'Home', 'Party', 'Household']);
+    const INGREDIENT_OPTIONS = 5;
+    const INGREDIENT_CHOICES_KEY = 'shopwyse_ingredient_choices';
+    const ingredientLookups = new Map();   // "zip|term" -> Promise of { productIds, source }
+    const ingredientResolved = new Map();  // "zip|term" -> { productIds, source } once done
+
+    function ingredientChoices() {
+      try { return JSON.parse(localStorage.getItem(INGREDIENT_CHOICES_KEY)) || {}; } catch (e) { return {}; }
+    }
+
+    // Remembers the product a shopper picked for an ingredient, on this device
+    function rememberIngredientChoice(term, productId) {
+      const choices = ingredientChoices();
+      choices[term] = productId;
+      try { localStorage.setItem(INGREDIENT_CHOICES_KEY, JSON.stringify(choices)); } catch (e) {}
+    }
+
+    function wordsOf(text) {
+      return normalizeSearch(text).split(' ').filter(Boolean).map(singularSearchWord);
+    }
+
+    // Kroger's best matches for a search term: groceries only, and only products whose name
+    // contains the ingredient's main word (so "saucepan" never becomes a pan). Products with
+    // every search word come first, deli items last unless asked for; otherwise Kroger's order.
+    function rankIngredientProducts(term, products) {
+      const termWords = wordsOf(term);
+      const mainWord = termWords[termWords.length - 1];
+      const wantsDeli = termWords.includes('deli');
+      return products
+        .filter(p => isGroceryProduct(p) && !(p.categories || []).some(c => NON_INGREDIENT_CATEGORIES.has(c)))
+        .map((p, index) => {
+          const nameWords = wordsOf(p.description);
+          if (!nameWords.includes(mainWord)) return null;
+          const allWords = termWords.every(word => nameWords.includes(word));
+          const deli = !wantsDeli && (p.categories || []).includes('Deli');
+          return { p, score: (allWords ? 0 : 100) + (deli ? 50 : 0) + index };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.score - b.score)
+        .slice(0, INGREDIENT_OPTIONS)
+        .map(entry => entry.p);
+    }
+
+    // The sample catalog's product for an ingredient, used when Kroger can't help
     function productMatchForIngredient(itemName) {
       const alias = productAliases.find(entry => entry.pattern.test(itemName));
       return alias ? PRODUCTS.find(product => product.id === alias.productId) : null;
+    }
+
+    // Looks an ingredient up at the nearest Kroger-family store (cached per ZIP for this visit).
+    // Falls back to the sample catalog if there's no store nearby or the lookup fails.
+    function lookupIngredientProducts(term, itemText) {
+      const key = `${state.zipCode}|${term}`;
+      if (ingredientLookups.has(key)) return ingredientLookups.get(key);
+      const zip = state.zipCode;
+      const promise = (term.length >= KROGER_MIN_TERM
+        ? fetchKrogerSearch(term, zip, state.radius).then(result => {
+            if (state.zipCode === zip) setKrogerStore(result.location, zip);
+            const entries = registerKrogerProducts(rankIngredientProducts(term, result.products), result.location);
+            return entries.length ? { productIds: entries.map(entry => entry.id), source: 'kroger' } : null;
+          })
+        : Promise.resolve(null))
+        .catch(error => {
+          console.warn(`Wyse: no live price for "${term}":`, error.message);
+          return null;
+        })
+        .then(found => {
+          if (found) return found;
+          const sample = productMatchForIngredient(itemText);
+          return { productIds: sample ? [sample.id] : [], source: sample ? 'catalog' : 'none' };
+        })
+        .then(found => {
+          ingredientResolved.set(key, found);
+          return found;
+        });
+      ingredientLookups.set(key, promise);
+      return promise;
+    }
+
+    // Builds the match shown for an ingredient from its lookup and the shopper's pick
+    function matchFromLookup(term, found) {
+      if (!found || !found.productIds.length) return null;
+      const options = found.productIds.map(id => PRODUCTS.find(p => p.id === id)).filter(Boolean);
+      const chosenId = ingredientChoices()[term];
+      const chosen = PRODUCTS.find(p => p.id === chosenId) || options[0];
+      const offer = cheapestOfferForProduct(chosen);
+      if (!chosen || !offer) return null;
+      if (!options.includes(chosen)) options.unshift(chosen);
+      return {
+        product_id: chosen.id,
+        product_name: chosen.name,
+        product_detail: chosen.live ? [chosen.live.brand, chosen.live.size].filter(Boolean).join(' · ') : '',
+        cheapest_store_id: offer.store.id,
+        cheapest_store_name: offer.store.name,
+        lowest_price: offer.price,
+        search_term: term,
+        source: found.source,
+        option_ids: options.map(p => p.id)
+      };
+    }
+
+    // Product icons are an emoji, or an <img> tag ShopWyse built from a Kroger image URL
+    function setProductIcon(element, productId) {
+      const icon = (PRODUCTS.find(product => product.id === productId) || {}).icon || '🛒';
+      if (String(icon).startsWith('<img ')) element.innerHTML = icon;
+      else element.textContent = icon;
     }
 
     function cheapestOfferForProduct(product) {
@@ -5696,22 +5860,30 @@ async function handleLoginImpl(e) {
       );
     }
 
-    function enrichIngredientWithCatalog(ingredient) {
-      const product = productMatchForIngredient(ingredient.item);
-      const offer = cheapestOfferForProduct(product);
+    // Adds is_instruction and catalog_match (a real Kroger product when possible) to a parsed line.
+    // force: the shopper said this skipped line is an ingredient.
+    async function enrichIngredient(ingredient, { force = false } = {}) {
+      const isInstruction = !force && isInstructionLine(ingredient.corrected_text || ingredient.raw_text);
+      const term = isInstruction ? '' : ingredientSearchTerm(ingredient.item);
+      if (isInstruction || !term) {
+        return { ...ingredient, is_instruction: isInstruction, forced_ingredient: force, search_term: term, catalog_match: null };
+      }
+      const found = await lookupIngredientProducts(term, ingredient.item);
+      return { ...ingredient, is_instruction: false, forced_ingredient: force, search_term: term, catalog_match: matchFromLookup(term, found) };
+    }
 
-      return {
-        ...ingredient,
-        catalog_match: product && offer
-          ? {
-              product_id: product.id,
-              product_name: product.name,
-              cheapest_store_id: offer.store.id,
-              cheapest_store_name: offer.store.name,
-              lowest_price: offer.price
-            }
-          : null
+    // Looks up several ingredients at once, four at a time
+    async function enrichIngredients(ingredients) {
+      const results = new Array(ingredients.length);
+      let next = 0;
+      const worker = async () => {
+        while (next < ingredients.length) {
+          const index = next++;
+          results[index] = await enrichIngredient(ingredients[index]);
+        }
       };
+      await Promise.all(Array.from({ length: Math.min(4, ingredients.length) }, worker));
+      return results;
     }
 
     function selectedWyseOffers() {
@@ -5736,24 +5908,111 @@ async function handleLoginImpl(e) {
       addToListButton.disabled = offers.length === 0;
     }
 
-    function applyIngredientCorrection(sampleId, correctedText) {
+    async function applyIngredientCorrection(sampleId, correctedText, { force = null } = {}) {
       if (!lastWyseRecipe) return;
       const ingredientIndex = lastWyseRecipe.ingredients.findIndex(ingredient => ingredient.sample_id === sampleId);
       if (ingredientIndex < 0) return;
 
       const previous = lastWyseRecipe.ingredients[ingredientIndex];
       const parsed = parseIngredientLine(correctedText);
-      const corrected = enrichIngredientWithCatalog(ingredientWithCorrectionData(parsed, {
+      const corrected = await enrichIngredient(ingredientWithCorrectionData(parsed, {
         sample_id: previous.sample_id,
         original_ocr: previous.original_ocr,
         corrected_text: correctedText,
         user_corrected: cleanLine(correctedText) !== cleanLine(previous.original_ocr || ''),
         line_image: previous.line_image
-      }));
-      lastWyseRecipe.ingredients.splice(ingredientIndex, 1, corrected);
+      }), { force: force === null ? Boolean(previous.forced_ingredient) : force });
+      // The recipe may have been reset or rescanned while the price lookup ran
+      const index = lastWyseRecipe ? lastWyseRecipe.ingredients.findIndex(ingredient => ingredient.sample_id === sampleId) : -1;
+      if (index >= 0) lastWyseRecipe.ingredients.splice(index, 1, corrected);
     }
 
-    function renderWyseResults(result, selectedSampleIds = null) {
+    function checkedWyseSamples() {
+      return new Set(
+        [...ingredientResults.querySelectorAll('.wyse-item-checkbox:checked')].map(checkbox => checkbox.dataset.sampleId)
+      );
+    }
+
+    function rerenderWyseResults(checkedSamples) {
+      renderWyseResults({ sourceText: lastWyseSourceText, recipe: lastWyseRecipe }, checkedSamples, { scroll: false });
+    }
+
+    // The skipped-lines box sits under the ingredient list; it's created the first time it's needed
+    function skippedLinesBox() {
+      let box = document.getElementById('wyse-skipped');
+      if (box) return box;
+      box = document.createElement('details');
+      box.id = 'wyse-skipped';
+      box.className = 'rounded-xl border border-slate-200 bg-slate-50 p-3';
+      const summary = document.createElement('summary');
+      summary.id = 'wyse-skipped-summary';
+      summary.className = 'cursor-pointer text-sm font-bold text-slate-700';
+      const help = document.createElement('p');
+      help.className = 'text-xs text-slate-600 mt-2';
+      help.textContent = 'These look like cooking steps or headings, not ingredients. If one is an ingredient, choose "Use as ingredient".';
+      const list = document.createElement('ul');
+      list.id = 'wyse-skipped-list';
+      list.className = 'mt-2 space-y-2';
+      box.append(summary, help, list);
+      ingredientResults.after(box);
+      return box;
+    }
+
+    function renderSkippedLines(skipped) {
+      const box = skippedLinesBox();
+      box.classList.toggle('hidden', skipped.length === 0);
+      document.getElementById('wyse-skipped-summary').textContent =
+        `Skipped ${skipped.length} instruction ${skipped.length === 1 ? 'line' : 'lines'}`;
+      const list = document.getElementById('wyse-skipped-list');
+      list.replaceChildren(...skipped.map(ingredient => {
+        const text = ingredient.corrected_text || ingredient.raw_text;
+        const item = document.createElement('li');
+        item.className = 'flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg bg-white border border-slate-200 p-2.5';
+        const line = document.createElement('span');
+        line.className = 'text-sm text-slate-700 min-w-0 break-words';
+        line.textContent = text;
+        const use = document.createElement('button');
+        use.type = 'button';
+        use.className = 'shrink-0 min-h-[40px] px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-xs font-bold text-slate-800';
+        use.textContent = 'Use as ingredient';
+        use.setAttribute('aria-label', `Use "${text}" as an ingredient`);
+        use.addEventListener('click', async () => {
+          use.disabled = true;
+          use.textContent = 'Looking up…';
+          const checked = checkedWyseSamples();
+          await applyIngredientCorrection(ingredient.sample_id, text, { force: true });
+          const updated = lastWyseRecipe && lastWyseRecipe.ingredients.find(entry => entry.sample_id === ingredient.sample_id);
+          if (updated && updated.catalog_match) checked.add(ingredient.sample_id);
+          rerenderWyseResults(checked);
+        });
+        item.append(line, use);
+        return item;
+      }));
+    }
+
+    // Product picker for one matched ingredient: Kroger's top matches for its search term
+    function buildProductPicker(match, label, onPick) {
+      const select = document.createElement('select');
+      select.className = 'mt-1.5 w-full min-w-0 min-h-[40px] rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-accent-blue';
+      select.setAttribute('aria-label', `Choose the product for ${label}`);
+      match.option_ids.forEach(id => {
+        const product = PRODUCTS.find(p => p.id === id);
+        const offer = cheapestOfferForProduct(product);
+        if (!product || !offer) return;
+        const option = document.createElement('option');
+        option.value = id;
+        const size = product.live && product.live.size ? ` · ${product.live.size}` : '';
+        option.textContent = `${product.name}${size} · $${offer.price.toFixed(2)}`;
+        option.selected = id === match.product_id;
+        select.appendChild(option);
+      });
+      select.addEventListener('click', event => event.stopPropagation());
+      select.addEventListener('keydown', event => event.stopPropagation());
+      select.addEventListener('change', () => onPick(select.value));
+      return select;
+    }
+
+    function renderWyseResults(result, selectedSampleIds = null, { scroll = true } = {}) {
       ingredientResults.replaceChildren();
       recognizedTextOutput.textContent = result.sourceText;
       readWarning.classList.add('hidden');
@@ -5766,12 +6025,15 @@ async function handleLoginImpl(e) {
       lastWyseSourceText = result.sourceText;
       jsonOutput.textContent = JSON.stringify(lastWyseRecipe, null, 2);
 
-      if (!enrichedIngredients.length) {
+      const ingredients = enrichedIngredients.filter(ingredient => !ingredient.is_instruction);
+      const skipped = enrichedIngredients.filter(ingredient => ingredient.is_instruction);
+
+      if (!ingredients.length) {
         readWarning.classList.remove('hidden');
         readbackText.textContent = result.sourceText.trim() || 'No readable text was detected in the image.';
       }
 
-      const displayIngredients = [...enrichedIngredients].sort((first, second) =>
+      const displayIngredients = [...ingredients].sort((first, second) =>
         Number(Boolean(second.catalog_match)) - Number(Boolean(first.catalog_match))
       );
 
@@ -5802,7 +6064,7 @@ async function handleLoginImpl(e) {
             updateWyseSelectionSummary();
           });
           listItem.addEventListener('click', event => {
-            if (event.target.closest('input, button, a')) return;
+            if (event.target.closest('input, button, a, select')) return;
             checkbox.checked = !checkbox.checked;
             checkbox.dispatchEvent(new Event('change'));
           });
@@ -5815,10 +6077,9 @@ async function handleLoginImpl(e) {
         }
 
         const icon = document.createElement('span');
-        icon.className = 'w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-lg shrink-0';
-        icon.textContent = match
-          ? PRODUCTS.find(product => product.id === match.product_id)?.icon || '🛒'
-          : '📝';
+        icon.className = 'w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-lg shrink-0 overflow-hidden';
+        if (match) setProductIcon(icon, match.product_id);
+        else icon.textContent = '📝';
 
         const content = document.createElement('div');
         content.className = 'min-w-0 flex-1';
@@ -5834,33 +6095,51 @@ async function handleLoginImpl(e) {
           event.stopPropagation();
           if (event.key === 'Enter') title.blur();
         });
-        title.addEventListener('change', () => {
+        title.addEventListener('change', async () => {
           const correctedText = cleanLine(title.value);
           if (!correctedText) {
             title.value = ingredient.corrected_text || ingredient.raw_text;
             return;
           }
 
-          const checkedSamples = new Set(
-            [...ingredientResults.querySelectorAll('.wyse-item-checkbox:checked')]
-              .map(checkbox => checkbox.dataset.sampleId)
-          );
+          const checkedSamples = checkedWyseSamples();
           const wasMatched = Boolean(ingredient.catalog_match);
-          applyIngredientCorrection(ingredient.sample_id, correctedText);
-          const updatedIngredient = lastWyseRecipe.ingredients.find(entry => entry.sample_id === ingredient.sample_id);
+          title.disabled = true;
+          await applyIngredientCorrection(ingredient.sample_id, correctedText);
+          const updatedIngredient = lastWyseRecipe && lastWyseRecipe.ingredients.find(entry => entry.sample_id === ingredient.sample_id);
           if (!wasMatched && updatedIngredient?.catalog_match) checkedSamples.add(ingredient.sample_id);
-          renderWyseResults({ sourceText: lastWyseSourceText, recipe: lastWyseRecipe }, checkedSamples);
+          if (lastWyseRecipe) rerenderWyseResults(checkedSamples);
         });
 
         const note = document.createElement('p');
         note.className = match
-          ? 'text-xs font-bold text-emerald-700 mt-0.5'
-          : 'text-xs font-bold text-amber-800 mt-0.5';
+          ? 'text-xs font-bold text-emerald-700 mt-0.5 px-2'
+          : 'text-xs font-bold text-amber-800 mt-0.5 px-2';
         note.textContent = match
           ? `Cheapest at ${match.cheapest_store_name}`
-          : 'Wyse recognized this text, but it was not found in the ShopWyse catalog.';
+          : ingredient.search_term
+            ? `No grocery product found for "${ingredient.search_term}". Edit the line to try different words.`
+            : 'Wyse couldn\'t tell which ingredient this is. Edit the line to look it up.';
 
         content.append(title, note);
+
+        if (match && match.option_ids.length > 1) {
+          content.appendChild(buildProductPicker(match, title.value, productId => {
+            rememberIngredientChoice(match.search_term, productId);
+            const checkedSamples = checkedWyseSamples();
+            // Every line with the same search term now uses the picked product
+            lastWyseRecipe.ingredients = lastWyseRecipe.ingredients.map(entry =>
+              entry.search_term === match.search_term && entry.catalog_match
+                ? { ...entry, catalog_match: matchFromLookup(entry.search_term, ingredientResolved.get(`${state.zipCode}|${entry.search_term}`)) || entry.catalog_match }
+                : entry);
+            rerenderWyseResults(checkedSamples);
+          }));
+        } else if (match && match.product_detail) {
+          const detail = document.createElement('p');
+          detail.className = 'text-xs text-slate-600 mt-0.5 px-2';
+          detail.textContent = `${match.product_name} · ${match.product_detail}`;
+          content.appendChild(detail);
+        }
 
         if (match) {
           const price = document.createElement('div');
@@ -5879,17 +6158,22 @@ async function handleLoginImpl(e) {
         ingredientResults.appendChild(listItem);
       });
 
-      resultsSummary.textContent = enrichedIngredients.length
-        ? `${enrichedIngredients.length} ${enrichedIngredients.length === 1 ? 'ingredient' : 'ingredients'} recognized • choose what you need`
+      renderSkippedLines(skipped);
+
+      const liveCount = ingredients.filter(ingredient => ingredient.catalog_match && ingredient.catalog_match.source === 'kroger').length;
+      resultsSummary.textContent = ingredients.length
+        ? `${ingredients.length} ${ingredients.length === 1 ? 'ingredient' : 'ingredients'} recognized • choose what you need`
         : 'Wyse needs a clearer image or ingredient list';
-      catalogNote.textContent = matchedCount
-        ? 'Prices reflect the current ShopWyse demo catalog and may change.'
-        : enrichedIngredients.length
-          ? 'None of the recognized ingredients are in the current ShopWyse demo catalog yet.'
-          : 'Try a brighter, straighter photo with the ingredient list filling most of the frame.';
+      catalogNote.textContent = liveCount
+        ? `Prices are live from ${krogerStoreName()}; the other stores are estimates.`
+        : matchedCount
+          ? 'Prices reflect the current ShopWyse demo catalog and may change.'
+          : ingredients.length
+            ? 'None of the recognized ingredients could be found at a nearby store.'
+            : 'Try a brighter, straighter photo with the ingredient list filling most of the frame.';
       updateWyseSelectionSummary();
       resultsPanel.classList.remove('hidden');
-      resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (scroll) resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     async function scanRecipe() {
@@ -5937,6 +6221,7 @@ async function handleLoginImpl(e) {
       lastWyseRecipe = null;
       lastWyseSourceText = '';
       ingredientResults.replaceChildren();
+      document.getElementById('wyse-skipped')?.classList.add('hidden');
       recognizedTextOutput.textContent = '';
       jsonOutput.textContent = '';
       resultsPanel.classList.add('hidden');
@@ -5990,9 +6275,19 @@ async function handleLoginImpl(e) {
       });
     }
 
-    // Store match for one ingredient line, or null if ShopWyse doesn't sell it
-    function recipeLineMatch(text) {
-      return enrichIngredientWithCatalog(parseIngredientLine(text)).catalog_match;
+    // Store match for one saved-recipe line: the match, null if it's an instruction or nothing
+    // nearby sells it, or { pending: true } while its price is looked up. onReady runs once
+    // a pending lookup finishes.
+    const LINE_PENDING = { pending: true };
+    function recipeLineMatch(text, onReady = null) {
+      if (isInstructionLine(text)) return null;
+      const parsed = parseIngredientLine(text);
+      const term = ingredientSearchTerm(parsed.item);
+      if (!term) return null;
+      const key = `${state.zipCode}|${term}`;
+      if (ingredientResolved.has(key)) return matchFromLookup(term, ingredientResolved.get(key));
+      lookupIngredientProducts(term, parsed.item).then(() => { if (onReady) onReady(); });
+      return LINE_PENDING;
     }
 
     function setRecipesStatus(message, isError = false) {
@@ -6210,15 +6505,37 @@ async function handleLoginImpl(e) {
       remove.type = 'button';
       remove.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
 
-      // Show sold / not sold for the line's current text
+      // Show the store match for the line's current text (looked up at Kroger when needed)
+      let picker = null;
       const refreshMatch = () => {
-        const match = recipeLineMatch(line.text);
+        const text = line.text;
+        const result = recipeLineMatch(text, () => {
+          if (li.isConnected && line.text === text) {
+            refreshMatch();
+            updateRecipeSummary();
+          }
+        });
+        const pending = result === LINE_PENDING;
+        const match = pending ? null : result;
         li.classList.toggle('bg-white', !!match);
         li.classList.toggle('bg-slate-50', !match);
         note.className = `text-xs font-bold mt-1 ${match ? 'text-emerald-700' : 'text-slate-600'}`;
-        note.textContent = match
-          ? `${match.product_name} · cheapest at ${match.cheapest_store_name}, $${match.lowest_price.toFixed(2)}`
-          : 'Not sold in ShopWyse';
+        note.textContent = pending
+          ? 'Looking up a price…'
+          : match
+            ? `${match.product_name} · cheapest at ${match.cheapest_store_name}, $${match.lowest_price.toFixed(2)}`
+            : isInstructionLine(text)
+              ? 'Looks like a cooking step, so it won\'t be added'
+              : 'Not found at a nearby store';
+        if (picker) picker.remove();
+        picker = match && match.option_ids.length > 1
+          ? buildProductPicker(match, text, productId => {
+              rememberIngredientChoice(match.search_term, productId);
+              refreshMatch();
+              updateRecipeSummary();
+            })
+          : null;
+        if (picker) body.append(picker);
         textInput.setAttribute('aria-label', `Ingredient: ${line.text}`);
         remove.setAttribute('aria-label', `Remove ${line.text} from this recipe`);
         let checkbox = checkSlot.querySelector('input');
@@ -6281,7 +6598,7 @@ async function handleLoginImpl(e) {
       const toAdd = new Set();
       recipe.lines.forEach(line => {
         const match = recipeLineMatch(line.text);
-        if (match && !line.skip) toAdd.add(match.product_id);
+        if (match && !match.pending && !line.skip) toAdd.add(match.product_id);
       });
       let total = 0;
       toAdd.forEach(productId => {
@@ -6512,8 +6829,10 @@ async function handleLoginImpl(e) {
         nameInput.focus();
         return;
       }
-      // Every line Wyse found, with the user's corrections, including ones ShopWyse doesn't sell
+      // Every ingredient line Wyse found, with the user's corrections, including ones no store
+      // nearby sells. Skipped cooking steps aren't saved.
       const ingredients = (lastWyseRecipe?.ingredients || [])
+        .filter(ingredient => !ingredient.is_instruction)
         .map(ingredient => cleanLine(ingredient.corrected_text || ingredient.raw_text || ''))
         .filter(Boolean);
       if (!ingredients.length) {
