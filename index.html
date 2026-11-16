@@ -1280,16 +1280,30 @@ body.wyse-modal-open {
           </button>
         </div>
       </div>
-      <p id="admin-status" class="text-sm text-slate-600" role="status" aria-live="polite"></p>
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-slate-700">
-        <span>How the estimates work:</span>
-        <button type="button" onclick="toggleInfo(this)" aria-expanded="false" aria-controls="info-time-saved-admin" class="inline-flex items-center gap-1.5 min-h-[32px] px-2 rounded-lg text-brand-600 hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-accent-blue">
-          <i class="fa-solid fa-circle-info" aria-hidden="true"></i> Est. time saved
-        </button>
-        <button type="button" onclick="toggleInfo(this)" aria-expanded="false" aria-controls="info-money-saved-admin" class="inline-flex items-center gap-1.5 min-h-[32px] px-2 rounded-lg text-brand-600 hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-accent-blue">
-          <i class="fa-solid fa-circle-info" aria-hidden="true"></i> Est. money saved
-        </button>
+      <!-- Totals across every user (the sum of the per-user estimates below) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="min-w-0 rounded-xl border border-brand-200 bg-brand-50 p-4">
+          <div class="flex items-center gap-1">
+            <span class="text-xs font-bold uppercase tracking-wide text-slate-600">Total Est. Time Saved</span>
+            <button type="button" onclick="toggleInfo(this)" aria-expanded="false" aria-controls="info-time-saved-admin" aria-label="How estimated time saved is calculated" class="w-8 h-8 inline-flex items-center justify-center rounded-full text-brand-600 hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-accent-blue">
+              <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div id="admin-total-time" class="text-3xl font-black text-brand-600">—</div>
+          <p id="admin-total-time-note" class="text-xs text-slate-600"></p>
+        </div>
+        <div class="min-w-0 rounded-xl border border-brand-200 bg-brand-50 p-4">
+          <div class="flex items-center gap-1">
+            <span class="text-xs font-bold uppercase tracking-wide text-slate-600">Total Est. Money Saved</span>
+            <button type="button" onclick="toggleInfo(this)" aria-expanded="false" aria-controls="info-money-saved-admin" aria-label="How estimated money saved is calculated" class="w-8 h-8 inline-flex items-center justify-center rounded-full text-brand-600 hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-accent-blue">
+              <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div id="admin-total-money" class="text-3xl font-black text-brand-600">—</div>
+          <p id="admin-total-money-note" class="text-xs text-slate-600"></p>
+        </div>
       </div>
+      <p id="admin-status" class="text-sm text-slate-600" role="status" aria-live="polite"></p>
       <p id="info-time-saved-admin" class="hidden text-xs text-slate-700 bg-brand-50 border border-brand-200 rounded-lg p-3">
         <strong>Est. time saved:</strong> for each of the user's saved lists, ShopWyse takes the weekly grocery shopping time they gave in the "Your Shopping Habits" question and subtracts its estimated in-store time for that list (about 77 seconds per item, from timed shopping trips by our team). A list never counts as negative time. The results are added up across their saved lists. Travel time isn't included. Users who haven't answered the question show "no survey answer".
       </p>
@@ -4716,20 +4730,53 @@ async function handleLoginImpl(e) {
       }
 
       const adminCount = data.filter(user => user.is_admin === true).length;
-      let summary = `${data.length} user${data.length === 1 ? '' : 's'}, ${adminCount} admin${adminCount === 1 ? '' : 's'}`;
-      if (adminListTotals) {
-        let money = 0;
-        let time = 0;
-        data.forEach(user => {
-          const totals = adminListTotals.get(user.user_id);
-          if (!totals) return;
-          money += totals.savings;
-          time += estimatedTimeSaved(user.weekly_shopping_minutes, totals) || 0;
-        });
-        summary += ` · All users: est. ${formatDuration(time)} and $${money.toFixed(2)} saved across ${savedLists.length} saved list${savedLists.length === 1 ? '' : 's'}`;
-      }
-      status.textContent = summary;
+      status.textContent = `${data.length} user${data.length === 1 ? '' : 's'}, ${adminCount} admin${adminCount === 1 ? '' : 's'}`;
+      renderAdminTotals(data, savedLists);
       list.replaceChildren(...data.map(adminUserRow));
+    }
+
+    // Total est. time and money saved across every user: the sum of each user's row below
+    function renderAdminTotals(users, savedLists) {
+      const timeEl = document.getElementById('admin-total-time');
+      const moneyEl = document.getElementById('admin-total-money');
+      const timeNote = document.getElementById('admin-total-time-note');
+      const moneyNote = document.getElementById('admin-total-money-note');
+      if (!adminListTotals) {
+        timeEl.textContent = '—';
+        moneyEl.textContent = '—';
+        timeNote.textContent = moneyNote.textContent = 'Saved lists couldn\'t be loaded.';
+        return;
+      }
+      let money = 0;
+      let time = 0;
+      let timeUsers = 0;
+      let moneyUsers = 0;
+      let pricedLists = 0;
+      let listCount = 0;
+      users.forEach(user => {
+        const totals = adminListTotals.get(user.user_id);
+        if (!totals || !totals.count) return;
+        listCount += totals.count;
+        pricedLists += totals.pricedLists;
+        if (totals.pricedLists) {
+          money += totals.savings;
+          moneyUsers += 1;
+        }
+        const saved = estimatedTimeSaved(user.weekly_shopping_minutes, totals);
+        if (saved !== null) {
+          time += saved;
+          timeUsers += 1;
+        }
+      });
+      const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+      timeEl.textContent = formatDuration(time);
+      moneyEl.textContent = `$${money.toFixed(2)}`;
+      timeNote.textContent = listCount
+        ? `From ${plural(timeUsers, 'user')} with saved lists and a survey answer`
+        : 'No saved lists yet';
+      moneyNote.textContent = listCount
+        ? `From ${plural(moneyUsers, 'user')} across ${plural(listCount, 'saved list')}${pricedLists < listCount ? ` (${pricedLists} priced)` : ''}`
+        : 'No saved lists yet';
     }
 
     // Built with textContent: names and emails are user-entered
