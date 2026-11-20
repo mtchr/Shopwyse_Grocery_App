@@ -1223,7 +1223,7 @@ body.wyse-modal-open {
           </div>
           <!-- Explanations span both columns, opened by the (i) buttons above -->
           <p id="info-time-saved-account" class="hidden sm:col-span-2 text-xs text-slate-700 bg-white border border-brand-200 rounded-lg p-3">
-            <strong>Est. time saved:</strong> for each list you've saved, ShopWyse takes the weekly grocery shopping time you gave in the "Your Shopping Habits" question and subtracts its estimated in-store time for that list (about 77 seconds per item, from timed shopping trips by our team). A list never counts as negative time. The results are added up across your saved lists. Travel time isn't included.
+            <strong>Estimated time saved per trip:</strong> ShopWyse compares the typical grocery shopping time you selected in the "Your Shopping Habits" question with your average estimated in-store shopping time across your saved grocery lists. The difference is your estimated time saved per trip. Time saved cannot be negative, and travel time isn't included.
           </p>
           <p id="info-money-saved-account" class="hidden sm:col-span-2 text-xs text-slate-700 bg-white border border-brand-200 rounded-lg p-3">
             <strong>Est. money saved:</strong> for each list you've saved, ShopWyse compares buying everything at the one store with the lowest total against buying each item at the store where it's cheapest, including Hot Deals you added. That's the "Estimated Money Saved" on your Grocery List. The differences are added up across your saved lists. Lists saved before ShopWyse started recording this are priced at today's prices. Walmart, Target, Costco and Trader Joe's prices are estimates.
@@ -1280,37 +1280,114 @@ body.wyse-modal-open {
           </button>
         </div>
       </div>
+
+      <!-- Admin maintenance navigation -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+        <button
+          type="button"
+          onclick="showAdminSection('users')"
+          class="p-4 bg-brand-50 hover:bg-brand-100 border border-brand-700 rounded-xl font-bold text-brand-800 transition">
+          <i class="fa-solid fa-users mr-2"></i>
+          Maintain Users
+        </button>
+
+        <button
+          type="button"
+          onclick="showAdminSection('records')"
+          class="p-4 bg-brand-50 hover:bg-brand-100 border border-brand-700 rounded-xl font-bold text-brand-800 transition">
+          <i class="fa-solid fa-cart-shopping mr-2"></i>
+          Maintain Records
+        </button>
+
+      </div>
+
       <!-- Totals across every user (the sum of the per-user estimates below) -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div class="min-w-0 rounded-xl border border-brand-200 bg-brand-50 p-4">
           <div class="flex items-center gap-1">
-            <span class="text-xs font-bold uppercase tracking-wide text-slate-600">Total Est. Time Saved</span>
-            <button type="button" onclick="toggleInfo(this)" aria-expanded="false" aria-controls="info-time-saved-admin" aria-label="How estimated time saved is calculated" class="w-8 h-8 inline-flex items-center justify-center rounded-full text-brand-600 hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-accent-blue">
+            <span class="text-xs font-bold uppercase tracking-wide text-slate-600">
+              Avg. Est. Time Saved Per User
+            </span>
+            <button type="button"
+              onclick="toggleInfo(this)"
+              aria-expanded="false"
+              aria-controls="info-time-saved-admin"
+              aria-label="How average estimated time saved is calculated"
+              class="w-8 h-8 inline-flex items-center justify-center rounded-full text-brand-600 hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-accent-blue">
               <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
             </button>
           </div>
-          <div id="admin-total-time" class="text-3xl font-black text-brand-600">—</div>
+
+          <div id="admin-total-time" class="text-3xl font-black text-brand-600">
+            —
+          </div>
+
           <p id="admin-total-time-note" class="text-xs text-slate-600"></p>
         </div>
+
         <div class="min-w-0 rounded-xl border border-brand-200 bg-brand-50 p-4">
           <div class="flex items-center gap-1">
-            <span class="text-xs font-bold uppercase tracking-wide text-slate-600">Total Est. Money Saved</span>
-            <button type="button" onclick="toggleInfo(this)" aria-expanded="false" aria-controls="info-money-saved-admin" aria-label="How estimated money saved is calculated" class="w-8 h-8 inline-flex items-center justify-center rounded-full text-brand-600 hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-accent-blue">
+            <span class="text-xs font-bold uppercase tracking-wide text-slate-600">
+              Total Est. Money Saved
+            </span>
+            <button type="button"
+              onclick="toggleInfo(this)"
+              aria-expanded="false"
+              aria-controls="info-money-saved-admin"
+              aria-label="How estimated money saved is calculated"
+              class="w-8 h-8 inline-flex items-center justify-center rounded-full text-brand-600 hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-accent-blue">
               <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
             </button>
           </div>
+
           <div id="admin-total-money" class="text-3xl font-black text-brand-600">—</div>
           <p id="admin-total-money-note" class="text-xs text-slate-600"></p>
         </div>
       </div>
       <p id="admin-status" class="text-sm text-slate-600" role="status" aria-live="polite"></p>
       <p id="info-time-saved-admin" class="hidden text-xs text-slate-700 bg-brand-50 border border-brand-200 rounded-lg p-3">
-        <strong>Est. time saved:</strong> for each of the user's saved lists, ShopWyse takes the weekly grocery shopping time they gave in the "Your Shopping Habits" question and subtracts its estimated in-store time for that list (about 77 seconds per item, from timed shopping trips by our team). A list never counts as negative time. The results are added up across their saved lists. Travel time isn't included. Users who haven't answered the question show "no survey answer".
+        <strong>Avg. estimated time saved per user:</strong> For each user with saved grocery lists and an answer to the "Your Shopping Habits" question, ShopWyse subtracts the estimated in-store time for each saved list (about 77 seconds per item, based on timed shopping trips by our team) from that user's usual weekly grocery shopping time. A list never counts as negative time. Each user's time saved is averaged across their saved lists, and then those user averages are averaged together so each eligible user counts equally. Travel time isn't included.
       </p>
       <p id="info-money-saved-admin" class="hidden text-xs text-slate-700 bg-brand-50 border border-brand-200 rounded-lg p-3">
         <strong>Est. money saved:</strong> for each saved list, ShopWyse compares buying everything at the one store with the lowest total against buying each item at the store where it's cheapest, including Hot Deals they added. That's the "Estimated Money Saved" on the Grocery List. The differences are added up across their saved lists. Lists saved before ShopWyse started recording this are priced at today's prices. Walmart, Target, Costco and Trader Joe's prices are estimates.
       </p>
-      <div id="admin-users" class="space-y-2"></div>
+      <!-- Maintain Users section -->
+      <div id="admin-section-users" class="space-y-4">
+
+        <h3 class="text-lg font-black text-slate-900">
+          Maintain Users
+        </h3>
+
+        <div id="admin-users" class="space-y-2"></div>
+
+      </div>
+
+      <!-- Maintain Records section -->
+      <div id="admin-section-records" class="hidden space-y-4">
+
+        <h3 class="text-lg font-black text-slate-900">
+          Maintain Records
+        </h3>
+
+        <p class="text-sm text-slate-600">
+          View and manage saved grocery lists from all ShopWyse users.
+        </p>
+
+        <div class="flex justify-end">
+          <button
+            type="button"
+            onclick="loadAdminRecords()"
+            class="min-h-[44px] px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-400 text-slate-700 font-bold text-sm rounded-xl transition">
+            Refresh Records
+          </button>
+        </div>
+
+        <p id="admin-records-status" class="text-sm text-slate-600" role="status" aria-live="polite"></p>
+
+        <div id="admin-records" class="space-y-3"></div>
+
+      </div>
     </section>
 
   <!-- ========================================================= -->
@@ -3619,7 +3696,7 @@ function openShoppingTimeBreakdown(event) {
         timeNote.textContent = 'Shown once you answer the "Your Shopping Habits" question.';
       } else {
         timeValue.textContent = formatDuration(timeSaved);
-        timeNote.textContent = `Across ${listsText}, compared with your usual ${Number(state.weeklyShoppingMinutes)} minutes a week`;
+        timeNote.textContent = `Per grocery trip, compared with your usual ${Number(state.weeklyShoppingMinutes)} minutes`;
       }
 
       if (!totals.pricedLists) {
@@ -3960,14 +4037,33 @@ function openShoppingTimeBreakdown(event) {
       return totals;
     }
 
-    // Time saved: for each list, the weekly shopping time the user reported in the survey
-    // minus ShopWyse's estimated in-store time for that list (never below zero).
-    // null if they haven't answered the survey.
+
+    // Time saved PER GROCERY TRIP:
+    // Take the user's original shopping-time estimate and subtract
+    // their average estimated in-store time using ShopWyse.
+    // Never show negative time saved.
     function estimatedTimeSaved(weeklyMinutes, totals) {
-      const minutes = Number(weeklyMinutes);
-      if (weeklyMinutes === null || weeklyMinutes === undefined || !Number.isFinite(minutes) || minutes <= 0 || !totals) return null;
-      return totals.secondsByList.reduce((sum, seconds) => sum + Math.max(0, minutes * 60 - seconds), 0);
+      const baselineMinutes = Number(weeklyMinutes);
+
+      if (
+        weeklyMinutes === null ||
+        weeklyMinutes === undefined ||
+        !Number.isFinite(baselineMinutes) ||
+        baselineMinutes <= 0 ||
+        !totals ||
+        !totals.count
+      ) {
+        return null;
+      }
+
+      const averageShoppingSeconds = totals.seconds / totals.count;
+
+      return Math.max(
+        0,
+        baselineMinutes * 60 - averageShoppingSeconds
+      );
     }
+
 
     // (i) buttons: show or hide the explanation panel the button controls
     function toggleInfo(button) {
@@ -4675,6 +4771,184 @@ async function handleLoginImpl(e) {
         ? null
         : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
     }
+    
+    function showAdminSection(section) {
+      if (!state.isAdmin) return;
+
+      const usersSection = document.getElementById('admin-section-users');
+      const recordsSection = document.getElementById('admin-section-records');
+
+      if (!usersSection || !recordsSection) return;
+
+      if (section === 'users') {
+        usersSection.classList.remove('hidden');
+        recordsSection.classList.add('hidden');
+        loadAdminRecords();
+      } else if (section === 'records') {
+        usersSection.classList.add('hidden');
+        recordsSection.classList.remove('hidden');
+        loadAdminRecords();
+      }
+    }
+
+    function editAdminRecord(listId) {
+      showGroceryListPrompt({
+        title: 'Edit Saved Grocery List',
+        message: 'Record editing is coming next.',
+        confirmText: 'OK',
+        cancelText: '',
+        onConfirm: () => {}
+      });
+    }
+
+    async function deleteAdminRecord(listId) {
+      showGroceryListPrompt({
+        title: 'Delete Saved Grocery List?',
+        message: 'Are you sure you want to delete this saved grocery list? This action cannot be undone.',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        onConfirm: async () => {
+          const { error } = await db
+            .from('saved_grocery_lists')
+            .delete()
+            .eq('list_id', listId);
+
+          if (error) {
+            console.error('Admin record deletion failed:', error);
+            showGroceryListPrompt({
+              title: 'Unable to Delete',
+              message: 'The saved grocery list could not be deleted. Please try again.',
+              confirmText: 'OK',
+              cancelText: '',
+              onConfirm: () => {}
+            });
+            return;
+          }
+
+          await loadAdminRecords();
+        }
+      });
+    }
+
+    async function loadAdminRecords() {
+      const status = document.getElementById('admin-records-status');
+      const container = document.getElementById('admin-records');
+
+      if (!state.isAdmin) return;
+
+      status.textContent = 'Loading saved grocery lists…';
+      container.setAttribute('aria-busy', 'true');
+
+      // Load every saved grocery list
+      let { data: records, error } = await db
+        .from('saved_grocery_lists')
+        .select('list_id, user_id, saved_at, item_count, estimated_seconds, estimated_savings, items')
+        .order('saved_at', { ascending: false });
+
+      // Support databases that do not have estimated_savings yet
+      if (error && /estimated_savings/.test(error.message || '')) {
+        ({ data: records, error } = await db
+          .from('saved_grocery_lists')
+          .select('list_id, user_id, saved_at, item_count, estimated_seconds, items')
+          .order('saved_at', { ascending: false }));
+      }
+
+      if (error) {
+        console.error('Admin records lookup failed:', error);
+        status.textContent = 'Could not load saved grocery lists. Please try again.';
+        container.removeAttribute('aria-busy');
+        return;
+      }
+
+      // Load user names and emails without selecting passwords
+      const { data: users, error: usersError } = await db
+        .from(USERS_TABLE)
+        .select('user_id, first_name, last_name, email');
+
+      if (usersError) {
+        console.error('Admin record owners lookup failed:', usersError);
+        status.textContent = 'Could not load record owner information.';
+        container.removeAttribute('aria-busy');
+        return;
+      }
+
+      const usersById = new Map(
+        (users || []).map(user => [String(user.user_id), user])
+      );
+
+      if (!records || records.length === 0) {
+        status.textContent = 'No saved grocery lists found.';
+        container.replaceChildren();
+        container.removeAttribute('aria-busy');
+        return;
+      }
+
+      status.textContent = `${records.length} saved grocery-list record${records.length === 1 ? '' : 's'} found.`;
+
+      container.innerHTML = records.map(record => {
+        const owner = usersById.get(String(record.user_id));
+        const ownerName = owner
+          ? `${owner.first_name || ''} ${owner.last_name || ''}`.trim()
+          : 'Unknown user';
+
+        const items = Array.isArray(record.items) ? record.items : [];
+        const itemPreview = items.slice(0, 3)
+          .map(item => escapeHtml(item.name || item.id || 'Unnamed item'))
+          .join(', ');
+
+        const moreItems = items.length > 3
+          ? `, and ${items.length - 3} more`
+          : '';
+
+        const savings = record.estimated_savings === null ||
+          record.estimated_savings === undefined
+          ? 'Not available'
+          : `$${Number(record.estimated_savings).toFixed(2)}`;
+
+        return `
+          <article class="rounded-xl border border-slate-200 bg-white p-4 space-y-2">
+            <div class="flex flex-col sm:flex-row sm:justify-between gap-2">
+              <div>
+                <h4 class="font-bold text-slate-900">
+                  ${escapeHtml(ownerName)}
+                </h4>
+                <p class="text-sm text-slate-600">
+                  ${escapeHtml(owner?.email || 'Email unavailable')}
+                </p>
+              </div>
+              <span class="text-xs text-slate-500">
+                Record #${escapeHtml(String(record.list_id))}
+              </span>
+            </div>
+
+            <div class="text-sm text-slate-600 space-y-1">
+              <p><strong>Date saved:</strong> ${escapeHtml(formatAdminDate(record.saved_at) || 'Unknown')}</p>
+              <p><strong>Items:</strong> ${Number(record.item_count) || 0}</p>
+              <p><strong>Estimated shopping time:</strong> ${formatDuration(Number(record.estimated_seconds) || 0)}</p>
+              <p><strong>Estimated money saved:</strong> ${savings}</p>
+              <p><strong>List preview:</strong> ${itemPreview || 'No items'}${moreItems}</p>
+            </div>
+
+            <div class="flex flex-wrap justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onclick="editAdminRecord('${escapeHtml(String(record.list_id))}')"
+                class="min-h-[44px] px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-700 font-bold text-sm rounded-xl transition">
+                Edit
+              </button>
+              <button
+                type="button"
+                onclick="deleteAdminRecord('${escapeHtml(String(record.list_id))}')"
+                class="min-h-[44px] px-4 py-2 bg-red-50 hover:bg-red-100 border border-red-300 text-red-700 font-bold text-sm rounded-xl transition">
+                Delete
+              </button>
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      container.removeAttribute('aria-busy');
+    }
 
     async function loadAdminUsers() {
       const status = document.getElementById('admin-status');
@@ -4735,45 +5009,69 @@ async function handleLoginImpl(e) {
       list.replaceChildren(...data.map(adminUserRow));
     }
 
-    // Total est. time and money saved across every user: the sum of each user's row below
+    // Average estimated time saved per grocery trip across users,
+    // plus total estimated money saved.
     function renderAdminTotals(users, savedLists) {
       const timeEl = document.getElementById('admin-total-time');
       const moneyEl = document.getElementById('admin-total-money');
       const timeNote = document.getElementById('admin-total-time-note');
       const moneyNote = document.getElementById('admin-total-money-note');
+
       if (!adminListTotals) {
         timeEl.textContent = '—';
         moneyEl.textContent = '—';
-        timeNote.textContent = moneyNote.textContent = 'Saved lists couldn\'t be loaded.';
+        timeNote.textContent = moneyNote.textContent =
+          'Saved lists couldn\'t be loaded.';
         return;
       }
+
+      let totalUserTimeSaved = 0;
+      let usersWithTimeSaved = 0;
       let money = 0;
-      let time = 0;
-      let timeUsers = 0;
       let moneyUsers = 0;
       let pricedLists = 0;
       let listCount = 0;
+
       users.forEach(user => {
         const totals = adminListTotals.get(user.user_id);
+
         if (!totals || !totals.count) return;
+
         listCount += totals.count;
-        pricedLists += totals.pricedLists;
+
+        // Calculate this user's average time saved per grocery trip.
+        const userTimeSaved = estimatedTimeSaved(
+          user.weekly_shopping_minutes,
+          totals
+        );
+
+        if (userTimeSaved !== null) {
+          totalUserTimeSaved += userTimeSaved / totals.count;
+          usersWithTimeSaved++;
+        }
+
+        // Keep the existing total estimated money saved.
         if (totals.pricedLists) {
           money += totals.savings;
-          moneyUsers += 1;
-        }
-        const saved = estimatedTimeSaved(user.weekly_shopping_minutes, totals);
-        if (saved !== null) {
-          time += saved;
-          timeUsers += 1;
+          moneyUsers++;
+          pricedLists += totals.pricedLists;
         }
       });
-      const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
-      timeEl.textContent = formatDuration(time);
+
+      const plural = (n, word) =>
+        `${n} ${word}${n === 1 ? '' : 's'}`;
+
+      // Display average time saved per trip across eligible users.
+      timeEl.textContent = usersWithTimeSaved
+        ? formatDuration(totalUserTimeSaved / usersWithTimeSaved)
+        : '—';
+
+      timeNote.textContent = usersWithTimeSaved
+        ? `Average per trip across ${plural(usersWithTimeSaved, 'user')} with saved lists and survey answers`
+        : 'No eligible users yet';
+
       moneyEl.textContent = `$${money.toFixed(2)}`;
-      timeNote.textContent = listCount
-        ? `From ${plural(timeUsers, 'user')} with saved lists and a survey answer`
-        : 'No saved lists yet';
+
       moneyNote.textContent = listCount
         ? `From ${plural(moneyUsers, 'user')} across ${plural(listCount, 'saved list')}${pricedLists < listCount ? ` (${pricedLists} priced)` : ''}`
         : 'No saved lists yet';
@@ -4836,6 +5134,14 @@ async function handleLoginImpl(e) {
         button.addEventListener('click', () => setUserAdmin(user, !isAdmin, button));
         row.append(button);
       }
+      // Allow admins to edit user information
+      const editButton = document.createElement('button');
+      editButton.type = 'button';
+      editButton.className = 'w-full sm:w-auto shrink-0 min-h-[44px] px-4 py-2 font-bold text-sm rounded-xl transition bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-800';
+      editButton.textContent = 'Edit';
+      editButton.setAttribute('aria-label', `Edit ${name}`);
+      editButton.addEventListener('click', () => editAdminUser(user, editButton));
+      row.append(editButton);
       return row;
     }
 
@@ -4859,6 +5165,83 @@ async function handleLoginImpl(e) {
         return;
       }
       showToast(makeAdmin ? `${user.email} is now an admin` : `Removed admin access from ${user.email}`);
+      loadAdminUsers();
+    }
+
+    async function editAdminUser(user, button) {
+      if (!state.isAdmin) return;
+
+      const confirmed = await showGroceryListPrompt(
+        'Edit User Information',
+        `
+          <div class="text-left space-y-3">
+            <div>
+              <label for="admin-edit-first-name" class="block text-sm font-bold text-slate-700 mb-1">First Name</label>
+              <input id="admin-edit-first-name" type="text" value="${escapeHtml(user.first_name || '')}"
+                class="w-full border border-slate-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+            <div>
+              <label for="admin-edit-last-name" class="block text-sm font-bold text-slate-700 mb-1">Last Name</label>
+              <input id="admin-edit-last-name" type="text" value="${escapeHtml(user.last_name || '')}"
+                class="w-full border border-slate-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+            <div>
+              <label for="admin-edit-email" class="block text-sm font-bold text-slate-700 mb-1">Email Address</label>
+              <input id="admin-edit-email" type="email" value="${escapeHtml(user.email || '')}"
+                class="w-full border border-slate-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+          </div>
+        `,
+        [
+          { label: 'Cancel', value: false, style: 'secondary' },
+          { label: 'Save Changes', value: true, style: 'primary' }
+        ]
+      );
+
+      if (!confirmed) return;
+
+      const updatedFirstName = document.getElementById('admin-edit-first-name').value.trim();
+      const updatedLastName = document.getElementById('admin-edit-last-name').value.trim();
+      const updatedEmail = document.getElementById('admin-edit-email').value.trim();
+
+      if (!updatedFirstName || !updatedEmail) {
+        showToast('First name and email are required.');
+        return;
+      }
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updatedEmail)) {
+        showToast('Please enter a valid email address.');
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = 'Saving…';
+
+      const { data, error } = await db
+        .from(USERS_TABLE)
+        .update({
+          first_name: updatedFirstName,
+          last_name: updatedLastName,
+          email: updatedEmail
+        })
+        .eq('user_id', user.user_id)
+        .select('user_id')
+        .maybeSingle();
+
+      if (error || !data) {
+        console.error('User update failed:', error);
+        showToast('Could not update user information. Please try again.');
+        button.disabled = false;
+        button.textContent = 'Edit';
+        return;
+      }
+
+      if (user.user_id === state.user_id) {
+        state.userFirstName = updatedFirstName;
+        state.userEmail = updatedEmail;
+      }
+
+      showToast('User information updated.');
       loadAdminUsers();
     }
 
