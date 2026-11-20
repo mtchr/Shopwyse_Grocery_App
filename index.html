@@ -5084,11 +5084,23 @@ async function handleLoginImpl(e) {
       const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || '(no name)';
 
       const row = document.createElement('div');
-      row.className = 'flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-xl border ' +
+      row.className = 'relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-xl border ' +
         (isAdmin ? 'border-brand-700 bg-brand-50' : 'border-slate-200 bg-white');
 
+      // Keep the delete control in the top-right corner, with space reserved for it.
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'absolute top-2 right-2 w-11 h-11 inline-flex items-center justify-center rounded-lg text-2xl leading-none text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 disabled:opacity-40 disabled:cursor-not-allowed';
+      deleteButton.textContent = '×';
+      deleteButton.setAttribute('aria-label', `Delete user ${name} (${user.email || 'no email'})`);
+      deleteButton.title = isSelf ? 'You cannot delete your own admin account here' : `Delete ${name}`;
+      // The signed-in admin stays available to maintain the remaining users.
+      deleteButton.disabled = isSelf;
+      deleteButton.addEventListener('click', () => deleteAdminUser(user, deleteButton));
+      row.append(deleteButton);
+
       const info = document.createElement('div');
-      info.className = 'min-w-0';
+      info.className = 'min-w-0 flex-1 pr-12 sm:pr-0';
       const nameLine = document.createElement('p');
       nameLine.className = 'font-bold text-slate-900 flex flex-wrap items-center gap-2';
       nameLine.append(document.createTextNode(name));
@@ -5121,28 +5133,80 @@ async function handleLoginImpl(e) {
       info.append(nameLine, email, dates, shoppingTime, savings);
       row.append(info);
 
+      // Equal columns keep Make/Remove admin beside Edit at a consistent width.
+      // On small screens the controls use their own row; leave room for the X on desktop.
+      const actions = document.createElement('div');
+      actions.className = 'grid grid-cols-[minmax(0,1fr)_5rem] sm:grid-cols-[9rem_5rem] gap-2 w-full sm:w-auto shrink-0 sm:mr-12';
+
       // Admins can promote anyone else; you can't remove your own access
       if (!isSelf) {
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = 'w-full sm:w-auto shrink-0 min-h-[44px] px-4 py-2 font-bold text-sm rounded-xl transition ' +
+        button.className = 'w-full min-h-[44px] px-3 py-2 font-bold text-sm rounded-xl transition ' +
           (isAdmin
             ? 'bg-slate-100 hover:bg-slate-200 border border-slate-400 text-slate-700'
             : 'bg-brand-500 hover:bg-brand-600 border border-brand-700 text-white');
         button.textContent = isAdmin ? 'Remove admin' : 'Make admin';
         button.setAttribute('aria-label', `${isAdmin ? 'Remove admin access from' : 'Make admin:'} ${name} (${user.email || 'no email'})`);
         button.addEventListener('click', () => setUserAdmin(user, !isAdmin, button));
-        row.append(button);
+        actions.append(button);
       }
       // Allow admins to edit user information
       const editButton = document.createElement('button');
       editButton.type = 'button';
-      editButton.className = 'w-full sm:w-auto shrink-0 min-h-[44px] px-4 py-2 font-bold text-sm rounded-xl transition bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-800';
+      editButton.className = 'col-start-2 w-full min-h-[44px] px-3 py-2 font-bold text-sm rounded-xl transition bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-800';
       editButton.textContent = 'Edit';
       editButton.setAttribute('aria-label', `Edit ${name}`);
       editButton.addEventListener('click', () => editAdminUser(user, editButton));
-      row.append(editButton);
+      actions.append(editButton);
+      row.append(actions);
       return row;
+    }
+
+    async function deleteAdminUser(user, button) {
+      if (!state.isLoggedIn || !state.isAdmin || String(user.user_id) === String(state.user_id)) return;
+      const actingAdminId = state.user_id;
+      const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email || 'this user';
+
+      // Reuse the pending-action guard so repeated clicks cannot submit duplicate deletes.
+      return runWithPendingButton('delete-admin-user', button, async () => {
+        const confirmed = await showGroceryListPrompt(
+          'Delete User?',
+          `Permanently delete <strong>${escapeHtml(name)}</strong> (${escapeHtml(user.email || 'no email')})? Their saved lists, recipes, and shopping history may also be removed. This cannot be undone.`,
+          [
+            { label: 'Cancel', value: false, style: 'secondary' },
+            { label: 'Delete User', value: true, style: 'danger' }
+          ]
+        );
+
+        // Logging out or switching accounts while confirming must cancel the operation.
+        if (!confirmed || !state.isLoggedIn || !state.isAdmin || state.user_id !== actingAdminId) return;
+
+        // Database foreign-key rules handle related records atomically with this delete.
+        const { data, error } = await db
+          .from(USERS_TABLE)
+          .delete()
+          .eq('user_id', user.user_id)
+          .select('user_id');
+
+        if (error) {
+          console.error('Admin user deletion failed:', error);
+          showToast(error.code === '23503'
+            ? 'This user still has related records that prevent deletion.'
+            : 'Could not delete this user. Please try again.');
+          return;
+        }
+
+        // An empty result can mean the user disappeared or access was denied by a policy.
+        if (!data || data.length === 0) {
+          showToast('No user was deleted. The user may no longer exist or you may not have permission.');
+          await loadAdminUsers();
+          return;
+        }
+
+        showToast(`${name} was deleted.`);
+        await loadAdminUsers(); // Refresh the user cards, count, and savings totals.
+      }, 'Deleting user…');
     }
 
     async function setUserAdmin(user, makeAdmin, button) {
